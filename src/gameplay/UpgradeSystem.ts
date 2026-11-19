@@ -38,7 +38,7 @@ export class UpgradeSystem {
 
     this.eventBus.emit('sound:upgrade');
     this.eventBus.emit('upgrade:purchased', { id: upgradeId, level: state.upgrades[upgradeId] });
-    this.eventBus.emit('ui:toast', { message: `✨ Melhoria adquirida: ${def.name}` });
+    this.eventBus.emit('ui:toast', { message: `Melhoria adquirida: ${def.name}` });
     this.eventBus.emit('save:request', { silent: false });
     this.eventBus.emit('ui:refresh');
 
