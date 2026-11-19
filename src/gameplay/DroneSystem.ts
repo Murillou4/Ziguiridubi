@@ -147,7 +147,7 @@ export class DroneSystem {
             this.eventBus.emit('fx:floatingText', {
               x: homeX,
               y: homeY - 34,
-              text: `+${drone.cargo.length} 🤖`,
+              text: `+${drone.cargo.length}`,
               color: '#a7f3d0'
             });
           }
