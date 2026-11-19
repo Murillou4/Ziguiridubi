@@ -80,8 +80,7 @@ export class GameSimulationController {
 
     // 7. Cartão contextual de inspeção.
     const targetBlueprint =
-      c.buildingSystem.getNearbyBlueprint(player.x, player.y, state) ||
-      c.getHoveredBlueprint();
+      c.buildingSystem.getNearbyBlueprint(player.x, player.y, state);
 
     c.ui.inspectionCard.update(
       targetBlueprint,
