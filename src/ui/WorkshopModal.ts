@@ -107,11 +107,11 @@ export class WorkshopModal {
             const def = RESOURCES[res];
             const have = this.inventorySystem.getTotalResource(state, player, res);
             const ok = have >= (amt || 0);
-            return `<span class="px-2 py-0.5 rounded-lg text-[11px] font-medium ${
+            return `<span data-upgrade-resource data-resource="${res}" data-required="${amt || 0}" class="px-2 py-0.5 rounded-lg text-[11px] font-medium ${
               ok
                 ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/30'
                 : 'bg-rose-950/60 text-rose-200 border border-rose-500/30'
-            }">${def ? def.icon : ''} ${have}/${amt}</span>`;
+            }">${def ? def.icon : ''} <span data-resource-have>${have}</span>/${amt}</span>`;
           }).join(' ')
         : '';
 
@@ -149,6 +149,48 @@ export class WorkshopModal {
         this.upgradeSystem.buyUpgrade(state, player, upgId);
         this.render(state, player);
       });
+    });
+  }
+
+  /**
+   * Atualiza apenas os valores que mudam durante a simulação.
+   * Evita reconstruir os cards e perder foco/estado de interação a cada tick.
+   */
+  refreshResources(state: GameState, player: PlayerState): void {
+    const listEl = document.getElementById('upgradeList');
+    if (!listEl || this.activeUpgradeTab === 'specialization') return;
+
+    listEl.querySelectorAll<HTMLElement>('[data-upgrade-resource]').forEach(chip => {
+      const resource = chip.dataset.resource as ResourceId | undefined;
+      if (!resource) return;
+
+      const required = Number(chip.dataset.required || 0);
+      const have = this.inventorySystem.getTotalResource(state, player, resource);
+      const amountEl = chip.querySelector<HTMLElement>('[data-resource-have]');
+      if (amountEl) amountEl.textContent = String(have);
+
+      const affordable = have >= required;
+      chip.classList.toggle('bg-emerald-950/80', affordable);
+      chip.classList.toggle('text-emerald-200', affordable);
+      chip.classList.toggle('border-emerald-500/30', affordable);
+      chip.classList.toggle('bg-rose-950/60', !affordable);
+      chip.classList.toggle('text-rose-200', !affordable);
+      chip.classList.toggle('border-rose-500/30', !affordable);
+    });
+
+    listEl.querySelectorAll<HTMLButtonElement>('[data-buy-upg]').forEach(button => {
+      const upgradeId = button.dataset.buyUpg;
+      if (!upgradeId) return;
+
+      const affordable = this.upgradeSystem.canBuy(state, player, upgradeId);
+      button.disabled = !affordable;
+      button.classList.toggle('bg-amber-400', affordable);
+      button.classList.toggle('hover:bg-amber-300', affordable);
+      button.classList.toggle('text-stone-950', affordable);
+      button.classList.toggle('cursor-pointer', affordable);
+      button.classList.toggle('bg-stone-800', !affordable);
+      button.classList.toggle('text-stone-500', !affordable);
+      button.classList.toggle('cursor-not-allowed', !affordable);
     });
   }
 }
