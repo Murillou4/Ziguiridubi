@@ -3,7 +3,11 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
@@ -14,7 +18,10 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/**/*.ts",
@@ -22,5 +29,9 @@
     "e2e/**/*.ts",
     "playwright.config.ts"
   ],
-  "exclude": ["node_modules", "dist", "src/**/*.js"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.js"
+  ]
 }
