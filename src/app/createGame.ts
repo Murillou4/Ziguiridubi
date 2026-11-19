@@ -21,21 +21,17 @@ import { AirshipSystem } from '../gameplay/AirshipSystem.ts';
 import { GameApp } from './GameApp.ts';
 
 export function createGame(canvasId: string = 'gameCanvas'): GameApp {
-  const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+  const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
   if (!canvas) {
     throw new Error(`Elemento canvas com id "${canvasId}" não foi encontrado no documento.`);
   }
 
-  // 1. Núcleo desacoplado de eventos
   const eventBus = new EventBus();
-
-  // 2. Infraestrutura externa
   const input = new InputManager(eventBus);
   const renderer = new CanvasRenderer(canvas);
   const audio = new AudioManager(eventBus);
   const saveService = new SaveService(eventBus);
 
-  // 3. Subsistemas de Gameplay
   const worldSystem = new WorldSystem();
   const inventorySystem = new InventorySystem();
   const playerSystem = new PlayerSystem();
@@ -49,7 +45,6 @@ export function createGame(canvasId: string = 'gameCanvas'): GameApp {
   const progressionSystem = new ProgressionSystem(eventBus);
   const airshipSystem = new AirshipSystem(inventorySystem, eventBus);
 
-  // 4. Interface desacoplada
   const ui = new UIManager(
     inventorySystem,
     buildingSystem,
@@ -63,8 +58,7 @@ export function createGame(canvasId: string = 'gameCanvas'): GameApp {
     eventBus
   );
 
-  // 5. Aplicação Coordenadora
-  const app = new GameApp(
+  return new GameApp({
     eventBus,
     input,
     renderer,
@@ -83,7 +77,5 @@ export function createGame(canvasId: string = 'gameCanvas'): GameApp {
     upgradeSystem,
     progressionSystem,
     airshipSystem
-  );
-
-  return app;
+  });
 }

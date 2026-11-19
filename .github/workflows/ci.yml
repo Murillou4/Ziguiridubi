@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - chore/complete-modular-migration
+      - refactor/gameapp-systems-and-regression-tests
   pull_request:
     branches:
       - main
@@ -14,7 +15,7 @@ permissions:
 
 jobs:
   validate:
-    name: Typecheck, tests and production build
+    name: Typecheck, unit tests, browser tests and production build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -34,5 +35,22 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke tests (desktop and mobile)
+        run: npm run test:e2e
+
       - name: Production build
         run: npm run build
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oficina-do-vale-browser-validation
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 7

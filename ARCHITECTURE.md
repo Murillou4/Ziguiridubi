@@ -224,3 +224,23 @@ Os módulos TypeScript em `src/` são a fonte de verdade; cópias JavaScript par
 ### Limite arquitetural conhecido
 
 `GameApp` ainda funciona como coordenador de aplicação e contém alguns fluxos de interação de alto nível (golpe, dash, clique no mundo e interação contextual). Isso mantém a integração atual explícita, mas não deve virar um novo monólito. A extração dessas rotinas para controladores/sistemas especializados é uma etapa de evolução posterior e deve ser feita com testes de regressão, não por uma reescrita arriscada.
+
+
+---
+
+## 11. Controladores de aplicação (refinamento de novembro de 2026)
+
+A classe `GameApp` mantém a composição dos serviços, inicialização, ciclo de vida, persistência de sessão e renderização coordenada. As responsabilidades abaixo foram extraídas:
+
+- `GameContext.ts`: contratos de dependência e contexto de runtime; fornece getters para estado e jogador para que importação de save e reinício não deixem referências obsoletas.
+- `PlayerInteractionController.ts`: dash, golpe, interação contextual, clique no Canvas e inspeção de blueprints.
+- `GameSimulationController.ts`: atualização por frame, movimentação, coleta automática, respawn, drops, expedições, máquinas, drones, câmera, inspeção, ticks de HUD e autosave.
+
+A aplicação injeta as dependências por meio de um objeto `GameAppServices`, evitando um construtor posicional com muitos argumentos. A ordem de atualização existente foi preservada deliberadamente.
+
+A validação de navegador é automatizada com Playwright em Chromium desktop e mobile emulado. Os testes exercitam inicialização, início da jornada, movimento com teclado, abertura/fechamento do mercador, toque nos botões de golpe e dash, e eventos do joystick virtual. Isso é uma verificação automatizada de interação no navegador; não substitui inspeção visual manual em dispositivos físicos.
+
+
+### Revisão visual de navegador
+
+As capturas produzidas pelo Playwright foram revisadas em Chromium desktop (1440×900) e no perfil mobile emulado. A inspeção encontrou um cartão de objetivo largo demais para compartilhar a linha superior em telas estreitas. O HUD foi ajustado com larguras responsivas e o teste mobile agora verifica que os elementos da linha superior permanecem dentro da largura do viewport. A validação automatizada continua sem substituir uma verificação em aparelhos físicos.
