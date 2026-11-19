@@ -26,7 +26,7 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     h: 78,
     cost: { wood: 6 },
     nextTrackedBuildId: 'eastBridge',
-    completionToast: '🪚 Serraria Manual concluída! Ela converte Madeira em Tábuas automaticamente.'
+    completionToast: ' Serraria Manual concluída! Ela converte Madeira em Tábuas automaticamente.'
   },
   {
     id: 'eastBridge',
@@ -40,7 +40,7 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     cost: { planks: 10, stone: 8, coins: 35 },
     nextTrackedBuildId: 'furnace',
     advanceToPhase: 2,
-    completionToast: '🌉 Ponte Leste construída! Explore a Colina de Ferro a leste.'
+    completionToast: ' Ponte Leste construída! Explore a Colina de Ferro a leste.'
   },
   {
     id: 'furnace',
@@ -52,7 +52,7 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     h: 78,
     cost: { stone: 12, planks: 8, coins: 40 },
     nextTrackedBuildId: 'gearWorkshop',
-    completionToast: '🔥 Fornalha de Pedra pronta! Agora você pode fundir Lingotes de Ferro.'
+    completionToast: ' Fornalha de Pedra pronta! Agora você pode fundir Lingotes de Ferro.'
   },
   {
     id: 'gearWorkshop',
@@ -65,7 +65,7 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     cost: { ironIngot: 8, planks: 12, coins: 110 },
     nextTrackedBuildId: 'northBridge',
     advanceToPhase: 3,
-    completionToast: '⚙️ Oficina de Engrenagens concluída!'
+    completionToast: ' Oficina de Engrenagens concluída!'
   },
   {
     id: 'northBridge',
@@ -78,7 +78,7 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     isBridge: true,
     cost: { planks: 16, ironIngot: 8, coins: 140 },
     nextTrackedBuildId: 'airshipDock',
-    completionToast: '🌉 Ponte Norte aberta! Suba até a Doca dos Ventos.'
+    completionToast: ' Ponte Norte aberta! Suba até a Doca dos Ventos.'
   },
   {
     id: 'airshipDock',
@@ -91,7 +91,7 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     cost: { planks: 20, ironIngot: 12, gears: 4, coins: 200 },
     nextTrackedBuildId: 'droneStation',
     advanceToPhase: 4,
-    completionToast: '🎈 Cais do Dirigível construído! Pressione [E] nele para lançar expedições.'
+    completionToast: ' Cais do Dirigível construído! Pressione [E] nele para lançar expedições.'
   },
   {
     id: 'droneStation',
@@ -103,7 +103,7 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     h: 78,
     cost: { ironIngot: 10, gears: 6, coins: 220 },
     nextTrackedBuildId: 'westBridge',
-    completionToast: '🤖 Estação de Drones pronta! Contrate Drones na Bancada de Upgrades.'
+    completionToast: ' Estação de Drones pronta! Contrate Drones na Bancada de Upgrades.'
   },
   {
     id: 'westBridge',
@@ -117,6 +117,6 @@ export const BLUEPRINTS_DEF: BlueprintConfig[] = [
     cost: { gears: 10, steamCore: 3, coins: 420 },
     nextTrackedBuildId: null,
     advanceToPhase: 5,
-    completionToast: '💠 Ponte Oeste concluída! Bem-vindo à Ilha de Cristal.'
+    completionToast: ' Ponte Oeste concluída! Bem-vindo à Ilha de Cristal.'
   }
 ];
