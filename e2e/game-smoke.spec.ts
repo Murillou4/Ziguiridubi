@@ -221,3 +221,40 @@ test('atualiza custos e disponibilidade de upgrades enquanto os drones entregam 
 
   expect(pageErrors).toEqual([]);
 });
+
+
+test('mantém a bancada utilizável em celular compacto, tablet e desktop', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Matriz de tamanhos de viewport.');
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.locator('#btnStartGame').click();
+  await expect.poll(() => page.evaluate(() => window.gameApp?.isPlaying ?? false)).toBe(true);
+  await page.locator('#btnOpenWorkshop').click();
+  await expect(page.locator('#modalWorkshop')).toBeVisible();
+
+  const viewports = [
+    { width: 320, height: 568 },
+    { width: 375, height: 667 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 }
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    const panel = await page.locator('#modalWorkshop > .glass-panel').boundingBox();
+    const list = await page.locator('#upgradeList').evaluate(element => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      clientHeight: element.clientHeight
+    }));
+
+    expect(panel, `Painel ausente em ${viewport.width}x${viewport.height}`).not.toBeNull();
+    expect(panel!.x, `Painel ultrapassou a lateral esquerda em ${viewport.width}px`).toBeGreaterThanOrEqual(0);
+    expect(panel!.x + panel!.width, `Painel ultrapassou a lateral direita em ${viewport.width}px`).toBeLessThanOrEqual(viewport.width + 1);
+    expect(panel!.y, `Painel ultrapassou o topo em ${viewport.height}px`).toBeGreaterThanOrEqual(0);
+    expect(panel!.y + panel!.height, `Painel ultrapassou a base em ${viewport.height}px`).toBeLessThanOrEqual(viewport.height + 1);
+    expect(list.clientHeight).toBeGreaterThan(0);
+    expect(list.scrollWidth, `Conteúdo horizontalmente cortado em ${viewport.width}px`).toBeLessThanOrEqual(list.clientWidth + 1);
+  }
+});
