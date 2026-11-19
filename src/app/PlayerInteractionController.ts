@@ -187,17 +187,7 @@ export class PlayerInteractionController {
   }
 
   updateHoveredBlueprint(): void {
-    const c = this.context;
-    const mouse = c.input.mouse;
-    const hovered: BlueprintConfig | null =
-      c.buildingSystem.blueprints.find(blueprint =>
-        !c.getState().builds[blueprint.id]?.built &&
-        mouse.worldX >= blueprint.x - 12 &&
-        mouse.worldX <= blueprint.x + blueprint.w + 12 &&
-        mouse.worldY >= blueprint.y - 12 &&
-        mouse.worldY <= blueprint.y + blueprint.h + 12
-      ) ?? null;
-
-    c.setHoveredBlueprint(hovered);
+    // Build prompts are proximity-based. Cursor movement cannot trigger them.
+    this.context.setHoveredBlueprint(null);
   }
 }
