@@ -39,7 +39,7 @@ export class BuildingRenderer {
     const coinBob = Math.sin(worldTime * 3.5) * 4;
     ctx.font = '20px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText('🪙', 0, -54 + coinBob);
+    ctx.fillText('MO', 0, -54 + coinBob);
 
     // Placa Legível no Mundo
     ctx.fillStyle = 'rgba(20, 29, 28, 0.88)';
@@ -75,7 +75,7 @@ export class BuildingRenderer {
 
     ctx.font = '22px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText('🔨', 0, 9);
+    ctx.fillText('UP', 0, 9);
 
     ctx.fillStyle = 'rgba(20, 29, 28, 0.85)';
     roundRect(ctx, -88, 30, 176, 22, 8);
@@ -129,7 +129,7 @@ export class BuildingRenderer {
     ctx.font = '700 11px Inter';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fef08a';
-    ctx.fillText(`📐 ${bp.name}`, centerX, centerY - 2);
+    ctx.fillText(` ${bp.name}`, centerX, centerY - 2);
 
     // Mini barra de progresso caso já tenha depositado parte dos materiais
     if (progressPct > 0) {
@@ -239,7 +239,7 @@ export class BuildingRenderer {
       ctx.font = '700 11px Inter';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#fef3c7';
-      ctx.fillText('🎈 Cais do Dirigível [E]', cx, bp.y + bp.h + 15);
+      ctx.fillText(' Cais do Dirigível [E]', cx, bp.y + bp.h + 15);
       ctx.restore();
       return;
     }
@@ -252,10 +252,10 @@ export class BuildingRenderer {
       droneStation: '#0284c7'
     };
     const icons: Record<string, string> = {
-      sawmill: '🪚',
-      furnace: '🔥',
-      gearWorkshop: '⚙️',
-      droneStation: '🤖'
+      sawmill: 'SA',
+      furnace: 'FU',
+      gearWorkshop: 'EG',
+      droneStation: 'DR'
     };
 
     ctx.fillStyle = '#1c1917';
@@ -268,7 +268,7 @@ export class BuildingRenderer {
     ctx.font = '24px Inter';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(icons[bp.id] || '⚙️', cx, cy - 2);
+    ctx.fillText(icons[bp.id] || '', cx, cy - 2);
 
     ctx.font = '600 10.5px Inter';
     ctx.fillStyle = '#fef3c7';
