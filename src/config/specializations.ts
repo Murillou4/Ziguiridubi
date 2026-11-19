@@ -4,7 +4,7 @@ export const SPECIALIZATIONS: SpecializationDef[] = [
   {
     id: 'artisan',
     name: 'Artesão Mestre',
-    icon: '',
+    icon: 'SP',
     tagline: 'Produção ultrarrápida e lucros máximos na Banca do Mercador.',
     bonuses: ['+60% velocidade nas máquinas', '+25% chance de item duplo', '+35% Moedas em vendas e contratos']
   },
