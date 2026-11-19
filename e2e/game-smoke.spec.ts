@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Fluxo de mouse/desktop.');
+
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
 
@@ -14,7 +16,7 @@ test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse
   })).toBe(true);
 
   await page.screenshot({
-    path: testInfo.outputPath('title-screen.png'),
+    path: testInfo.outputPath('title-screen-desktop.png'),
     fullPage: true
   });
 
@@ -34,7 +36,12 @@ test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse
   await page.keyboard.press('Escape');
   await expect(page.locator('#modalMerchant')).toBeHidden();
 
-  await page.mouse.click(800, 450);
+  const canvasBounds = await page.locator('#gameCanvas').boundingBox();
+  expect(canvasBounds).not.toBeNull();
+  await page.mouse.click(
+    canvasBounds!.x + canvasBounds!.width * 0.70,
+    canvasBounds!.y + canvasBounds!.height * 0.50
+  );
   await expect.poll(() => page.evaluate(() => window.gameApp.player.moveTarget !== null)).toBe(true);
 
   await page.screenshot({
@@ -45,7 +52,9 @@ test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse
   expect(pageErrors).toEqual([]);
 });
 
-test('exibe os controles touch e processa toque em golpear, dash e joystick', async ({ page }) => {
+test('exibe os controles touch e processa toque em golpear, dash e joystick', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Fluxo de controles touch/mobile.');
+
   const pageErrors: string[] = [];
   page.on('pageerror', error => pageErrors.push(error.message));
 
@@ -120,5 +129,11 @@ test('exibe os controles touch e processa toque em golpear, dash e joystick', as
   await expect.poll(() =>
     page.evaluate(() => window.gameApp.services.input.virtualJoystick.state.active)
   ).toBe(false);
+
+  await page.screenshot({
+    path: testInfo.outputPath('gameplay-mobile.png'),
+    fullPage: true
+  });
+
   expect(pageErrors).toEqual([]);
 });
