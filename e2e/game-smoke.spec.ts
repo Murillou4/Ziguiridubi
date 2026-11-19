@@ -258,3 +258,50 @@ test('mantém a bancada utilizável em celular compacto, tablet e desktop', asyn
     expect(list.scrollWidth, `Conteúdo horizontalmente cortado em ${viewport.width}px`).toBeLessThanOrEqual(list.clientWidth + 1);
   }
 });
+
+
+test('mantém todos os modais dentro da viewport compacta e com conteúdo rolável', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Auditoria de todos os modais em viewport compacta.');
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.locator('#btnStartGame').click();
+  await expect.poll(() => page.evaluate(() => window.gameApp?.isPlaying ?? false)).toBe(true);
+  await page.setViewportSize({ width: 320, height: 568 });
+
+  const modalIds = [
+    'modalMerchant',
+    'modalWorkshop',
+    'modalProjects',
+    'modalAirship',
+    'modalTransfer',
+    'modalHowToPlay',
+    'modalSettings'
+  ];
+
+  for (const modalId of modalIds) {
+    await page.evaluate(id => {
+      const app = window.gameApp;
+      app.services.ui.openModal(id, () => app.state, () => app.player, () => app.getStats());
+    }, modalId);
+
+    const modal = page.locator(`#${modalId}`);
+    await expect(modal).toBeVisible();
+    await page.waitForTimeout(220);
+
+    const panel = await modal.locator(':scope > .glass-panel').boundingBox();
+    expect(panel, `${modalId}: painel ausente`).not.toBeNull();
+    expect(panel!.x, `${modalId}: excedeu a margem esquerda`).toBeGreaterThanOrEqual(0);
+    expect(panel!.y, `${modalId}: excedeu a margem superior`).toBeGreaterThanOrEqual(0);
+    expect(panel!.x + panel!.width, `${modalId}: excedeu a margem direita`).toBeLessThanOrEqual(321);
+    expect(panel!.y + panel!.height, `${modalId}: excedeu a margem inferior`).toBeLessThanOrEqual(569);
+
+    const content = await modal.locator(':scope > .glass-panel > .p-5').first().evaluate(element => ({
+      clientHeight: element.clientHeight,
+      overflowY: getComputedStyle(element).overflowY
+    }));
+    expect(content.clientHeight, `${modalId}: área de conteúdo sem altura útil`).toBeGreaterThan(0);
+    expect(content.overflowY, `${modalId}: conteúdo sem rolagem`).toMatch(/auto|scroll/);
+
+    await page.evaluate(() => window.gameApp.services.ui.closeAllModals());
+  }
+});
