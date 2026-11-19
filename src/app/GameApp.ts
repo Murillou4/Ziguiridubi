@@ -62,7 +62,7 @@ export class GameApp {
   }
 
   private bindAppEvents(): void {
-    const { eventBus, input, renderer, saveService, audio } = this.services;
+    const { eventBus, input, renderer, saveService, audio, droneSystem } = this.services;
 
     eventBus.on('input:dash', () => this.interactions.triggerDash());
     eventBus.on('input:swing', () => this.interactions.triggerSwing());
@@ -79,6 +79,12 @@ export class GameApp {
     });
 
     eventBus.on('input:canvasClick', () => this.interactions.handleCanvasClick());
+
+    eventBus.on('upgrade:purchased', (data: { id?: string }) => {
+      if (data?.id === 'lumberDrone' || data?.id === 'minerDrone') {
+        droneSystem.syncDrones(this.state);
+      }
+    });
 
     eventBus.on('fx:shake', (data: { magnitude?: number }) => {
       renderer.camera.addShake(data?.magnitude || 4);
@@ -158,6 +164,9 @@ export class GameApp {
     Object.assign(audio.settings, payload.audio);
     audio.applyVolumes();
 
+    // Drone entities are runtime-only and are not part of the save payload.
+    // Recreate them from the imported upgrade levels instead of retaining old jobs/cargo.
+    droneSystem.drones = [];
     droneSystem.syncDrones(this.state);
     saveService.save(this.state, this.player, audio.settings, false);
     ui.refreshAll(() => this.state, () => this.player, () => this.getStats());

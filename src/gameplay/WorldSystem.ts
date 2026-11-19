@@ -65,6 +65,13 @@ export class WorldSystem {
     }
   }
 
+  updateClouds(dt: number): void {
+    this.clouds.forEach(cloud => {
+      cloud.x += cloud.speed * dt;
+      if (cloud.x > 1400) cloud.x = -1400;
+    });
+  }
+
   isPointWalkable(state: GameState, x: number, y: number): boolean {
     for (const isl of this.islands) {
       if (!isl.unlocked(state)) continue;
@@ -79,13 +86,7 @@ export class WorldSystem {
   }
 
   update(dt: number, onRespawn?: (node: ResourceNode) => void): void {
-    // 1. Atualiza nuvens
-    this.clouds.forEach(c => {
-      c.x += c.speed * dt;
-      if (c.x > 1400) c.x = -1400;
-    });
-
-    // 2. Atualiza nós de recursos
+    // Atualiza nós de recursos
     this.nodes.forEach(n => {
       if (n.hitAnim > 0) {
         n.hitAnim = Math.max(0, n.hitAnim - dt * 4.5);

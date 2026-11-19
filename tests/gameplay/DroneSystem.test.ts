@@ -67,4 +67,40 @@ describe('DroneSystem', () => {
     expect(drone.cargo).toEqual([]);
     expect(drone.state).toBe('seek');
   });
+
+  it('remove drones excedentes quando os níveis importados são menores', () => {
+    const state = createDefaultState();
+    const system = new DroneSystem(new EventBus());
+
+    state.upgrades.lumberDrone = 2;
+    state.upgrades.minerDrone = 1;
+    system.syncDrones(state);
+
+    const keptLumberDrone = system.drones.find(drone => drone.kind === 'lumber');
+    expect(keptLumberDrone).toBeDefined();
+
+    state.upgrades.lumberDrone = 1;
+    state.upgrades.minerDrone = 0;
+    system.syncDrones(state);
+
+    expect(system.drones).toHaveLength(1);
+    expect(system.drones[0]).toBe(keptLumberDrone);
+    expect(system.drones[0].kind).toBe('lumber');
+  });
+
+  it('é idempotente e não cria drones duplicados ao sincronizar repetidamente', () => {
+    const state = createDefaultState();
+    const system = new DroneSystem(new EventBus());
+
+    state.upgrades.lumberDrone = 2;
+    state.upgrades.minerDrone = 1;
+    system.syncDrones(state);
+    const originalDrones = [...system.drones];
+
+    system.syncDrones(state);
+
+    expect(system.drones).toHaveLength(3);
+    expect(system.drones).toEqual(originalDrones);
+  });
+
 });

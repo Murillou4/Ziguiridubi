@@ -1,4 +1,4 @@
-import { DerivedStats, DroneEntity, GameState, IslandDef, ResourceNode } from '../domain/types.ts';
+import { DerivedStats, DroneEntity, DroneKind, GameState, IslandDef, ResourceNode } from '../domain/types.ts';
 import { EventBus } from '../core/EventBus.ts';
 import { RESOURCES } from '../config/resources.ts';
 
@@ -8,37 +8,49 @@ export class DroneSystem {
   constructor(private eventBus: EventBus) {}
 
   syncDrones(state: GameState): void {
-    const wantLumber = state.upgrades.lumberDrone || 0;
-    const wantMiner = state.upgrades.minerDrone || 0;
+    const desiredCounts: Record<DroneKind, number> = {
+      lumber: this.normalizeDroneCount(state.upgrades.lumberDrone),
+      miner: this.normalizeDroneCount(state.upgrades.minerDrone)
+    };
+    const currentCounts: Record<DroneKind, number> = {
+      lumber: 0,
+      miner: 0
+    };
 
-    const curLumber = this.drones.filter(d => d.kind === 'lumber').length;
-    const curMiner = this.drones.filter(d => d.kind === 'miner').length;
+    // Preserve drones already in operation, but discard any above the purchased levels.
+    this.drones = this.drones.filter(drone => {
+      if (currentCounts[drone.kind] >= desiredCounts[drone.kind]) {
+        return false;
+      }
 
-    for (let i = curLumber; i < wantLumber; i++) {
-      this.drones.push({
-        kind: 'lumber',
-        x: 220 + i * 25,
-        y: -110,
-        state: 'seek',
-        targetNode: null,
-        cargo: [],
-        workTimer: 0,
-        bobPhase: Math.random() * 6
-      });
+      currentCounts[drone.kind]++;
+      return true;
+    });
+
+    for (let i = currentCounts.lumber; i < desiredCounts.lumber; i++) {
+      this.drones.push(this.createDrone('lumber', i));
     }
 
-    for (let i = curMiner; i < wantMiner; i++) {
-      this.drones.push({
-        kind: 'miner',
-        x: 250 + i * 25,
-        y: -110,
-        state: 'seek',
-        targetNode: null,
-        cargo: [],
-        workTimer: 0,
-        bobPhase: Math.random() * 6
-      });
+    for (let i = currentCounts.miner; i < desiredCounts.miner; i++) {
+      this.drones.push(this.createDrone('miner', i));
     }
+  }
+
+  private normalizeDroneCount(level: number): number {
+    return Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0;
+  }
+
+  private createDrone(kind: DroneKind, index: number): DroneEntity {
+    return {
+      kind,
+      x: (kind === 'lumber' ? 220 : 250) + index * 25,
+      y: -110,
+      state: 'seek',
+      targetNode: null,
+      cargo: [],
+      workTimer: 0,
+      bobPhase: Math.random() * 6
+    };
   }
 
   update(
