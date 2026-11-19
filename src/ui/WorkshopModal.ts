@@ -21,7 +21,7 @@ export class WorkshopModal {
 
     const tabs = [...UPGRADE_CATEGORIES];
     if (state.phase >= 5) {
-      tabs.push({ id: 'specialization' as any, label: 'Especialização', icon: '👑' });
+      tabs.push({ id: 'specialization' as any, label: 'Especialização', icon: '' });
     }
 
     tabsEl.innerHTML = tabs.map(t => {
