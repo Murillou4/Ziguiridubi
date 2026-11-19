@@ -53,7 +53,7 @@ export class AirshipModal {
     } else {
       statusBox.innerHTML = `
         <div class="text-xs text-stone-200 flex items-center gap-2.5">
-          <span class="text-2xl"></span>
+          <span class="route-marker">DOCA</span>
           <div>
             <div class="font-bold text-emerald-200">Dirigível Atracado e Pronto para Decolar</div>
             <div class="text-stone-400">Escolha uma das 3 rotas aéreas abaixo para enviar cargas processadas.</div>
