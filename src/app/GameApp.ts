@@ -197,7 +197,7 @@ export class GameApp {
     saveService.save(this.state, this.player, audio.settings, false);
     ui.refreshAll(() => this.state, () => this.player, () => this.getStats());
     ui.closeAllModals();
-    eventBus.emit('ui:toast', { message: '🌱 Nova jornada iniciada na Clareira do Vale!' });
+    eventBus.emit('ui:toast', { message: 'Nova jornada iniciada na Clareira do Vale!' });
   }
 
   render(): void {
