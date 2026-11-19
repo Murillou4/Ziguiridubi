@@ -144,5 +144,80 @@ test('exibe os controles touch e processa toque em golpear, dash e joystick', as
     fullPage: true
   });
 
+  await page.locator('#btnOpenWorkshop').tap();
+  await expect(page.locator('#modalWorkshop')).toBeVisible();
+  const workshopPanel = await page.locator('#modalWorkshop > .glass-panel').boundingBox();
+  const viewport = await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
+  expect(workshopPanel).not.toBeNull();
+  expect(workshopPanel!.x).toBeGreaterThanOrEqual(0);
+  expect(workshopPanel!.y).toBeGreaterThanOrEqual(0);
+  expect(workshopPanel!.x + workshopPanel!.width).toBeLessThanOrEqual(viewport.width + 1);
+  expect(workshopPanel!.y + workshopPanel!.height).toBeLessThanOrEqual(viewport.height + 1);
+
+  const upgradeListMetrics = await page.locator('#upgradeList').evaluate(element => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    clientHeight: element.clientHeight
+  }));
+  expect(upgradeListMetrics.clientHeight).toBeGreaterThan(0);
+  expect(upgradeListMetrics.scrollWidth).toBeLessThanOrEqual(upgradeListMetrics.clientWidth + 1);
+
+  await page.locator('#modalWorkshop [data-close-modal]').tap();
+  await expect(page.locator('#modalWorkshop')).toBeHidden();
+
+  expect(pageErrors).toEqual([]);
+});
+
+
+test('atualiza custos e disponibilidade de upgrades enquanto os drones entregam recursos', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Fluxo de upgrades desktop.');
+
+  const pageErrors: string[] = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.locator('#btnStartGame').click();
+  await expect.poll(() => page.evaluate(() => window.gameApp?.isPlaying ?? false)).toBe(true);
+
+  await page.evaluate(() => {
+    const app = window.gameApp;
+    app.state.upgrades.toolPower = 1;
+    app.state.storage.planks = 12;
+    app.state.storage.stone = 9;
+    app.state.storage.coins = 55;
+  });
+
+  await page.locator('#btnOpenWorkshop').click();
+  await expect(page.locator('#modalWorkshop')).toBeVisible();
+
+  const stoneCost = page.locator('#upgradeList [data-upgrade-resource][data-resource="stone"]').first();
+  const buyUpgrade = page.locator('#upgradeList [data-buy-upg="toolPower"]');
+  await expect(stoneCost).toContainText('9/10');
+  await expect(buyUpgrade).toBeDisabled();
+
+  // Simula a chegada de um drone minerador ao armazém com uma unidade de pedra.
+  await page.evaluate(() => {
+    const drones = window.gameApp.services.droneSystem.drones as any[];
+    drones.push({
+      kind: 'miner',
+      x: 95,
+      y: -25,
+      state: 'return',
+      targetNode: null,
+      cargo: ['stone'],
+      workTimer: 0,
+      bobPhase: 0
+    });
+  });
+
+  await expect.poll(() => page.evaluate(() => window.gameApp.state.storage.stone)).toBe(10);
+  await expect(stoneCost).toContainText('10/10', { timeout: 2_000 });
+  await expect(buyUpgrade).toBeEnabled();
+
+  // Ao gastar ou perder estoque, o estado visual do botão também precisa acompanhar.
+  await page.evaluate(() => { window.gameApp.state.storage.stone = 9; });
+  await expect(stoneCost).toContainText('9/10', { timeout: 2_000 });
+  await expect(buyUpgrade).toBeDisabled();
+
   expect(pageErrors).toEqual([]);
 });
