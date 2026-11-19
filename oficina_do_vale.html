@@ -1,0 +1,4423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Oficina do Vale — Jogo de Progressão Ativa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    textarea, input {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #162a38;
+      font-family: 'Inter', sans-serif;
+      color: #f4f1ea;
+    }
+
+    .font-display {
+      font-family: 'Fraunces', serif;
+    }
+
+    canvas#gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .glass-panel {
+      background: rgba(20, 29, 28, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(245, 222, 179, 0.22);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-pill {
+      background: rgba(20, 29, 28, 0.82);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(245, 222, 179, 0.2);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(245, 222, 179, 0.26);
+      border-radius: 999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(245, 222, 179, 0.45);
+    }
+
+    input[type="range"].indie-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"].indie-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f59e0b;
+      border: 2px solid #fef3c7;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+    }
+
+    @keyframes modalPop {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal-enter {
+      animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="relative w-full h-full overflow-hidden">
+
+  <!-- CANVAS PRINCIPAL DO MUNDO 2.5D -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- TELA INICIAL SOBRE O MUNDO VIVO -->
+  <div id="titleScreen" class="fixed inset-0 z-40 flex flex-col items-center justify-center p-4 bg-gradient-to-b from-slate-900/45 via-slate-900/35 to-slate-950/75 transition-opacity duration-500">
+    <div class="glass-panel max-w-lg w-full rounded-3xl p-7 sm:p-9 text-center border border-amber-200/25 shadow-2xl modal-enter">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-200 text-xs font-medium tracking-wide mb-4">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span>ARQUIPÉLAGO ARTESANAL • PROGRESSÃO ATIVA</span>
+      </div>
+
+      <h1 class="font-display text-4xl sm:text-5xl font-bold text-amber-50 tracking-tight mb-3 drop-shadow">
+        Oficina do Vale
+      </h1>
+      <p class="text-stone-300 text-sm sm:text-base leading-relaxed mb-7 max-w-md mx-auto">
+        Colete recursos no ritmo crítico, venda excedentes na Banca do Mercador, erga pontes nas Zonas Amarelas e comande expedições no Cais do Dirigível.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+        <button id="btnStartGame" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-stone-950 font-bold text-base shadow-lg shadow-amber-900/40 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2.5">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+          <span id="btnStartLabel">Iniciar Jornada</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 pt-4 border-t border-stone-700/60 text-xs text-stone-300">
+        <div class="bg-black/25 rounded-xl p-2.5">
+          <div class="font-semibold text-amber-300 mb-0.5">WASD / Clique</div>
+          <div class="text-stone-400 text-[11px]">Explorar o Vale</div>
+        </div>
+        <div class="bg-black/25 rounded-xl p-2.5">
+          <div class="font-semibold text-amber-300 mb-0.5">Espaço / Clique</div>
+          <div class="text-stone-400 text-[11px]">Golpe Crítico</div>
+        </div>
+        <div class="bg-black/25 rounded-xl p-2.5">
+          <div class="font-semibold text-amber-300 mb-0.5">Tecla [E]</div>
+          <div class="text-stone-400 text-[11px]">Construir & Vender</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUD MINIMALISTA E CLARO -->
+  <div id="hudLayer" class="fixed inset-0 z-20 pointer-events-none hidden flex-col justify-between p-3 sm:p-4">
+    
+    <!-- Barra Superior Limpa (Esquerda: Recursos & Mochila | Direita: Objetivo & Utilitários) -->
+    <div class="flex items-start justify-between gap-3 w-full">
+      
+      <!-- Esquerda: Recursos + Barra de Mochila Integrada -->
+      <div class="flex flex-col items-start gap-1.5 pointer-events-auto max-w-[62%] sm:max-w-[65%]">
+        <div id="resourceBar" class="glass-pill rounded-2xl px-2.5 py-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs"></div>
+
+        <!-- Mochila + Indicador de Dash -->
+        <div class="glass-pill rounded-xl px-2.5 py-1 flex items-center gap-2.5 text-[11px]">
+          <span class="font-semibold text-amber-200 flex items-center gap-1" title="Capacidade da Mochila">
+            🎒 <span id="backpackText">0/10</span>
+          </span>
+          <div class="w-16 sm:w-20 h-1.5 bg-stone-800 rounded-full overflow-hidden">
+            <div id="backpackFill" class="h-full bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-150" style="width: 0%"></div>
+          </div>
+          <span class="text-stone-600">|</span>
+          <span class="text-sky-200 flex items-center gap-1" title="Dash a Vapor [Shift]">
+            💨 <span id="hudDashStatus" class="font-medium">Pronto</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Direita: Objetivo Atual + Botões Rápidos de Ajuda e Configurações -->
+      <div class="flex items-start gap-1.5 pointer-events-auto shrink-0">
+        <div class="glass-pill rounded-2xl px-3 py-2 w-48 sm:w-64 border-l-4 border-l-amber-400">
+          <div class="flex items-center justify-between gap-2">
+            <span id="phaseBadge" class="text-[10px] uppercase tracking-wider font-bold text-amber-300 truncate">Fase 1 • Descoberta</span>
+            <span id="saveIndicator" class="text-[10px] font-semibold text-emerald-300 opacity-0 transition-opacity duration-300 shrink-0">Salvo ✓</span>
+          </div>
+          <div id="objectiveTitle" class="text-xs font-bold text-stone-100 mt-0.5 truncate">
+            Construir: Serraria Manual
+          </div>
+          <div id="objectiveDesc" class="text-[10.5px] text-stone-300 mt-0.5 leading-tight line-clamp-2">
+            Siga a seta dourada e aperte [E].
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <button id="btnHowToPlay" class="glass-pill hover:bg-amber-500/20 border-amber-300/30 active:scale-95 transition w-8 h-8 rounded-xl text-xs font-bold text-amber-200 flex items-center justify-center cursor-pointer" title="Como Jogar">
+            ?
+          </button>
+          <button id="btnOpenSettings" class="glass-pill hover:bg-white/15 active:scale-95 transition w-8 h-8 rounded-xl text-xs text-stone-200 flex items-center justify-center cursor-pointer" title="Áudio & Opções [P]">
+            ⚙️
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Área Inferior: Banner do Dirigível + Dock Principal Centralizado + Controles Touch -->
+    <div class="flex flex-col items-center gap-2 w-full">
+      <!-- Barra compacta quando o Dirigível está em expedição -->
+      <div id="airshipFlightBanner" class="hidden glass-pill rounded-2xl px-4 py-1.5 items-center gap-3 pointer-events-auto border border-amber-300/35">
+        <span class="text-sm">🎈</span>
+        <div class="text-xs">
+          <div id="airshipFlightTitle" class="font-bold text-amber-200">Dirigível em Expedição...</div>
+          <div class="w-40 h-1.5 bg-stone-800 rounded-full overflow-hidden mt-1">
+            <div id="airshipFlightFill" class="h-full bg-amber-400 transition-all duration-200" style="width: 0%"></div>
+          </div>
+        </div>
+        <button id="btnCollectAirshipHud" class="hidden px-3 py-1 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-stone-950 font-bold text-xs cursor-pointer animate-bounce">
+          Coletar!
+        </button>
+      </div>
+
+      <!-- Dock Inferior Unificado (Sem quebra de linha, nunca bloqueia o centro da tela) -->
+      <div class="glass-pill rounded-2xl p-1.5 flex items-center gap-1 sm:gap-1.5 pointer-events-auto border border-amber-200/20 shadow-xl">
+        <button id="btnOpenMerchant" class="hover:bg-amber-500/20 active:scale-95 transition px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-amber-200 flex items-center gap-1.5 cursor-pointer" title="Banca do Mercador & Contratos [1]">
+          <span>🪙</span>
+          <span>Mercador</span>
+        </button>
+
+        <button id="btnOpenWorkshop" class="hover:bg-sky-500/20 active:scale-95 transition px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-sky-200 flex items-center gap-1.5 cursor-pointer" title="Bancada de Upgrades [2 / Tab]">
+          <span>🔨</span>
+          <span>Upgrades</span>
+        </button>
+
+        <button id="btnOpenProjects" class="hover:bg-yellow-500/20 active:scale-95 transition px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-yellow-200 flex items-center gap-1.5 cursor-pointer" title="Projetos Amarelos & Mapa [3 / M]">
+          <span>📐</span>
+          <span>Projetos</span>
+        </button>
+
+        <button id="btnOpenAirship" class="hidden hover:bg-emerald-500/20 active:scale-95 transition px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-200 items-center gap-1.5 cursor-pointer" title="Expedições do Cais do Dirigível [4]">
+          <span>🎈</span>
+          <span>Dirigível</span>
+        </button>
+
+        <div class="w-px h-5 bg-stone-700/80 mx-0.5"></div>
+
+        <button id="btnOpenTransfer" class="hover:bg-emerald-500/20 active:scale-95 transition px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold text-emerald-200 flex items-center gap-1.5 cursor-pointer" title="Exportar ou Importar Save entre Navegadores">
+          <span>💾</span>
+          <span class="hidden sm:inline">Salvar / Transferir</span>
+          <span class="sm:hidden">Save</span>
+        </button>
+      </div>
+
+      <!-- Controles Virtuais Mobile -->
+      <div id="touchControls" class="md:hidden w-full flex items-end justify-between px-1 pb-0.5 pointer-events-none">
+      <!-- Controles Virtuais Mobile -->
+      <div id="touchControls" class="md:hidden w-full flex items-end justify-between px-2 pb-1 pointer-events-none">
+        <div id="touchJoystickZone" class="w-28 h-28 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm relative pointer-events-auto flex items-center justify-center">
+          <div id="touchJoystickKnob" class="w-11 h-11 rounded-full bg-amber-300/80 shadow-lg pointer-events-none transition-transform duration-75"></div>
+        </div>
+        <div class="flex items-center gap-2.5 pointer-events-auto">
+          <button id="touchBtnInteract" class="w-13 h-13 p-3.5 rounded-2xl bg-emerald-500/90 border border-emerald-200/50 text-stone-950 font-bold text-sm shadow-lg active:scale-90">[E]</button>
+          <button id="touchBtnDash" class="w-13 h-13 p-3.5 rounded-2xl bg-sky-600/85 border border-sky-300/40 text-white font-bold text-lg shadow-lg active:scale-90">💨</button>
+          <button id="touchBtnHit" class="w-16 h-16 rounded-2xl bg-amber-500/90 border border-amber-200/50 text-stone-950 font-bold text-xl shadow-lg active:scale-90">🪓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARTÃO FLUTUANTE NO MUNDO PARA ZONAS AMARELAS E ESTAÇÕES (POSICIONADO VIA JS SOBRE O CANVAS) -->
+  <div id="worldInspectionCard" class="fixed z-[25] hidden pointer-events-auto glass-panel rounded-2xl p-3.5 w-72 border-2 border-amber-400/70 shadow-2xl transition-opacity duration-150">
+    <div class="flex items-center justify-between gap-2 mb-1">
+      <span id="wicBadge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300">Zona de Projeto</span>
+      <span id="wicProgressPct" class="text-[11px] font-bold text-amber-200">0%</span>
+    </div>
+    <h3 id="wicTitle" class="font-display text-base font-bold text-amber-50 leading-tight">Serraria Manual</h3>
+    <p id="wicDesc" class="text-xs text-stone-300 mt-1 leading-snug">Transforma Madeira em Tábuas valiosas.</p>
+    <div id="wicCosts" class="mt-2.5 pt-2 border-t border-stone-700/80 space-y-1 text-xs"></div>
+    <button id="wicActionBtn" class="mt-3 w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5">
+      <span>🔨</span>
+      <span id="wicActionText">[E] Construir / Depositar Recursos</span>
+    </button>
+  </div>
+
+  <!-- NOTIFICAÇÕES TOAST -->
+  <div id="toastContainer" class="fixed bottom-4 left-4 z-30 flex flex-col gap-2 pointer-events-none max-w-xs sm:max-w-sm"></div>
+
+  <!-- MODAL 1: BANCA DO MERCADOR & CONTRATOS DO VALE -->
+  <div id="modalMerchant" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter border border-amber-300/30">
+      <div class="px-5 py-4 border-b border-stone-700/70 flex items-center justify-between gap-3 bg-amber-500/10">
+        <div>
+          <h2 class="font-display text-xl sm:text-2xl font-bold text-amber-200 flex items-center gap-2">
+            <span>🪙</span> Banca do Mercador & Contratos
+          </h2>
+          <p class="text-xs text-stone-300">Venda recursos brutos ou processados por Moedas e cumpra Contratos do Vale.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="px-3.5 py-1.5 rounded-xl bg-black/40 border border-amber-400/40 text-amber-300 font-bold text-sm">
+            🪙 <span id="merchantCoinsDisplay">0</span> Moedas
+          </div>
+          <button data-close-modal class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center cursor-pointer transition">✕</button>
+        </div>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scroll grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+        <!-- Coluna Esquerda: Venda Direta -->
+        <div class="lg:col-span-7 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-300">1. Venda Direta de Recursos</h3>
+            <button id="btnSellSurplus" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-bold text-xs shadow cursor-pointer transition active:scale-95">
+              ✨ Vender Excedentes (Mantém 5 de cada)
+            </button>
+          </div>
+          <div id="merchantSellList" class="space-y-2"></div>
+        </div>
+
+        <!-- Coluna Direita: 3 Contratos do Vale -->
+        <div class="lg:col-span-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-300">2. Contratos do Vale (Bônus Alto)</h3>
+          </div>
+          <div id="merchantContractsList" class="space-y-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: BANCADA DE UPGRADES & ESPECIALIZAÇÃO -->
+  <div id="modalWorkshop" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter">
+      <div class="px-5 py-4 border-b border-stone-700/70 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="font-display text-xl sm:text-2xl font-bold text-sky-100 flex items-center gap-2">
+            <span>🔨</span> Bancada de Upgrades
+          </h2>
+          <p class="text-xs text-stone-400">Evolua ferramentas, mochila, máquinas, drones e sua especialização.</p>
+        </div>
+        <button data-close-modal class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center cursor-pointer transition">✕</button>
+      </div>
+
+      <div id="upgradeTabs" class="px-5 pt-3 pb-2 border-b border-stone-800 flex items-center gap-1.5 overflow-x-auto custom-scroll"></div>
+      <div id="upgradeList" class="p-5 overflow-y-auto custom-scroll grid grid-cols-1 md:grid-cols-2 gap-3.5 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: PROJETOS AMARELOS & MAPA DO ARQUIPÉLAGO -->
+  <div id="modalProjects" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter">
+      <div class="px-5 py-4 border-b border-stone-700/70 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="font-display text-xl sm:text-2xl font-bold text-yellow-200 flex items-center gap-2">
+            <span>📐</span> Projetos Amarelos & Fases da Jornada
+          </h2>
+          <p class="text-xs text-stone-300">Clique em "Rastrear Projeto" para ativar uma seta guia dourada ao redor do seu personagem.</p>
+        </div>
+        <button data-close-modal class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center cursor-pointer transition">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scroll space-y-6 flex-1">
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-amber-300 mb-3">Construções & Pontes (Zonas Amarelas)</h3>
+          <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-sky-300 mb-3">6 Fases de Evolução</h3>
+          <div id="phasesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: PAINEL DO CAIS DO DIRIGÍVEL -->
+  <div id="modalAirship" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter border border-emerald-300/30">
+      <div class="px-5 py-4 border-b border-stone-700/70 flex items-center justify-between gap-3 bg-emerald-500/10">
+        <div>
+          <h2 class="font-display text-xl sm:text-2xl font-bold text-emerald-200 flex items-center gap-2">
+            <span>🎈</span> Cais do Dirigível — Expedições Aéreas
+          </h2>
+          <p class="text-xs text-stone-200 mt-0.5">
+            Envie cargas processadas em expedições aéreas para ganhar grandes quantias de Moedas, Cristais Etéreos e Relíquias Raras.
+          </p>
+        </div>
+        <button data-close-modal class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center cursor-pointer transition">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scroll space-y-5 flex-1">
+        <!-- Status atual do Dirigível -->
+        <div id="airshipStatusBox" class="rounded-2xl p-4 bg-black/30 border border-stone-700/80 flex flex-col sm:flex-row items-center justify-between gap-3"></div>
+
+        <!-- 3 Rotas de Expedição -->
+        <div id="airshipRoutesGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: SALVAR / TRANSFERIR PROGRESSO ENTRE NAVEGADORES -->
+  <div id="modalTransfer" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-2xl max-h-[90vh] rounded-3xl flex flex-col overflow-hidden modal-enter border border-emerald-400/30">
+      <div class="px-5 py-4 border-b border-stone-700/70 flex items-center justify-between">
+        <div>
+          <h2 class="font-display text-xl font-bold text-emerald-200 flex items-center gap-2">
+            <span>💾</span> Salvar & Transferir Progresso
+          </h2>
+          <p class="text-xs text-stone-300">Leve sua oficina para outro navegador ou computador via Código ou Arquivo JSON.</p>
+        </div>
+        <button data-close-modal class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center cursor-pointer transition">✕</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scroll space-y-5">
+        <!-- Exportar -->
+        <div class="rounded-2xl p-4 bg-black/30 border border-stone-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-300">Exportar Progresso Atual</h3>
+            <button id="btnSaveNowTransfer" class="px-3 py-1 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer">
+              Salvar Localmente
+            </button>
+          </div>
+          <p class="text-xs text-stone-300">Copie o código abaixo para colar em outro navegador, ou baixe um arquivo de backup:</p>
+          <textarea id="exportCodeBox" readonly rows="3" class="w-full rounded-xl bg-stone-950/90 border border-stone-700 p-2.5 text-[11px] font-mono text-amber-200 focus:outline-none"></textarea>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button id="btnCopyExportCode" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs cursor-pointer transition active:scale-95">
+              📋 Copiar Código
+            </button>
+            <button id="btnDownloadJson" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-stone-100 font-semibold text-xs cursor-pointer transition">
+              ⬇️ Baixar Backup (.json)
+            </button>
+            <span id="copyConfirmMsg" class="hidden text-xs font-semibold text-emerald-300">✓ Código copiado!</span>
+          </div>
+        </div>
+
+        <!-- Importar -->
+        <div class="rounded-2xl p-4 bg-black/30 border border-stone-800 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-sky-300">Importar Progresso de Outro Navegador</h3>
+          <p class="text-xs text-stone-300">Cole um código começando com <code class="text-amber-300">ODV1_</code> ou selecione um arquivo <code class="text-amber-300">.json</code>:</p>
+          <textarea id="importCodeBox" rows="3" placeholder="Cole aqui o código ODV1_..." class="w-full rounded-xl bg-stone-950/90 border border-stone-700 p-2.5 text-[11px] font-mono text-stone-100 placeholder-stone-500 focus:border-sky-400 focus:outline-none"></textarea>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button id="btnLoadImportCode" class="px-4 py-2 rounded-xl bg-sky-400 hover:bg-sky-300 text-stone-950 font-bold text-xs cursor-pointer transition active:scale-95">
+              📥 Carregar Código
+            </button>
+            <label class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-stone-100 font-semibold text-xs cursor-pointer transition">
+              📂 Importar Arquivo (.json)
+              <input id="importJsonFileInput" type="file" accept=".json,application/json" class="hidden" />
+            </label>
+          </div>
+          <div id="importFeedbackMsg" class="hidden text-xs font-semibold"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: [?] COMO JOGAR (GUIA VISUAL DE 4 PASSOS) -->
+  <div id="modalHowToPlay" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-2xl rounded-3xl flex flex-col overflow-hidden modal-enter border border-amber-300/30">
+      <div class="px-5 py-4 border-b border-stone-700/70 flex items-center justify-between">
+        <h2 class="font-display text-xl font-bold text-amber-200 flex items-center gap-2">
+          <span>🧭</span> Como Jogar — Guia Rápido do Vale
+        </h2>
+        <button data-close-modal class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center cursor-pointer transition">✕</button>
+      </div>
+
+      <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+        <div class="rounded-2xl p-4 bg-black/30 border border-stone-800 space-y-1.5">
+          <div class="text-lg">1. 🪓 Coletar no Ritmo Crítico</div>
+          <p class="text-stone-300 leading-relaxed">
+            Use <strong>WASD / Setas</strong> (ou clique no chão) para andar e <strong>Espaço / Clique</strong> para golpear árvores e rochas. Acerte quando o anel branco alinhar com o <strong>anel dourado</strong> para ganhar recursos extras!
+          </p>
+        </div>
+
+        <div class="rounded-2xl p-4 bg-black/30 border border-stone-800 space-y-1.5">
+          <div class="text-lg">2. 🪚 Processar nas Máquinas</div>
+          <p class="text-stone-300 leading-relaxed">
+            Aproxime-se das máquinas construídas (Serraria, Fornalha, Oficina) para transformar recursos brutos em <strong>Tábuas, Lingotes e Engrenagens</strong> muito mais valiosos.
+          </p>
+        </div>
+
+        <div class="rounded-2xl p-4 bg-black/30 border border-amber-400/30 space-y-1.5">
+          <div class="text-lg text-amber-300">3. 🪙 Vender por Moedas</div>
+          <p class="text-stone-300 leading-relaxed">
+            Vá até a <strong>Banca do Mercador</strong> (toldo listrado dourado no centro da ilha) e pressione <strong>[E]</strong> para vender itens diretamente ou cumprir <strong>Contratos do Vale</strong> por muitas Moedas.
+          </p>
+        </div>
+
+        <div class="rounded-2xl p-4 bg-black/30 border border-yellow-400/30 space-y-1.5">
+          <div class="text-lg text-yellow-300">4. 📐 Construir Zonas Amarelas</div>
+          <p class="text-stone-300 leading-relaxed">
+            Aproxime-se de qualquer <strong>área tracejada em amarelo</strong> para ver os recursos necessários e pressione <strong>[E]</strong> para depositar materiais, erguer pontes e liberar o <strong>Cais do Dirigível</strong>!
+          </p>
+        </div>
+      </div>
+
+      <div class="px-5 pb-5 flex justify-end">
+        <button data-close-modal class="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs cursor-pointer">
+          Entendi, Vamos Explorar!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: ÁUDIO & OPÇÕES -->
+  <div id="modalSettings" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-md rounded-3xl flex flex-col overflow-hidden modal-enter">
+      <div class="px-5 py-4 border-b border-stone-700/70 flex items-center justify-between">
+        <h2 class="font-display text-xl font-bold text-stone-100 flex items-center gap-2">
+          <span>⚙️</span> Áudio & Opções
+        </h2>
+        <button data-close-modal class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center cursor-pointer transition">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div class="space-y-3.5 bg-black/25 p-4 rounded-2xl border border-stone-800">
+          <div class="text-xs font-bold uppercase tracking-wider text-amber-300">Mixer de Áudio Lo-Fi</div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-stone-200 font-medium">Volume Geral</span>
+              <span id="volMasterVal" class="text-amber-300 font-semibold">80%</span>
+            </div>
+            <input id="volMasterSlider" type="range" min="0" max="100" value="80" class="indie-slider" />
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center text-xs mb-1">
+              <div class="flex items-center gap-2">
+                <span class="text-stone-200 font-medium">Trilha Sonora Lo-Fi</span>
+                <button id="btnMuteMusic" class="px-2 py-0.5 rounded bg-white/10 text-[10px] text-stone-200 cursor-pointer">Ativa</button>
+              </div>
+              <span id="volMusicVal" class="text-amber-300 font-semibold">55%</span>
+            </div>
+            <input id="volMusicSlider" type="range" min="0" max="100" value="55" class="indie-slider" />
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center text-xs mb-1">
+              <div class="flex items-center gap-2">
+                <span class="text-stone-200 font-medium">Efeitos Sonoros (SFX)</span>
+                <button id="btnMuteSfx" class="px-2 py-0.5 rounded bg-white/10 text-[10px] text-stone-200 cursor-pointer">Ativos</button>
+              </div>
+              <span id="volSfxVal" class="text-amber-300 font-semibold">85%</span>
+            </div>
+            <input id="volSfxSlider" type="range" min="0" max="100" value="85" class="indie-slider" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button id="btnOpenTransferFromSettings" class="px-4 py-2.5 rounded-xl bg-emerald-600/80 hover:bg-emerald-500 text-white font-semibold text-xs cursor-pointer transition">
+            💾 Exportar / Importar Save
+          </button>
+          <button id="btnResetAsk" class="px-4 py-2.5 rounded-xl bg-rose-950/70 hover:bg-rose-800/80 border border-rose-500/30 text-rose-200 font-semibold text-xs cursor-pointer transition">
+            Reiniciar Jogo
+          </button>
+        </div>
+
+        <div id="resetConfirmBox" class="hidden p-3.5 rounded-2xl bg-rose-950/90 border border-rose-500/40 text-xs space-y-2.5">
+          <p class="text-rose-100 font-medium">Tem certeza? Todo o progresso local será apagado para iniciar do zero.</p>
+          <div class="flex justify-end gap-2">
+            <button id="btnResetCancel" class="px-3 py-1.5 rounded-lg bg-white/10 text-stone-200 cursor-pointer">Cancelar</button>
+            <button id="btnResetConfirm" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold cursor-pointer">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/**
+ * ============================================================================
+ * OFICINA DO VALE — MOTOR COMPLETO DE JOGO DE PROGRESSÃO ATIVA
+ * ============================================================================
+ */
+
+/* --------------------------------------------------------------------------
+   1. SINTETIZADOR LO-FI PROCEDURAL & FOLEY (WEB AUDIO API)
+   -------------------------------------------------------------------------- */
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.musicGain = null;
+    this.sfxGain = null;
+    this.isInitialized = false;
+
+    this.settings = {
+      master: 0.80,
+      music: 0.55,
+      sfx: 0.85,
+      musicMuted: false,
+      sfxMuted: false
+    };
+
+    this.lofiTimer = null;
+    this.chordIndex = 0;
+    this.stepIndex = 0;
+    this.pickupCombo = 0;
+    this.lastPickupTime = 0;
+
+    // Acordes Lo-Fi suaves (Fmaj9 -> Em7 -> Dm9 -> Cmaj9)
+    this.chords = [
+      [174.61, 220.00, 261.63, 329.63, 392.00],
+      [164.81, 196.00, 246.94, 293.66, 392.00],
+      [146.83, 174.61, 220.00, 261.63, 329.63],
+      [130.81, 196.00, 246.94, 293.66, 329.63]
+    ];
+
+    this.pentatonic = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66];
+  }
+
+  init() {
+    if (this.isInitialized) {
+      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      return;
+    }
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    this.ctx = new AudioCtx();
+    this.masterGain = this.ctx.createGain();
+    this.musicGain = this.ctx.createGain();
+    this.sfxGain = this.ctx.createGain();
+
+    this.musicGain.connect(this.masterGain);
+    this.sfxGain.connect(this.masterGain);
+    this.masterGain.connect(this.ctx.destination);
+
+    this.applyVolumes();
+    this.isInitialized = true;
+    this.startVinylTexture();
+    this.startLofiLoop();
+  }
+
+  applyVolumes() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.masterGain.gain.setTargetAtTime(this.settings.master, now, 0.04);
+    this.musicGain.gain.setTargetAtTime(this.settings.musicMuted ? 0 : this.settings.music * 0.40, now, 0.05);
+    this.sfxGain.gain.setTargetAtTime(this.settings.sfxMuted ? 0 : this.settings.sfx * 0.55, now, 0.03);
+  }
+
+  startVinylTexture() {
+    const bufferSize = this.ctx.sampleRate * 3;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      const crackle = Math.random() > 0.9978 ? (Math.random() * 0.3 - 0.15) : 0;
+      data[i] = white * 0.007 + crackle * 0.16;
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1050;
+    filter.Q.value = 0.8;
+
+    noise.connect(filter);
+    filter.connect(this.musicGain);
+    noise.start();
+  }
+
+  startLofiLoop() {
+    if (this.lofiTimer) clearInterval(this.lofiTimer);
+    const stepMs = 415;
+
+    const tick = () => {
+      if (!this.ctx || this.ctx.state !== 'running' || this.settings.musicMuted) return;
+      const stepInBar = this.stepIndex % 8;
+
+      if (stepInBar === 0) {
+        const chord = this.chords[this.chordIndex % this.chords.length];
+        this.playChord(chord, 3.2);
+        this.chordIndex++;
+      }
+      if (stepInBar === 3 || (stepInBar === 6 && Math.random() > 0.35)) {
+        const chord = this.chords[(this.chordIndex - 1 + this.chords.length) % this.chords.length];
+        const note = chord[Math.floor(Math.random() * chord.length)] * 2;
+        this.playPluck(note, 0.65);
+      }
+      if (stepInBar === 0 || stepInBar === 5) this.playKick();
+      else if (stepInBar === 2 || stepInBar === 6) this.playRim();
+
+      this.stepIndex++;
+    };
+
+    tick();
+    this.lofiTimer = setInterval(tick, stepMs);
+  }
+
+  playChord(freqs, duration) {
+    const now = this.ctx.currentTime;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(740, now);
+    filter.frequency.exponentialRampToValueAtTime(460, now + duration);
+
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.linearRampToValueAtTime(0.11, now + 0.16);
+    env.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+
+    filter.connect(env);
+    env.connect(this.musicGain);
+
+    freqs.forEach((f, idx) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = idx % 2 === 0 ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(f + (Math.random() - 0.5) * 1.3, now);
+      osc.connect(filter);
+      osc.start(now + idx * 0.025);
+      osc.stop(now + duration + 0.05);
+    });
+  }
+
+  playPluck(freq, duration) {
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.linearRampToValueAtTime(0.05, now + 0.03);
+    env.gain.exponentialRampToValueAtTime(0.0005, now + duration);
+    osc.connect(env);
+    env.connect(this.musicGain);
+    osc.start(now);
+    osc.stop(now + duration + 0.05);
+  }
+
+  playKick() {
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(92, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.14);
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.12, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc.connect(env);
+    env.connect(this.musicGain);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+
+  playRim() {
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(135, now + 0.05);
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.04, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    osc.connect(env);
+    env.connect(this.musicGain);
+    osc.start(now);
+    osc.stop(now + 0.07);
+  }
+
+  playSwing() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(175 + Math.random() * 35, now);
+    osc.frequency.exponentialRampToValueAtTime(72, now + 0.09);
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.11, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.connect(env);
+    env.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.11);
+  }
+
+  playHit(mat = 'wood', isCrit = false) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const pv = 0.93 + Math.random() * 0.14;
+
+    if (mat === 'wood') {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(160 * pv, now);
+      osc.frequency.exponentialRampToValueAtTime(65 * pv, now + 0.11);
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.28, now);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.13);
+    } else if (mat === 'stone' || mat === 'iron') {
+      const base = mat === 'iron' ? 430 : 280;
+      const osc = this.ctx.createOscillator();
+      osc.type = mat === 'iron' ? 'triangle' : 'square';
+      osc.frequency.setValueAtTime(base * pv, now);
+      osc.frequency.exponentialRampToValueAtTime(base * 0.42 * pv, now + 0.11);
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 1400;
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.22, now);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(filter);
+      filter.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.13);
+    } else {
+      [660, 990, 1320].forEach((f, i) => {
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f * pv, now + i * 0.015);
+        const env = this.ctx.createGain();
+        env.gain.setValueAtTime(0.14 / (i + 1), now + i * 0.015);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(env);
+        env.connect(this.sfxGain);
+        osc.start(now + i * 0.015);
+        osc.stop(now + 0.27);
+      });
+    }
+
+    if (isCrit) {
+      [587.33, 880, 1174.66].forEach((f, idx) => {
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, now + idx * 0.025);
+        const env = this.ctx.createGain();
+        env.gain.setValueAtTime(0.16, now + idx * 0.025);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+        osc.connect(env);
+        env.connect(this.sfxGain);
+        osc.start(now + idx * 0.025);
+        osc.stop(now + 0.36);
+      });
+    }
+  }
+
+  playPickup() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    if (now - this.lastPickupTime < 0.75) {
+      this.pickupCombo = Math.min(this.pickupCombo + 1, this.pentatonic.length - 1);
+    } else {
+      this.pickupCombo = 0;
+    }
+    this.lastPickupTime = now;
+    const freq = this.pentatonic[this.pickupCombo];
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.12, now + 0.08);
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.14, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc.connect(env);
+    env.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  playCoins() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    [987.77, 1318.51].forEach((f, i) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now + i * 0.055);
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.17, now + i * 0.055);
+      env.gain.exponentialRampToValueAtTime(0.001, now + i * 0.055 + 0.25);
+      osc.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(now + i * 0.055);
+      osc.stop(now + i * 0.055 + 0.27);
+    });
+  }
+
+  playHammerBuild() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    [0, 0.11].forEach((delay, idx) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(idx === 0 ? 220 : 330, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(90, now + delay + 0.09);
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.24, now + delay);
+      env.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.1);
+      osc.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.11);
+    });
+  }
+
+  playAirshipHorn() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    [146.83, 220.00].forEach(f => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, now);
+      osc.frequency.linearRampToValueAtTime(f * 1.03, now + 0.45);
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.001, now);
+      env.gain.linearRampToValueAtTime(0.16, now + 0.08);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+      osc.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.68);
+    });
+  }
+
+  playDash() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(240, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.14);
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.15, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc.connect(env);
+    env.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.17);
+  }
+
+  playUpgrade() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    [392.00, 493.88, 587.33, 783.99].forEach((f, idx) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, now + idx * 0.055);
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.18, now + idx * 0.055);
+      env.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.35);
+      osc.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(now + idx * 0.055);
+      osc.stop(now + idx * 0.055 + 0.38);
+    });
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. DEFINIÇÕES DE RECURSOS, UPGRADES, ROTAS DO DIRIGÍVEL E FASES
+   -------------------------------------------------------------------------- */
+const RESOURCES = {
+  wood:       { id: 'wood',       name: 'Madeira',          icon: '🪵', color: '#b46936', sellPrice: 2,   tier: 1 },
+  stone:      { id: 'stone',      name: 'Pedra',            icon: '🪨', color: '#8c969e', sellPrice: 3,   tier: 1 },
+  planks:     { id: 'planks',     name: 'Tábua',            icon: '🪚', color: '#dca058', sellPrice: 9,   tier: 1 },
+  ironOre:    { id: 'ironOre',    name: 'Minério de Ferro', icon: '⛏️', color: '#94a3b8', sellPrice: 7,   tier: 2 },
+  ironIngot:  { id: 'ironIngot',  name: 'Lingote de Ferro', icon: '🔩', color: '#cbd5e1', sellPrice: 24,  tier: 2 },
+  gears:      { id: 'gears',      name: 'Engrenagem',       icon: '⚙️', color: '#f59e0b', sellPrice: 55,  tier: 3 },
+  steamCore:  { id: 'steamCore',  name: 'Núcleo de Vapor',  icon: '🫧', color: '#38bdf8', sellPrice: 95,  tier: 3 },
+  etherCryst: { id: 'etherCryst', name: 'Cristal Etéreo',   icon: '💠', color: '#818cf8', sellPrice: 145, tier: 4 },
+  relic:      { id: 'relic',      name: 'Relíquia Ancestral',icon: '🏺', color: '#f472b6', sellPrice: 0,   tier: 5 },
+  blueprints: { id: 'blueprints', name: 'Planta Técnica',   icon: '📜', color: '#60a5fa', sellPrice: 0,   tier: 2 },
+  coins:      { id: 'coins',      name: 'Moedas',           icon: '🪙', color: '#fde047', sellPrice: 0,   tier: 1 }
+};
+
+const UPGRADE_CATEGORIES = [
+  { id: 'tools',      label: 'Ferramentas',   icon: '🪓' },
+  { id: 'capacity',   label: 'Capacidade',    icon: '🎒' },
+  { id: 'efficiency', label: 'Eficiência',    icon: '⚙️' },
+  { id: 'automation', label: 'Automação',     icon: '🤖' },
+  { id: 'special',    label: 'Especiais',     icon: '🌟' }
+];
+
+const UPGRADES_DEF = [
+  // --- FERRAMENTAS ---
+  {
+    id: 'toolPower',
+    category: 'tools',
+    name: 'Machado & Picareta Temperados',
+    desc: 'Aumenta o dano de coleta e libera jazidas mais duras (Ferro no Nv.2, Cristal Etéreo no Nv.3).',
+    maxLevel: 5,
+    costs: [
+      { planks: 5, coins: 20 },
+      { planks: 12, stone: 10, coins: 55 },
+      { ironIngot: 8, planks: 15, coins: 140 },
+      { gears: 6, ironIngot: 14, coins: 320 },
+      { etherCryst: 4, gears: 10, coins: 650 }
+    ],
+    effectText: (lvl) => `Força ${lvl + 1} → ${lvl + 2}`
+  },
+  {
+    id: 'toolSpeed',
+    category: 'tools',
+    name: 'Cabo Balanceado',
+    desc: 'Acelera o balanço da ferramenta para golpear recursos muito mais rápido.',
+    maxLevel: 4,
+    costs: [
+      { planks: 4, coins: 25 },
+      { ironIngot: 5, coins: 75 },
+      { gears: 4, coins: 190 },
+      { etherCryst: 3, coins: 420 }
+    ],
+    effectText: (lvl) => `+${lvl * 16}% → +${(lvl + 1) * 16}% Velocidade de Golpe`
+  },
+  {
+    id: 'toolReach',
+    category: 'tools',
+    name: 'Alcance Amplo',
+    desc: 'Aumenta o raio e o arco do golpe, permitindo atingir várias árvores ou rochas juntas.',
+    maxLevel: 4,
+    costs: [
+      { planks: 6, stone: 4, coins: 30 },
+      { ironIngot: 6, coins: 85 },
+      { gears: 5, coins: 210 },
+      { etherCryst: 3, coins: 450 }
+    ],
+    effectText: (lvl) => `Alcance ${78 + lvl * 15}px → ${78 + (lvl + 1) * 15}px`
+  },
+  {
+    id: 'sweetSpotMastery',
+    category: 'tools',
+    name: 'Lente de Precisão Crítica',
+    desc: 'Amplia a zona dourada do Sweet Spot e multiplica os recursos extras no golpe perfeito.',
+    maxLevel: 4,
+    costs: [
+      { planks: 5, coins: 35 },
+      { ironIngot: 6, blueprints: 1, coins: 95 },
+      { gears: 5, blueprints: 2, coins: 240 },
+      { etherCryst: 4, coins: 500 }
+    ],
+    effectText: (lvl) => `Bônus Crítico ${(2 + lvl * 0.3).toFixed(1)}x → ${(2 + (lvl + 1) * 0.3).toFixed(1)}x`
+  },
+
+  // --- CAPACIDADE ---
+  {
+    id: 'backpackSize',
+    category: 'capacity',
+    name: 'Mochila de Carga Empilhável',
+    desc: 'Permite carregar mais itens físicos nas costas antes de precisar descarregar.',
+    maxLevel: 5,
+    costs: [
+      { planks: 5, coins: 18 },
+      { planks: 12, stone: 8, coins: 50 },
+      { ironIngot: 8, planks: 14, coins: 130 },
+      { gears: 6, ironIngot: 12, coins: 290 },
+      { etherCryst: 4, gears: 8, coins: 580 }
+    ],
+    effectText: (lvl) => {
+      const caps = [10, 16, 24, 34, 46, 60];
+      return `${caps[lvl]} → ${caps[lvl + 1]} espaços na mochila`;
+    }
+  },
+  {
+    id: 'lightBoots',
+    category: 'capacity',
+    name: 'Botas de Explorador',
+    desc: 'Aumenta a velocidade de movimento e evita lentidão quando a mochila está cheia.',
+    maxLevel: 4,
+    costs: [
+      { planks: 4, coins: 25 },
+      { ironIngot: 5, coins: 70 },
+      { gears: 4, coins: 180 },
+      { steamCore: 2, coins: 360 }
+    ],
+    effectText: (lvl) => `+${lvl * 10}% → +${(lvl + 1) * 10}% Velocidade`
+  },
+
+  // --- EFICIÊNCIA ---
+  {
+    id: 'stationSpeed',
+    category: 'efficiency',
+    name: 'Polias & Transmissão',
+    desc: 'Acelera todas as máquinas de processamento (Serraria, Fornalha e Oficina de Engrenagens).',
+    maxLevel: 4,
+    costs: [
+      { planks: 6, coins: 30 },
+      { ironIngot: 7, coins: 90 },
+      { gears: 5, blueprints: 1, coins: 220 },
+      { steamCore: 3, coins: 460 }
+    ],
+    effectText: (lvl) => `+${lvl * 25}% → +${(lvl + 1) * 25}% Produção`
+  },
+  {
+    id: 'doubleYield',
+    category: 'efficiency',
+    name: 'Refino Sem Desperdício',
+    desc: 'Chance de produzir +1 item processado bônus sem consumir matéria-prima extra.',
+    maxLevel: 4,
+    costs: [
+      { planks: 8, coins: 40 },
+      { ironIngot: 8, blueprints: 1, coins: 110 },
+      { gears: 6, blueprints: 2, coins: 260 },
+      { etherCryst: 4, coins: 520 }
+    ],
+    effectText: (lvl) => `${lvl * 12}% → ${(lvl + 1) * 12}% Item Bônus`
+  },
+  {
+    id: 'merchantFavor',
+    category: 'efficiency',
+    name: 'Carta de Crédito do Vale',
+    desc: 'Aumenta as Moedas ganhas nas vendas da Banca do Mercador e nos Contratos.',
+    maxLevel: 4,
+    costs: [
+      { planks: 6, coins: 45 },
+      { ironIngot: 6, coins: 120 },
+      { gears: 5, coins: 280 },
+      { etherCryst: 3, coins: 550 }
+    ],
+    effectText: (lvl) => `+${lvl * 15}% → +${(lvl + 1) * 15}% Moedas`
+  },
+
+  // --- AUTOMAÇÃO ---
+  {
+    id: 'autoMachines',
+    category: 'automation',
+    name: 'Alimentador Automático de Máquinas',
+    desc: 'Serraria, Fornalha e Oficina de Engrenagens passam a produzir continuamente usando seu estoque, mesmo à distância.',
+    maxLevel: 1,
+    costs: [
+      { ironIngot: 10, planks: 14, coins: 140 }
+    ],
+    effectText: () => 'Máquinas 100% Autônomas'
+  },
+  {
+    id: 'lumberDrone',
+    category: 'automation',
+    name: 'Drone Lenhador a Vapor',
+    desc: 'Libera um drone autônomo que corta árvores e entrega Madeira no seu estoque. (Requer Estação de Drones construída)',
+    maxLevel: 3,
+    requiresBuild: 'droneStation',
+    costs: [
+      { gears: 3, ironIngot: 8, coins: 180 },
+      { gears: 6, steamCore: 1, coins: 360 },
+      { gears: 10, etherCryst: 2, coins: 680 }
+    ],
+    effectText: (lvl) => `${lvl} → ${lvl + 1} Drone(s) Lenhador`
+  },
+  {
+    id: 'minerDrone',
+    category: 'automation',
+    name: 'Drone Minerador a Vapor',
+    desc: 'Libera um drone autônomo que extrai Pedra, Ferro e Cristal Etéreo automaticamente. (Requer Estação de Drones)',
+    maxLevel: 3,
+    requiresBuild: 'droneStation',
+    costs: [
+      { gears: 4, ironIngot: 10, coins: 220 },
+      { gears: 8, steamCore: 2, coins: 440 },
+      { gears: 12, etherCryst: 3, coins: 780 }
+    ],
+    effectText: (lvl) => `${lvl} → ${lvl + 1} Drone(s) Minerador`
+  },
+
+  // --- ESPECIAIS & ESPECIALIZAÇÃO ---
+  {
+    id: 'steamDash',
+    category: 'special',
+    name: 'Propulsor de Dash a Vapor',
+    desc: 'Reduz recarga do Dash [Shift] e coleta recursos frágeis pelo caminho durante o impulso.',
+    maxLevel: 1,
+    costs: [
+      { ironIngot: 6, planks: 10, coins: 95 }
+    ],
+    effectText: () => 'Dash Colhe & Recarrega Rápido'
+  },
+  {
+    id: 'magnetCoil',
+    category: 'special',
+    name: 'Bobina Magnética de Coleta',
+    desc: 'Atrai automaticamente todos os recursos derrubados num raio amplo ao redor do personagem.',
+    maxLevel: 3,
+    costs: [
+      { planks: 8, coins: 40 },
+      { ironIngot: 8, coins: 125 },
+      { gears: 6, steamCore: 1, coins: 310 }
+    ],
+    effectText: (lvl) => `Raio Magnético ${85 + lvl * 55}px → ${85 + (lvl + 1) * 55}px`
+  },
+  {
+    id: 'relicCelestialCore',
+    category: 'special',
+    name: 'Relíquia: Coração Celeste',
+    desc: 'Artefato Supremo forjado com Relíquias da Cidadela Celeste. Dobra toda coleta manual e velocidade dos drones!',
+    maxLevel: 1,
+    costs: [
+      { relic: 1, etherCryst: 4, coins: 900 }
+    ],
+    effectText: () => 'Maestria Suprema do Vale'
+  }
+];
+
+const SPECIALIZATIONS = [
+  {
+    id: 'artisan',
+    name: 'Artesão Mestre',
+    icon: '🏺',
+    tagline: 'Produção ultrarrápida e lucros máximos na Banca do Mercador.',
+    bonuses: ['+60% velocidade nas máquinas', '+25% chance de item duplo', '+35% Moedas em vendas e contratos']
+  },
+  {
+    id: 'airshipMagnate',
+    name: 'Magnata Aéreo',
+    icon: '🎈',
+    tagline: 'Expedições do Cais do Dirigível muito mais rápidas e lucrativas.',
+    bonuses: ['-35% tempo de viagem do Dirigível', '+35% Moedas nas expedições aéreas', '+20% velocidade de caminhada']
+  },
+  {
+    id: 'automataEngineer',
+    name: 'Engenheiro de Automação',
+    icon: '🤖',
+    tagline: 'Drones turbinados e raio magnético gigantesco em todo o arquipélago.',
+    bonuses: ['+70% velocidade e carga dos Drones', '+80% alcance magnético de coleta', 'Aciona máquinas à distância']
+  }
+];
+
+const AIRSHIP_ROUTES = [
+  {
+    id: 'cloud_village',
+    name: 'Vila das Nuvens',
+    duration: 30,
+    desc: 'Rota comercial próxima. Traz Moedas e Núcleos de Vapor.',
+    cost: { planks: 12, stone: 6 },
+    rewards: { coins: 160, steamCore: 1 }
+  },
+  {
+    id: 'crystal_archipelago',
+    name: 'Arquipélago de Cristal',
+    duration: 55,
+    desc: 'Expedição intermediária às ilhas flutuantes de cristal.',
+    cost: { ironIngot: 8, gears: 4 },
+    rewards: { coins: 480, etherCryst: 2 }
+  },
+  {
+    id: 'celestial_citadel',
+    name: 'Cidadela Celeste',
+    duration: 85,
+    desc: 'Viagem épica aos confins do céu em busca de Relíquias Ancestrais.',
+    cost: { gears: 6, etherCryst: 3 },
+    rewards: { coins: 1350, relic: 1 }
+  }
+];
+
+const PHASES_INFO = [
+  { phase: 1, title: 'Fase 1 • Descoberta', desc: 'Colete Madeira e Pedra, erga a Serraria Manual (Zona Amarela) e venda Tábuas na Banca do Mercador.' },
+  { phase: 2, title: 'Fase 2 • Expansão Leste', desc: 'Construa a Ponte Leste, extraia Minério de Ferro e erga a Fornalha de Pedra.' },
+  { phase: 3, title: 'Fase 3 • Engenharia & Rotas', desc: 'Construa a Oficina de Engrenagens, a Ponte Norte e o Cais do Dirigível.' },
+  { phase: 4, title: 'Fase 4 • Automação a Vapor', desc: 'Construa a Estação de Drones e envie expedições aéreas para ganhar Núcleos de Vapor.' },
+  { phase: 5, title: 'Fase 5 • Especialização', desc: 'Desbloqueie sua Build de Especialização na Bancada de Upgrades e abra a Ponte Oeste.' },
+  { phase: 6, title: 'Fase 6 • Endgame Celeste', desc: 'Conquiste a Cidadela Celeste de Dirigível e forje a Relíquia: Coração Celeste.' }
+];
+
+/* --------------------------------------------------------------------------
+   3. MOTOR PRINCIPAL DO JOGO
+   -------------------------------------------------------------------------- */
+class OficinaDoValeGame {
+  constructor() {
+    this.canvas = document.getElementById('gameCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.sound = new SoundEngine();
+
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    this.isPlaying = false;
+    this.activeModal = null;
+    this.activeUpgradeTab = 'tools';
+    this.lastTime = 0;
+    this.worldTime = 0;
+    this.hitStopTimer = 0;
+
+    this.camera = { x: 0, y: 0, shakeX: 0, shakeY: 0, shakeMag: 0 };
+
+    this.state = this.createDefaultState();
+
+    this.player = {
+      x: 0,
+      y: 55,
+      vx: 0,
+      vy: 0,
+      facing: 0,
+      tilt: 0,
+      walkCycle: 0,
+      swingTimer: 0,
+      swingDuration: 0.23,
+      swingAngleStart: 0,
+      swingAngleEnd: 0,
+      cooldownTimer: 0,
+      dashTimer: 0,
+      dashCooldown: 0,
+      dashDirX: 0,
+      dashDirY: 0,
+      invulnTimer: 0,
+      backpack: [],
+      moveTarget: null // {x, y} quando o jogador clica no chão para andar
+    };
+
+    this.nodes = [];
+    this.drops = [];
+    this.particles = [];
+    this.floatingTexts = [];
+    this.drones = [];
+    this.clouds = [];
+    this.hoveredBlueprint = null;
+    this.activeInspectedZone = null;
+
+    this.keys = {};
+    this.mouse = { x: this.width / 2, y: this.height / 2, worldX: 0, worldY: 0 };
+    this.touchJoystick = { active: false, id: null, startX: 0, startY: 0, dx: 0, dy: 0 };
+
+    this.setupWorldLayout();
+    this.loadGame();
+    this.initClouds();
+    this.syncDrones();
+
+    this.bindEvents();
+    this.resize();
+    this.refreshAllUI();
+
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  createDefaultState() {
+    return {
+      phase: 1,
+      storage: {
+        wood: 0,
+        stone: 0,
+        planks: 0,
+        ironOre: 0,
+        ironIngot: 0,
+        gears: 0,
+        steamCore: 0,
+        etherCryst: 0,
+        relic: 0,
+        blueprints: 0,
+        coins: 15
+      },
+      upgrades: {
+        toolPower: 0,
+        toolSpeed: 0,
+        toolReach: 0,
+        sweetSpotMastery: 0,
+        backpackSize: 0,
+        lightBoots: 0,
+        stationSpeed: 0,
+        doubleYield: 0,
+        merchantFavor: 0,
+        autoMachines: 0,
+        lumberDrone: 0,
+        minerDrone: 0,
+        steamDash: 0,
+        magnetCoil: 0,
+        relicCelestialCore: 0
+      },
+      specialization: null,
+      // Progresso das Zonas Amarelas (Blueprints)
+      builds: {
+        sawmill:      { built: false, paid: {} },
+        furnace:      { built: false, paid: {} },
+        gearWorkshop: { built: false, paid: {} },
+        droneStation: { built: false, paid: {} },
+        eastBridge:   { built: false, paid: {} },
+        northBridge:  { built: false, paid: {} },
+        airshipDock:  { built: false, paid: {} },
+        westBridge:   { built: false, paid: {} }
+      },
+      trackedBuildId: 'sawmill',
+      machines: {
+        sawmill:      { progress: 0 },
+        furnace:      { progress: 0 },
+        gearWorkshop: { progress: 0 }
+      },
+      airship: {
+        activeRouteId: null,
+        elapsed: 0,
+        duration: 0,
+        completed: false
+      },
+      contracts: [],
+      stats: {
+        totalHarvested: 0,
+        criticalHits: 0,
+        coinsEarned: 0
+      }
+    };
+  }
+
+  /* ------------------------------------------------------------------------
+     ARQUIPÉLAGO, ZONAS AMARELAS (BLUEPRINTS), BANCA DO MERCADOR E CAIS
+     ------------------------------------------------------------------------ */
+  setupWorldLayout() {
+    this.islands = [
+      {
+        id: 'hub',
+        name: 'Clareira do Vale',
+        x: 0, y: 0, w: 680, h: 520,
+        topColor: '#568c54',
+        edgeColor: '#3b663c',
+        cliffColor: '#5c4b3b',
+        unlocked: () => true
+      },
+      {
+        id: 'east_hill',
+        name: 'Colina de Ferro',
+        x: 760, y: 0, w: 540, h: 440,
+        topColor: '#6b7f59',
+        edgeColor: '#4b5c3e',
+        cliffColor: '#57483b',
+        unlocked: () => this.state.builds.eastBridge.built
+      },
+      {
+        id: 'north_dock',
+        name: 'Doca dos Ventos',
+        x: 0, y: -560, w: 460, h: 360,
+        topColor: '#678566',
+        edgeColor: '#476146',
+        cliffColor: '#54463a',
+        unlocked: () => this.state.builds.northBridge.built
+      },
+      {
+        id: 'west_crystal',
+        name: 'Ilha de Cristal',
+        x: -760, y: 0, w: 520, h: 440,
+        topColor: '#4c6d8a',
+        edgeColor: '#334e66',
+        cliffColor: '#2d3b4d',
+        unlocked: () => this.state.builds.westBridge.built
+      }
+    ];
+
+    // Definição completa de todas as Zonas de Projeto em Amarelo (Blueprints)
+    this.blueprintsDef = [
+      {
+        id: 'sawmill',
+        name: 'Serraria Manual',
+        desc: 'Transforma Madeira em Tábuas valiosas (9 Moedas cada).',
+        x: -175, y: 125, w: 96, h: 78,
+        cost: { wood: 6 },
+        onComplete: () => {
+          this.state.trackedBuildId = 'eastBridge';
+          this.showToast('🪚 Serraria Manual concluída! Ela converte Madeira em Tábuas automaticamente.');
+        }
+      },
+      {
+        id: 'eastBridge',
+        name: 'Ponte Leste: Colina de Ferro',
+        desc: 'Abre acesso aos ricos veios de Minério de Ferro a leste.',
+        x: 340, y: -38, w: 155, h: 76,
+        isBridge: true,
+        cost: { planks: 10, stone: 8, coins: 35 },
+        onComplete: () => {
+          this.advancePhase(2);
+          this.state.trackedBuildId = 'furnace';
+          this.showToast('🌉 Ponte Leste construída! Explore a Colina de Ferro a leste.');
+        }
+      },
+      {
+        id: 'furnace',
+        name: 'Fornalha de Pedra',
+        desc: 'Funde Minério de Ferro em Lingotes de Ferro (24 Moedas cada).',
+        x: 175, y: 125, w: 96, h: 78,
+        cost: { stone: 12, planks: 8, coins: 40 },
+        onComplete: () => {
+          this.state.trackedBuildId = 'gearWorkshop';
+          this.showToast('🔥 Fornalha de Pedra pronta! Agora você pode fundir Lingotes de Ferro.');
+        }
+      },
+      {
+        id: 'gearWorkshop',
+        name: 'Oficina de Engrenagens',
+        desc: 'Forja Engrenagens de precisão para o Dirigível e Drones.',
+        x: 0, y: 170, w: 104, h: 76,
+        cost: { ironIngot: 8, planks: 12, coins: 110 },
+        onComplete: () => {
+          this.advancePhase(3);
+          this.state.trackedBuildId = 'northBridge';
+          this.showToast('⚙️ Oficina de Engrenagens concluída!');
+        }
+      },
+      {
+        id: 'northBridge',
+        name: 'Ponte Norte: Doca dos Ventos',
+        desc: 'Conecta a ilha central ao platô do Cais do Dirigível.',
+        x: -38, y: -380, w: 76, h: 120,
+        isBridge: true,
+        cost: { planks: 16, ironIngot: 8, coins: 140 },
+        onComplete: () => {
+          this.state.trackedBuildId = 'airshipDock';
+          this.showToast('🌉 Ponte Norte aberta! Suba até a Doca dos Ventos.');
+        }
+      },
+      {
+        id: 'airshipDock',
+        name: 'Cais do Dirigível',
+        desc: 'Atraca um dirigível a vapor para expedições aéreas lucrativas.',
+        x: -70, y: -665, w: 140, h: 98,
+        cost: { planks: 20, ironIngot: 12, gears: 4, coins: 200 },
+        onComplete: () => {
+          this.advancePhase(4);
+          this.state.trackedBuildId = 'droneStation';
+          this.showToast('🎈 Cais do Dirigível construído! Pressione [E] nele para lançar expedições.');
+        }
+      },
+      {
+        id: 'droneStation',
+        name: 'Estação de Drones',
+        desc: 'Libera a construção de Drones Lenhadores e Mineradores autônomos.',
+        x: 195, y: -145, w: 96, h: 78,
+        cost: { ironIngot: 10, gears: 6, coins: 220 },
+        onComplete: () => {
+          this.state.trackedBuildId = 'westBridge';
+          this.showToast('🤖 Estação de Drones pronta! Contrate Drones na Bancada de Upgrades.');
+        }
+      },
+      {
+        id: 'westBridge',
+        name: 'Ponte Oeste: Ilha de Cristal',
+        desc: 'Abre o caminho para os Cristais Etéreos e o Endgame Celeste.',
+        x: -500, y: -38, w: 160, h: 76,
+        isBridge: true,
+        cost: { gears: 10, steamCore: 3, coins: 420 },
+        onComplete: () => {
+          this.advancePhase(5);
+          this.state.trackedBuildId = null;
+          this.showToast('💠 Ponte Oeste concluída! Bem-vindo à Ilha de Cristal.');
+        }
+      }
+    ];
+
+    // Nós de Recursos nas 4 Ilhas
+    this.nodes = [];
+    // Ilha Inicial (Clareira do Vale)
+    [
+      [-265, -175], [-285, -35], [-265, 185], [-125, 215],
+      [135, 215], [270, 185], [280, -175], [-115, -205], [95, -205]
+    ].forEach(([x, y]) => this.spawnNode('tree', x, y, 'hub'));
+
+    [
+      [-285, 80], [275, 80], [225, -205], [-220, -205]
+    ].forEach(([x, y]) => this.spawnNode('rock', x, y, 'hub'));
+
+    // Ilha Leste (Colina de Ferro)
+    [
+      [610, -135], [740, -165], [900, -125], [955, 25],
+      [860, 145], [685, 145], [770, 5]
+    ].forEach(([x, y]) => this.spawnNode('iron', x, y, 'east_hill'));
+
+    [[575, 115], [965, -85], [630, -25]].forEach(([x, y]) => this.spawnNode('rock', x, y, 'east_hill'));
+    [[825, -175], [925, 115]].forEach(([x, y]) => this.spawnNode('tree', x, y, 'east_hill'));
+
+    // Ilha Norte (Doca dos Ventos)
+    [[-175, -475], [175, -475], [165, -665]].forEach(([x, y]) => this.spawnNode('tree', x, y, 'north_dock'));
+    [[-165, -665], [185, -565]].forEach(([x, y]) => this.spawnNode('rock', x, y, 'north_dock'));
+
+    // Ilha Oeste (Ilha de Cristal)
+    [
+      [-620, -135], [-765, -165], [-920, -120], [-950, 35],
+      [-850, 150], [-660, 145], [-775, 10]
+    ].forEach(([x, y]) => this.spawnNode('ether', x, y, 'west_crystal'));
+
+    if (!this.state.contracts || this.state.contracts.length === 0) {
+      this.generateContracts();
+    }
+  }
+
+  spawnNode(type, x, y, islandId) {
+    const configs = {
+      tree:  { name: 'Carvalho do Vale', resource: 'wood',       maxHp: 3, reqPower: 1, radius: 26, mat: 'wood',  respawn: 10 },
+      rock:  { name: 'Rocha de Ardósia', resource: 'stone',      maxHp: 4, reqPower: 1, radius: 24, mat: 'stone', respawn: 12 },
+      iron:  { name: 'Veio de Ferro',    resource: 'ironOre',    maxHp: 5, reqPower: 2, radius: 26, mat: 'iron',  respawn: 14 },
+      ether: { name: 'Cristal Etéreo',   resource: 'etherCryst', maxHp: 6, reqPower: 3, radius: 27, mat: 'ether', respawn: 17 }
+    };
+    const c = configs[type];
+    this.nodes.push({
+      id: `${type}_${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      islandId,
+      x, y,
+      name: c.name,
+      resource: c.resource,
+      hp: c.maxHp,
+      maxHp: c.maxHp,
+      reqPower: c.reqPower,
+      radius: c.radius,
+      mat: c.mat,
+      respawnTime: c.respawn,
+      respawnTimer: 0,
+      depleted: false,
+      hitAnim: 0,
+      sweetSpotTimer: 0,
+      sweetSpotDuration: 1.35
+    });
+  }
+
+  initClouds() {
+    this.clouds = [];
+    for (let i = 0; i < 14; i++) {
+      this.clouds.push({
+        x: (Math.random() - 0.5) * 2600,
+        y: (Math.random() - 0.5) * 2000,
+        scale: 0.7 + Math.random() * 1.1,
+        speed: 8 + Math.random() * 10,
+        alpha: 0.14 + Math.random() * 0.14
+      });
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     RECURSOS TOTAIS (ARMAZÉM + MOCHILA FÍSICA INTEGRADOS)
+     ------------------------------------------------------------------------ */
+  getTotalResource(resId) {
+    if (resId === 'coins' || resId === 'blueprints' || resId === 'relic') {
+      return this.state.storage[resId] || 0;
+    }
+    const inBackpack = this.player.backpack.filter(r => r === resId).length;
+    return (this.state.storage[resId] || 0) + inBackpack;
+  }
+
+  consumeResource(resId, amount) {
+    let remaining = amount;
+    // Primeiro consome da mochila física (dando sensação tátil de descarregar das costas!)
+    for (let i = this.player.backpack.length - 1; i >= 0 && remaining > 0; i--) {
+      if (this.player.backpack[i] === resId) {
+        this.player.backpack.splice(i, 1);
+        remaining--;
+      }
+    }
+    // Depois consome do armazém
+    if (remaining > 0) {
+      this.state.storage[resId] = Math.max(0, (this.state.storage[resId] || 0) - remaining);
+    }
+  }
+
+  canAfford(cost) {
+    for (const [res, amt] of Object.entries(cost)) {
+      if (this.getTotalResource(res) < amt) return false;
+    }
+    return true;
+  }
+
+  spendCost(cost) {
+    for (const [res, amt] of Object.entries(cost)) {
+      this.consumeResource(res, amt);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     ATRIBUTOS DERIVADOS DE UPGRADES & ESPECIALIZAÇÃO
+     ------------------------------------------------------------------------ */
+  getStats() {
+    const u = this.state.upgrades;
+    const spec = this.state.specialization;
+
+    const caps = [10, 16, 24, 34, 46, 60];
+    const maxBackpack = caps[u.backpackSize] || 10;
+    const toolPower = 1 + u.toolPower;
+    const swingSpeedMult = 1 + u.toolSpeed * 0.16;
+    const reachRadius = 78 + u.toolReach * 15;
+    const swingArc = 1.5 + u.toolReach * 0.18;
+
+    const sweetSpotWindow = 0.23 + u.sweetSpotMastery * 0.035;
+    const critMult = 2.0 + u.sweetSpotMastery * 0.3;
+
+    const magnetRadius = (85 + u.magnetCoil * 55) * (spec === 'automataEngineer' ? 1.8 : 1);
+    const moveSpeed = (220 + u.lightBoots * 22) * (spec === 'airshipMagnate' ? 1.2 : 1);
+    const dashCooldown = u.steamDash > 0 ? 0.85 : 1.45;
+
+    const stationSpeedMult = 1 + u.stationSpeed * 0.25 + (spec === 'artisan' ? 0.6 : 0);
+    const doubleYieldChance = Math.min(0.85, u.doubleYield * 0.12 + (spec === 'artisan' ? 0.25 : 0));
+    const merchantMult = 1 + u.merchantFavor * 0.15 + (spec === 'artisan' ? 0.35 : 0);
+    const airshipSpeedMult = spec === 'airshipMagnate' ? 1.54 : 1;
+    const airshipRewardMult = spec === 'airshipMagnate' ? 1.35 : 1;
+
+    const droneSpeedMult = 1 + (spec === 'automataEngineer' ? 0.7 : 0) + (u.relicCelestialCore ? 0.5 : 0);
+    const droneCap = 2 + (spec === 'automataEngineer' ? 2 : 0) + (u.relicCelestialCore ? 2 : 0);
+
+    return {
+      maxBackpack,
+      toolPower,
+      swingSpeedMult,
+      reachRadius,
+      swingArc,
+      sweetSpotWindow,
+      critMult,
+      magnetRadius,
+      moveSpeed,
+      dashCooldown,
+      stationSpeedMult,
+      doubleYieldChance,
+      merchantMult,
+      airshipSpeedMult,
+      airshipRewardMult,
+      droneSpeedMult,
+      droneCap
+    };
+  }
+
+  /* ------------------------------------------------------------------------
+     SALVAR, EXPORTAR (ODV1_... & .JSON) E IMPORTAR ENTRE NAVEGADORES
+     ------------------------------------------------------------------------ */
+  buildSavePayload() {
+    // Descarrega mochila no armazém virtual do save para não perder nada na transferência
+    const mergedStorage = { ...this.state.storage };
+    this.player.backpack.forEach(res => {
+      mergedStorage[res] = (mergedStorage[res] || 0) + 1;
+    });
+    return {
+      version: 1,
+      timestamp: Date.now(),
+      state: {
+        ...this.state,
+        storage: mergedStorage
+      },
+      playerPos: { x: this.player.x, y: this.player.y },
+      audio: this.sound.settings
+    };
+  }
+
+  saveGame(silent = false) {
+    try {
+      const payload = this.buildSavePayload();
+      localStorage.setItem('oficina_do_vale_save_v2', JSON.stringify(payload));
+      if (!silent) {
+        const ind = document.getElementById('saveIndicator');
+        if (ind) {
+          ind.style.opacity = '1';
+          setTimeout(() => { ind.style.opacity = '0'; }, 1700);
+        }
+      }
+    } catch (e) {
+      // Ignora erro em modo privado
+    }
+  }
+
+  applyLoadedPayload(parsed) {
+    if (!parsed || !parsed.state || !parsed.state.storage) {
+      throw new Error('Estrutura de save inválida.');
+    }
+    const def = this.createDefaultState();
+    this.state = {
+      ...def,
+      ...parsed.state,
+      storage: { ...def.storage, ...(parsed.state.storage || {}) },
+      upgrades: { ...def.upgrades, ...(parsed.state.upgrades || {}) },
+      builds: { ...def.builds, ...(parsed.state.builds || {}) },
+      machines: { ...def.machines, ...(parsed.state.machines || {}) },
+      airship: { ...def.airship, ...(parsed.state.airship || {}) },
+      stats: { ...def.stats, ...(parsed.state.stats || {}) }
+    };
+    this.player.backpack = [];
+    this.drops = [];
+    if (parsed.playerPos && typeof parsed.playerPos.x === 'number') {
+      this.player.x = parsed.playerPos.x;
+      this.player.y = parsed.playerPos.y;
+    }
+    if (parsed.audio) {
+      Object.assign(this.sound.settings, parsed.audio);
+      this.sound.applyVolumes();
+    }
+    this.syncDrones();
+    this.saveGame(false);
+    this.refreshAllUI();
+  }
+
+  loadGame() {
+    try {
+      const raw = localStorage.getItem('oficina_do_vale_save_v2');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      this.applyLoadedPayload(parsed);
+      document.getElementById('btnStartLabel').textContent = 'Continuar Jornada';
+    } catch (e) {
+      // Save inválido: mantém padrão
+    }
+  }
+
+  generateExportCode() {
+    const payload = this.buildSavePayload();
+    const jsonStr = JSON.stringify(payload);
+    const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    return 'ODV1_' + b64;
+  }
+
+  importFromCode(codeStr) {
+    const trimmed = (codeStr || '').trim();
+    if (!trimmed.startsWith('ODV1_')) {
+      throw new Error('O código deve começar com ODV1_');
+    }
+    const b64 = trimmed.slice(5);
+    const jsonStr = decodeURIComponent(escape(atob(b64)));
+    const parsed = JSON.parse(jsonStr);
+    this.applyLoadedPayload(parsed);
+  }
+
+  resetGame() {
+    localStorage.removeItem('oficina_do_vale_save_v2');
+    this.state = this.createDefaultState();
+    this.player.x = 0;
+    this.player.y = 55;
+    this.player.backpack = [];
+    this.drops = [];
+    this.drones = [];
+    this.setupWorldLayout();
+    this.syncDrones();
+    this.saveGame(false);
+    this.refreshAllUI();
+    this.closeAllModals();
+    this.showToast('🌱 Nova jornada iniciada na Clareira do Vale!');
+  }
+
+  /* ------------------------------------------------------------------------
+     EVENTOS DE TECLADO, MOUSE, TOUCH E INTERFACE
+     ------------------------------------------------------------------------ */
+  bindEvents() {
+    window.addEventListener('resize', () => this.resize());
+
+    document.getElementById('btnStartGame').addEventListener('click', () => {
+      this.sound.init();
+      this.sound.playUpgrade();
+      const title = document.getElementById('titleScreen');
+      title.style.opacity = '0';
+      setTimeout(() => { title.style.display = 'none'; }, 450);
+      const hud = document.getElementById('hudLayer');
+      hud.classList.remove('hidden');
+      hud.classList.add('flex');
+      this.isPlaying = true;
+      this.refreshAllUI();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      const code = e.code;
+      this.keys[code] = true;
+      if (!this.isPlaying) return;
+
+      // Não intercepta teclas enquanto o usuário digita no campo de importar save
+      if (document.activeElement && (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) {
+        if (code === 'Escape') this.closeAllModals();
+        return;
+      }
+
+      if (code === 'Escape') {
+        if (this.activeModal) this.closeAllModals();
+        else this.openModal('modalSettings');
+        return;
+      }
+
+      if (code === 'Tab') {
+        e.preventDefault();
+        this.toggleModal('modalWorkshop');
+        return;
+      }
+
+      if (code === 'KeyM') {
+        this.toggleModal('modalProjects');
+        return;
+      }
+
+      if (code === 'Digit1') {
+        this.toggleModal('modalMerchant');
+        return;
+      }
+
+      if (code === 'Digit2') {
+        this.toggleModal('modalWorkshop');
+        return;
+      }
+
+      if (code === 'Digit3') {
+        this.toggleModal('modalProjects');
+        return;
+      }
+
+      if (code === 'Digit4' && this.state.builds.airshipDock.built) {
+        this.toggleModal('modalAirship');
+        return;
+      }
+
+      if (code === 'KeyP') {
+        this.toggleModal('modalSettings');
+        return;
+      }
+
+      if (this.activeModal) return;
+
+      if (code === 'Space') {
+        e.preventDefault();
+        this.player.moveTarget = null;
+        this.triggerSwing();
+      } else if (code === 'ShiftLeft' || code === 'ShiftRight') {
+        e.preventDefault();
+        this.player.moveTarget = null;
+        this.triggerDash();
+      } else if (code === 'KeyE') {
+        e.preventDefault();
+        this.triggerContextInteract();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      this.keys[e.code] = false;
+    });
+
+    // Mouse no Canvas: Hover nas Zonas Amarelas + Clique Esquerdo (Coletar ou Andar)
+    this.canvas.addEventListener('mousemove', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      this.mouse.x = e.clientX - rect.left;
+      this.mouse.y = e.clientY - rect.top;
+      this.updateMouseWorld();
+      this.updateHoveredBlueprint();
+    });
+
+    this.canvas.addEventListener('mousedown', (e) => {
+      if (!this.isPlaying || this.activeModal) return;
+      this.sound.init();
+      const rect = this.canvas.getBoundingClientRect();
+      this.mouse.x = e.clientX - rect.left;
+      this.mouse.y = e.clientY - rect.top;
+      this.updateMouseWorld();
+
+      if (e.button === 2) {
+        this.triggerDash();
+        return;
+      }
+
+      if (e.button === 0) {
+        this.player.facing = Math.atan2(this.mouse.worldY - this.player.y, this.mouse.worldX - this.player.x);
+
+        // Verifica se clicou perto de um nó de recurso
+        const clickedNode = this.nodes.find(n => !n.depleted && Math.hypot(n.x - this.mouse.worldX, n.y - this.mouse.worldY) <= n.radius + 26);
+        if (clickedNode) {
+          const dist = Math.hypot(clickedNode.x - this.player.x, clickedNode.y - this.player.y);
+          if (dist <= this.getStats().reachRadius + clickedNode.radius) {
+            this.player.moveTarget = null;
+            this.triggerSwing();
+          } else {
+            // Caminha até o recurso clicado
+            this.player.moveTarget = { x: clickedNode.x, y: clickedNode.y, autoHitNode: clickedNode };
+          }
+          return;
+        }
+
+        // Verifica se clicou na Banca do Mercador ou no Cais do Dirigível perto
+        if (Math.hypot(this.mouse.worldX - (-95), this.mouse.worldY - (-25)) < 58 && Math.hypot(this.player.x - (-95), this.player.y - (-25)) < 115) {
+          this.openModal('modalMerchant');
+          return;
+        }
+
+        // Se está perto de recurso na direção do clique, golpeia; senão, caminha suavemente até o ponto clicado!
+        const hasNodeInRange = this.nodes.some(n => !n.depleted && Math.hypot(n.x - this.player.x, n.y - this.player.y) <= this.getStats().reachRadius + n.radius);
+        if (hasNodeInRange) {
+          this.player.moveTarget = null;
+          this.triggerSwing();
+        } else if (this.isPointWalkable(this.mouse.worldX, this.mouse.worldY)) {
+          this.player.moveTarget = { x: this.mouse.worldX, y: this.mouse.worldY };
+        } else {
+          this.triggerSwing();
+        }
+      }
+    });
+
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Botões de HUD e Modais
+    document.getElementById('btnOpenMerchant').addEventListener('click', () => this.toggleModal('modalMerchant'));
+    document.getElementById('btnOpenWorkshop').addEventListener('click', () => this.toggleModal('modalWorkshop'));
+    document.getElementById('btnOpenProjects').addEventListener('click', () => this.toggleModal('modalProjects'));
+    document.getElementById('btnOpenAirship').addEventListener('click', () => this.toggleModal('modalAirship'));
+    document.getElementById('btnOpenTransfer').addEventListener('click', () => this.toggleModal('modalTransfer'));
+    document.getElementById('btnOpenSettings').addEventListener('click', () => this.toggleModal('modalSettings'));
+    document.getElementById('btnHowToPlay').addEventListener('click', () => this.toggleModal('modalHowToPlay'));
+    document.getElementById('btnOpenTransferFromSettings').addEventListener('click', () => this.openModal('modalTransfer'));
+    document.getElementById('btnCollectAirshipHud').addEventListener('click', () => this.collectAirshipRewards());
+
+    document.getElementById('wicActionBtn').addEventListener('click', () => {
+      if (this.activeInspectedZone) {
+        this.interactWithBlueprint(this.activeInspectedZone.id);
+      }
+    });
+
+    document.getElementById('btnSellSurplus').addEventListener('click', () => this.sellAllSurplus());
+
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+      btn.addEventListener('click', () => this.closeAllModals());
+    });
+
+    document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) this.closeAllModals();
+      });
+    });
+
+    // Mixer de Áudio
+    document.getElementById('volMasterSlider').addEventListener('input', (e) => {
+      this.sound.settings.master = Number(e.target.value) / 100;
+      this.sound.applyVolumes();
+      this.syncAudioSlidersUI();
+      this.saveGame(true);
+    });
+    document.getElementById('volMusicSlider').addEventListener('input', (e) => {
+      this.sound.settings.music = Number(e.target.value) / 100;
+      this.sound.applyVolumes();
+      this.syncAudioSlidersUI();
+      this.saveGame(true);
+    });
+    document.getElementById('volSfxSlider').addEventListener('input', (e) => {
+      this.sound.settings.sfx = Number(e.target.value) / 100;
+      this.sound.applyVolumes();
+      this.syncAudioSlidersUI();
+      this.saveGame(true);
+    });
+    document.getElementById('btnMuteMusic').addEventListener('click', () => {
+      this.sound.settings.musicMuted = !this.sound.settings.musicMuted;
+      this.sound.applyVolumes();
+      this.syncAudioSlidersUI();
+      this.saveGame(true);
+    });
+    document.getElementById('btnMuteSfx').addEventListener('click', () => {
+      this.sound.settings.sfxMuted = !this.sound.settings.sfxMuted;
+      this.sound.applyVolumes();
+      this.syncAudioSlidersUI();
+      this.saveGame(true);
+    });
+
+    // Exportar / Importar Save
+    document.getElementById('btnSaveNowTransfer').addEventListener('click', () => {
+      this.saveGame(false);
+      document.getElementById('exportCodeBox').value = this.generateExportCode();
+      this.showToast('💾 Progresso salvo no navegador!');
+    });
+
+    document.getElementById('btnCopyExportCode').addEventListener('click', () => {
+      const box = document.getElementById('exportCodeBox');
+      box.value = this.generateExportCode();
+      box.select();
+      box.setSelectionRange(0, box.value.length);
+      try {
+        document.execCommand('copy');
+      } catch (e) {}
+      const msg = document.getElementById('copyConfirmMsg');
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 2400);
+    });
+
+    document.getElementById('btnDownloadJson').addEventListener('click', () => {
+      const payload = this.buildSavePayload();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'oficina-do-vale-save.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      this.showToast('⬇️ Backup oficina-do-vale-save.json baixado!');
+    });
+
+    document.getElementById('btnLoadImportCode').addEventListener('click', () => {
+      const raw = document.getElementById('importCodeBox').value;
+      const fb = document.getElementById('importFeedbackMsg');
+      try {
+        this.importFromCode(raw);
+        fb.textContent = '✅ Progresso carregado com sucesso!';
+        fb.className = 'text-xs font-semibold text-emerald-300';
+        fb.classList.remove('hidden');
+        this.sound.playUpgrade();
+        this.showToast('✅ Progresso importado e restaurado!');
+        setTimeout(() => this.closeAllModals(), 900);
+      } catch (err) {
+        fb.textContent = '❌ Código inválido: ' + err.message;
+        fb.className = 'text-xs font-semibold text-rose-300';
+        fb.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('importJsonFileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const fb = document.getElementById('importFeedbackMsg');
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          this.applyLoadedPayload(parsed);
+          fb.textContent = '✅ Arquivo JSON importado com sucesso!';
+          fb.className = 'text-xs font-semibold text-emerald-300';
+          fb.classList.remove('hidden');
+          this.sound.playUpgrade();
+          this.showToast('✅ Backup JSON restaurado com sucesso!');
+          setTimeout(() => this.closeAllModals(), 900);
+        } catch (err) {
+          fb.textContent = '❌ Arquivo JSON inválido.';
+          fb.className = 'text-xs font-semibold text-rose-300';
+          fb.classList.remove('hidden');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Reset
+    document.getElementById('btnResetAsk').addEventListener('click', () => {
+      document.getElementById('resetConfirmBox').classList.remove('hidden');
+    });
+    document.getElementById('btnResetCancel').addEventListener('click', () => {
+      document.getElementById('resetConfirmBox').classList.add('hidden');
+    });
+    document.getElementById('btnResetConfirm').addEventListener('click', () => {
+      document.getElementById('resetConfirmBox').classList.add('hidden');
+      this.resetGame();
+    });
+
+    this.setupTouchControls();
+  }
+
+  setupTouchControls() {
+    const joyZone = document.getElementById('touchJoystickZone');
+    const joyKnob = document.getElementById('touchJoystickKnob');
+
+    joyZone.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.sound.init();
+      const t = e.changedTouches[0];
+      const rect = joyZone.getBoundingClientRect();
+      this.touchJoystick.active = true;
+      this.touchJoystick.id = t.identifier;
+      this.touchJoystick.startX = rect.left + rect.width / 2;
+      this.touchJoystick.startY = rect.top + rect.height / 2;
+    }, { passive: false });
+
+    joyZone.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!this.touchJoystick.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === this.touchJoystick.id) {
+          const maxR = 38;
+          let dx = t.clientX - this.touchJoystick.startX;
+          let dy = t.clientY - this.touchJoystick.startY;
+          const dist = Math.hypot(dx, dy);
+          if (dist > maxR) {
+            dx = (dx / dist) * maxR;
+            dy = (dy / dist) * maxR;
+          }
+          this.touchJoystick.dx = dx / maxR;
+          this.touchJoystick.dy = dy / maxR;
+          joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+        }
+      }
+    }, { passive: false });
+
+    const endJoy = (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === this.touchJoystick.id) {
+          this.touchJoystick.active = false;
+          this.touchJoystick.dx = 0;
+          this.touchJoystick.dy = 0;
+          joyKnob.style.transform = 'translate(0px, 0px)';
+        }
+      }
+    };
+    joyZone.addEventListener('touchend', endJoy);
+    joyZone.addEventListener('touchcancel', endJoy);
+
+    document.getElementById('touchBtnHit').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.sound.init();
+      this.triggerSwing();
+    }, { passive: false });
+
+    document.getElementById('touchBtnDash').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.sound.init();
+      this.triggerDash();
+    }, { passive: false });
+
+    document.getElementById('touchBtnInteract').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.sound.init();
+      this.triggerContextInteract();
+    }, { passive: false });
+  }
+
+  resize() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = Math.floor(this.width * this.dpr);
+    this.canvas.height = Math.floor(this.height * this.dpr);
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  }
+
+  updateMouseWorld() {
+    this.mouse.worldX = this.mouse.x - this.width / 2 + this.camera.x;
+    this.mouse.worldY = this.mouse.y - this.height / 2 + this.camera.y;
+  }
+
+  updateHoveredBlueprint() {
+    this.hoveredBlueprint = null;
+    for (const bp of this.blueprintsDef) {
+      if (this.state.builds[bp.id]?.built) continue;
+      if (this.mouse.worldX >= bp.x - 12 && this.mouse.worldX <= bp.x + bp.w + 12 &&
+          this.mouse.worldY >= bp.y - 12 && this.mouse.worldY <= bp.y + bp.h + 12) {
+        this.hoveredBlueprint = bp;
+        break;
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     COLETA ATIVA, PONTO CRÍTICO (SWEET SPOT) & DASH
+     ------------------------------------------------------------------------ */
+  triggerDash() {
+    const stats = this.getStats();
+    if (this.player.dashCooldown > 0 || this.player.dashTimer > 0) return;
+
+    let dx = 0, dy = 0;
+    if (this.keys['KeyW'] || this.keys['ArrowUp']) dy -= 1;
+    if (this.keys['KeyS'] || this.keys['ArrowDown']) dy += 1;
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) dx -= 1;
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) dx += 1;
+    if (this.touchJoystick.active) {
+      dx += this.touchJoystick.dx;
+      dy += this.touchJoystick.dy;
+    }
+
+    if (Math.hypot(dx, dy) < 0.1) {
+      dx = Math.cos(this.player.facing);
+      dy = Math.sin(this.player.facing);
+    } else {
+      const len = Math.hypot(dx, dy);
+      dx /= len;
+      dy /= len;
+    }
+
+    this.player.dashDirX = dx;
+    this.player.dashDirY = dy;
+    this.player.dashTimer = 0.18;
+    this.player.dashCooldown = stats.dashCooldown;
+
+    this.sound.playDash();
+    this.addShake(4);
+
+    if (this.state.upgrades.steamDash > 0) {
+      this.nodes.forEach(node => {
+        if (!node.depleted && node.reqPower <= stats.toolPower && Math.hypot(node.x - this.player.x, node.y - this.player.y) < 105) {
+          this.damageNode(node, 1, false);
+        }
+      });
+    }
+
+    for (let i = 0; i < 12; i++) {
+      this.particles.push({
+        x: this.player.x,
+        y: this.player.y,
+        vx: -dx * (60 + Math.random() * 80) + (Math.random() - 0.5) * 60,
+        vy: -dy * (60 + Math.random() * 80) + (Math.random() - 0.5) * 60,
+        size: 3 + Math.random() * 4,
+        color: '#fde047',
+        life: 0.35,
+        maxLife: 0.35
+      });
+    }
+  }
+
+  triggerSwing() {
+    const stats = this.getStats();
+    if (this.player.cooldownTimer > 0) return;
+
+    this.player.swingDuration = 0.23 / stats.swingSpeedMult;
+    this.player.swingTimer = this.player.swingDuration;
+    this.player.cooldownTimer = 0.28 / stats.swingSpeedMult;
+    this.player.swingAngleStart = this.player.facing - stats.swingArc * 0.55;
+    this.player.swingAngleEnd = this.player.facing + stats.swingArc * 0.55;
+
+    this.sound.playSwing();
+
+    let hitAny = false;
+    this.nodes.forEach(node => {
+      if (node.depleted) return;
+      const isl = this.islands.find(i => i.id === node.islandId);
+      if (isl && !isl.unlocked()) return;
+
+      const dx = node.x - this.player.x;
+      const dy = node.y - this.player.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist <= stats.reachRadius + node.radius) {
+        const angleToNode = Math.atan2(dy, dx);
+        let diff = angleToNode - this.player.facing;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+
+        if (Math.abs(diff) <= stats.swingArc * 0.72 || dist < 48) {
+          hitAny = true;
+          this.handleHitNode(node);
+        }
+      }
+    });
+
+    if (hitAny) this.addShake(3.5);
+  }
+
+  handleHitNode(node) {
+    const stats = this.getStats();
+    if (stats.toolPower < node.reqPower) {
+      this.sound.playHit('stone', false);
+      this.spawnFloatingText(node.x, node.y - 26, `Requer Ferramenta Nv.${node.reqPower}`, '#fca5a5');
+      this.spawnBurst(node.x, node.y, '#cbd5e1', 6);
+      return;
+    }
+
+    let isCrit = false;
+    if (node.sweetSpotTimer > 0) {
+      const progress = node.sweetSpotTimer / node.sweetSpotDuration;
+      if (progress >= 0.10 && progress <= 0.10 + stats.sweetSpotWindow) {
+        isCrit = true;
+      }
+    }
+
+    const dmg = Math.max(1, stats.toolPower - (node.reqPower - 1));
+    this.damageNode(node, dmg, isCrit);
+
+    if (!node.depleted) {
+      node.sweetSpotTimer = node.sweetSpotDuration;
+    }
+  }
+
+  damageNode(node, dmg, isCrit) {
+    const stats = this.getStats();
+    node.hp -= dmg;
+    node.hitAnim = 1.0;
+    this.sound.playHit(node.mat, isCrit);
+
+    if (isCrit) {
+      this.hitStopTimer = 0.032;
+      this.addShake(5.5);
+      this.state.stats.criticalHits++;
+      this.spawnFloatingText(node.x, node.y - 30, '★ CRÍTICO!', '#fde047');
+      this.spawnBurst(node.x, node.y, '#fde047', 16);
+    } else {
+      this.spawnBurst(node.x, node.y, RESOURCES[node.resource].color, 8);
+    }
+
+    let yieldAmt = isCrit ? Math.round(2 * (stats.critMult / 2)) : 1;
+    if (this.state.upgrades.relicCelestialCore > 0) yieldAmt *= 2;
+
+    if (node.hp <= 0) {
+      node.hp = 0;
+      node.depleted = true;
+      node.respawnTimer = node.respawnTime;
+      node.sweetSpotTimer = 0;
+      yieldAmt += 1;
+      this.spawnBurst(node.x, node.y, RESOURCES[node.resource].color, 18);
+    }
+
+    for (let i = 0; i < yieldAmt; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = 70 + Math.random() * 90;
+      this.drops.push({
+        resource: node.resource,
+        x: node.x,
+        y: node.y,
+        z: 14,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        vz: 140 + Math.random() * 60,
+        age: 0
+      });
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     INTERAÇÃO COM ZONAS AMARELAS (DEPOSITO INCREMENTAL), MERCADOR E DIRIGÍVEL
+     ------------------------------------------------------------------------ */
+  triggerContextInteract() {
+    // 1. Se houver uma Zona Amarela próxima, deposita recursos / constrói!
+    const nearBp = this.getNearbyBlueprint();
+    if (nearBp) {
+      this.interactWithBlueprint(nearBp.id);
+      return;
+    }
+
+    // 2. Perto da Banca do Mercador (-95, -25)
+    if (Math.hypot(this.player.x - (-95), this.player.y - (-25)) < 95) {
+      this.openModal('modalMerchant');
+      return;
+    }
+
+    // 3. Perto da Bancada de Upgrades (95, -25)
+    if (Math.hypot(this.player.x - 95, this.player.y - (-25)) < 95) {
+      this.openModal('modalWorkshop');
+      return;
+    }
+
+    // 4. Perto do Cais do Dirigível construído (0, -616)
+    if (this.state.builds.airshipDock.built && Math.hypot(this.player.x - 0, this.player.y - (-616)) < 135) {
+      this.openModal('modalAirship');
+      return;
+    }
+  }
+
+  getNearbyBlueprint() {
+    let closest = null;
+    let bestDist = 115;
+    for (const bp of this.blueprintsDef) {
+      if (this.state.builds[bp.id]?.built) continue;
+      const cx = bp.x + bp.w / 2;
+      const cy = bp.y + bp.h / 2;
+      const d = Math.hypot(this.player.x - cx, this.player.y - cy);
+      if (d < bestDist) {
+        bestDist = d;
+        closest = bp;
+      }
+    }
+    return closest;
+  }
+
+  interactWithBlueprint(bpId) {
+    const bp = this.blueprintsDef.find(b => b.id === bpId);
+    if (!bp) return;
+    const buildState = this.state.builds[bpId];
+    if (!buildState || buildState.built) return;
+
+    let depositedAny = false;
+    let allComplete = true;
+
+    for (const [res, totalNeeded] of Object.entries(bp.cost)) {
+      const alreadyPaid = buildState.paid[res] || 0;
+      const stillMissing = totalNeeded - alreadyPaid;
+      if (stillMissing > 0) {
+        const available = this.getTotalResource(res);
+        const toPay = Math.min(stillMissing, available);
+        if (toPay > 0) {
+          this.consumeResource(res, toPay);
+          buildState.paid[res] = alreadyPaid + toPay;
+          depositedAny = true;
+        }
+        if ((buildState.paid[res] || 0) < totalNeeded) {
+          allComplete = false;
+        }
+      }
+    }
+
+    const cx = bp.x + bp.w / 2;
+    const cy = bp.y + bp.h / 2;
+
+    if (depositedAny) {
+      this.sound.playHammerBuild();
+      this.addShake(4);
+      this.spawnBurst(cx, cy, '#fde047', 16);
+      this.spawnFloatingText(cx, cy - 22, '🔨 Materiais Depositados!', '#fde047');
+    } else if (!allComplete) {
+      this.showToast('⚠️ Colete ou venda recursos na Banca do Mercador para completar esta obra.');
+      return;
+    }
+
+    if (allComplete) {
+      buildState.built = true;
+      this.sound.playUpgrade();
+      this.addShake(8);
+      this.spawnBurst(cx, cy, '#4ade80', 28);
+      if (bp.onComplete) bp.onComplete();
+      this.saveGame(false);
+      this.refreshAllUI();
+    } else {
+      this.saveGame(true);
+      this.updateHUDOnly();
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     BANCA DO MERCADOR (VENDA DIRETA & CONTRATOS DO VALE)
+     ------------------------------------------------------------------------ */
+  generateContracts() {
+    const p = this.state.phase;
+    const templates = [
+      { title: 'Carpintaria da Vila',   req: { planks: 8, wood: 6 },       coins: 95,  blueprints: 1 },
+      { title: 'Muralha do Jardim',     req: { stone: 12, planks: 6 },     coins: 110, blueprints: 1 },
+      { title: 'Ferreiro do Vale',      req: { ironIngot: 6, planks: 8 },  coins: 210, blueprints: 1 },
+      { title: 'Relojoeiro Celeste',    req: { gears: 4, ironIngot: 6 },   coins: 360, blueprints: 2 }
+    ];
+    if (p >= 4) {
+      templates.push(
+        { title: 'Frota a Vapor',       req: { steamCore: 2, gears: 5 },   coins: 540, blueprints: 2 },
+        { title: 'Observatório Astral', req: { etherCryst: 3, gears: 4 },  coins: 720, blueprints: 3 }
+      );
+    }
+
+    const shuffled = [...templates].sort(() => Math.random() - 0.5);
+    this.state.contracts = shuffled.slice(0, 3).map(t => ({
+      id: 'ct_' + Math.random().toString(36).slice(2, 7),
+      title: t.title,
+      req: { ...t.req },
+      coins: t.coins,
+      blueprints: t.blueprints
+    }));
+  }
+
+  sellDirectResource(resId, mode) {
+    const def = RESOURCES[resId];
+    if (!def || def.sellPrice <= 0) return;
+    const totalHave = this.getTotalResource(resId);
+    let qty = 0;
+    if (mode === 'one') qty = Math.min(1, totalHave);
+    else if (mode === 'all') qty = totalHave;
+
+    if (qty <= 0) return;
+    const stats = this.getStats();
+    const coinsGained = Math.max(1, Math.round(qty * def.sellPrice * stats.merchantMult));
+
+    this.consumeResource(resId, qty);
+    this.state.storage.coins += coinsGained;
+    this.state.stats.coinsEarned += coinsGained;
+
+    this.sound.playCoins();
+    this.renderMerchantModal();
+    this.updateHUDOnly();
+  }
+
+  sellAllSurplus() {
+    const stats = this.getStats();
+    let totalCoins = 0;
+    Object.values(RESOURCES).forEach(r => {
+      if (r.sellPrice > 0) {
+        const have = this.getTotalResource(r.id);
+        const surplus = Math.max(0, have - 5);
+        if (surplus > 0) {
+          this.consumeResource(r.id, surplus);
+          totalCoins += Math.round(surplus * r.sellPrice * stats.merchantMult);
+        }
+      }
+    });
+
+    if (totalCoins > 0) {
+      this.state.storage.coins += totalCoins;
+      this.state.stats.coinsEarned += totalCoins;
+      this.sound.playCoins();
+      this.showToast(`🪙 Excedentes vendidos por +${totalCoins} Moedas!`);
+      this.renderMerchantModal();
+      this.updateHUDOnly();
+    } else {
+      this.showToast('ℹ️ Você não possui mais de 5 unidades excedentes no momento.');
+    }
+  }
+
+  completeContract(contractId) {
+    const idx = this.state.contracts.findIndex(c => c.id === contractId);
+    if (idx === -1) return;
+    const ct = this.state.contracts[idx];
+    if (!this.canAfford(ct.req)) return;
+
+    this.spendCost(ct.req);
+    const stats = this.getStats();
+    const coins = Math.round(ct.coins * stats.merchantMult);
+    this.state.storage.coins += coins;
+    this.state.storage.blueprints += ct.blueprints;
+    this.state.stats.coinsEarned += coins;
+
+    this.sound.playUpgrade();
+    this.showToast(`📜 Contrato entregue! +${coins} Moedas e +${ct.blueprints} Planta(s) Técnica(s)!`);
+
+    // Repõe 1 novo contrato
+    this.state.contracts.splice(idx, 1);
+    const old = [...this.state.contracts];
+    this.generateContracts();
+    this.state.contracts = [...old, this.state.contracts[0]].slice(0, 3);
+
+    this.saveGame(false);
+    this.renderMerchantModal();
+    this.updateHUDOnly();
+  }
+
+  /* ------------------------------------------------------------------------
+     CAIS DO DIRIGÍVEL — 3 ROTAS DE EXPEDIÇÃO AÉREA
+     ------------------------------------------------------------------------ */
+  launchAirshipRoute(routeId) {
+    if (!this.state.builds.airshipDock.built) return;
+    if (this.state.airship.activeRouteId) return;
+
+    const route = AIRSHIP_ROUTES.find(r => r.id === routeId);
+    if (!route || !this.canAfford(route.cost)) return;
+
+    this.spendCost(route.cost);
+    const stats = this.getStats();
+    const duration = Math.max(10, Math.round(route.duration / stats.airshipSpeedMult));
+
+    this.state.airship = {
+      activeRouteId: route.id,
+      elapsed: 0,
+      duration,
+      completed: false
+    };
+
+    this.sound.playAirshipHorn();
+    this.showToast(`🎈 Dirigível decolou rumo à ${route.name} (${duration}s)!`);
+    this.saveGame(false);
+    this.renderAirshipModal();
+    this.updateHUDOnly();
+  }
+
+  collectAirshipRewards() {
+    const air = this.state.airship;
+    if (!air.activeRouteId || !air.completed) return;
+
+    const route = AIRSHIP_ROUTES.find(r => r.id === air.activeRouteId);
+    const stats = this.getStats();
+
+    if (route) {
+      for (const [res, amt] of Object.entries(route.rewards)) {
+        const finalAmt = res === 'coins' ? Math.round(amt * stats.airshipRewardMult) : amt;
+        this.state.storage[res] = (this.state.storage[res] || 0) + finalAmt;
+      }
+      if (route.id === 'celestial_citadel') {
+        this.advancePhase(6);
+      }
+    }
+
+    this.state.airship = {
+      activeRouteId: null,
+      elapsed: 0,
+      duration: 0,
+      completed: false
+    };
+
+    this.sound.playUpgrade();
+    this.showToast(`🎉 Expedição concluída! Recompensas descarregadas no Cais.`);
+    this.saveGame(false);
+    this.renderAirshipModal();
+    this.refreshAllUI();
+  }
+
+  /* ------------------------------------------------------------------------
+     MÁQUINAS DE PROCESSAMENTO & DRONES AUTÔNOMOS
+     ------------------------------------------------------------------------ */
+  updateMachines(dt) {
+    const stats = this.getStats();
+    const autoAll = this.state.upgrades.autoMachines > 0 || this.state.specialization === 'automataEngineer';
+
+    // 1. Serraria Manual: 2 Madeira -> 1 Tábua
+    if (this.state.builds.sawmill.built) {
+      const bp = this.blueprintsDef.find(b => b.id === 'sawmill');
+      const near = Math.hypot(this.player.x - (bp.x + bp.w / 2), this.player.y - (bp.y + bp.h / 2)) < 95;
+      if (this.getTotalResource('wood') >= 2 && (near || autoAll)) {
+        this.state.machines.sawmill.progress += 0.55 * stats.stationSpeedMult * dt;
+        if (this.state.machines.sawmill.progress >= 1) {
+          this.state.machines.sawmill.progress = 0;
+          this.consumeResource('wood', 2);
+          const bonus = Math.random() < stats.doubleYieldChance ? 1 : 0;
+          const out = 1 + bonus;
+          this.state.storage.planks += out;
+          this.spawnFloatingText(bp.x + bp.w / 2, bp.y - 12, `+${out} Tábua${bonus ? ' ★' : ''}`, '#fcd34d');
+          this.spawnBurst(bp.x + bp.w / 2, bp.y + bp.h / 2, '#dca058', 8);
+        }
+      }
+    }
+
+    // 2. Fornalha de Pedra: 2 Minério de Ferro -> 1 Lingote de Ferro
+    if (this.state.builds.furnace.built) {
+      const bp = this.blueprintsDef.find(b => b.id === 'furnace');
+      const near = Math.hypot(this.player.x - (bp.x + bp.w / 2), this.player.y - (bp.y + bp.h / 2)) < 95;
+      if (this.getTotalResource('ironOre') >= 2 && (near || autoAll)) {
+        this.state.machines.furnace.progress += 0.45 * stats.stationSpeedMult * dt;
+        if (this.state.machines.furnace.progress >= 1) {
+          this.state.machines.furnace.progress = 0;
+          this.consumeResource('ironOre', 2);
+          const bonus = Math.random() < stats.doubleYieldChance ? 1 : 0;
+          const out = 1 + bonus;
+          this.state.storage.ironIngot += out;
+          this.spawnFloatingText(bp.x + bp.w / 2, bp.y - 12, `+${out} Lingote${bonus ? ' ★' : ''}`, '#e2e8f0');
+          this.spawnBurst(bp.x + bp.w / 2, bp.y + bp.h / 2, '#f97316', 9);
+        }
+      }
+    }
+
+    // 3. Oficina de Engrenagens: 2 Lingotes de Ferro + 2 Tábuas -> 1 Engrenagem
+    if (this.state.builds.gearWorkshop.built) {
+      const bp = this.blueprintsDef.find(b => b.id === 'gearWorkshop');
+      const near = Math.hypot(this.player.x - (bp.x + bp.w / 2), this.player.y - (bp.y + bp.h / 2)) < 95;
+      if (this.getTotalResource('ironIngot') >= 2 && this.getTotalResource('planks') >= 2 && (near || autoAll)) {
+        this.state.machines.gearWorkshop.progress += 0.38 * stats.stationSpeedMult * dt;
+        if (this.state.machines.gearWorkshop.progress >= 1) {
+          this.state.machines.gearWorkshop.progress = 0;
+          this.consumeResource('ironIngot', 2);
+          this.consumeResource('planks', 2);
+          const bonus = Math.random() < stats.doubleYieldChance ? 1 : 0;
+          const out = 1 + bonus;
+          this.state.storage.gears += out;
+          this.spawnFloatingText(bp.x + bp.w / 2, bp.y - 12, `+${out} Engrenagem${bonus ? ' ★' : ''}`, '#fbbf24');
+          this.spawnBurst(bp.x + bp.w / 2, bp.y + bp.h / 2, '#f59e0b', 10);
+        }
+      }
+    }
+  }
+
+  syncDrones() {
+    const wantLumber = this.state.upgrades.lumberDrone || 0;
+    const wantMiner = this.state.upgrades.minerDrone || 0;
+
+    const curLumber = this.drones.filter(d => d.kind === 'lumber').length;
+    const curMiner = this.drones.filter(d => d.kind === 'miner').length;
+
+    for (let i = curLumber; i < wantLumber; i++) {
+      this.drones.push({
+        kind: 'lumber',
+        x: 220 + i * 25,
+        y: -110,
+        state: 'seek',
+        targetNode: null,
+        cargo: [],
+        workTimer: 0,
+        bobPhase: Math.random() * 6
+      });
+    }
+    for (let i = curMiner; i < wantMiner; i++) {
+      this.drones.push({
+        kind: 'miner',
+        x: 250 + i * 25,
+        y: -110,
+        state: 'seek',
+        targetNode: null,
+        cargo: [],
+        workTimer: 0,
+        bobPhase: Math.random() * 6
+      });
+    }
+  }
+
+  updateDrones(dt) {
+    const stats = this.getStats();
+    const homeX = 95, homeY = -25;
+
+    this.drones.forEach(drone => {
+      drone.bobPhase += dt * 4.5;
+      const spd = 165 * stats.droneSpeedMult;
+
+      if (drone.state === 'seek') {
+        const types = drone.kind === 'lumber' ? ['tree'] : ['rock', 'iron', 'ether'];
+        const cands = this.nodes.filter(n => {
+          if (n.depleted || !types.includes(n.type)) return false;
+          const isl = this.islands.find(i => i.id === n.islandId);
+          return !isl || isl.unlocked();
+        });
+        if (cands.length > 0) {
+          cands.sort((a, b) => Math.hypot(a.x - drone.x, a.y - drone.y) - Math.hypot(b.x - drone.x, b.y - drone.y));
+          drone.targetNode = cands[0];
+          drone.state = 'move';
+        }
+      } else if (drone.state === 'move') {
+        const n = drone.targetNode;
+        if (!n || n.depleted) {
+          drone.state = 'seek';
+          return;
+        }
+        const dx = n.x - drone.x;
+        const dy = (n.y - 16) - drone.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 14) {
+          drone.state = 'harvest';
+          drone.workTimer = 0.8 / stats.droneSpeedMult;
+        } else {
+          drone.x += (dx / dist) * spd * dt;
+          drone.y += (dy / dist) * spd * dt;
+        }
+      } else if (drone.state === 'harvest') {
+        const n = drone.targetNode;
+        if (!n || n.depleted) {
+          drone.state = drone.cargo.length > 0 ? 'return' : 'seek';
+          return;
+        }
+        drone.workTimer -= dt;
+        if (drone.workTimer <= 0) {
+          n.hp -= 1;
+          n.hitAnim = 0.6;
+          drone.cargo.push(n.resource);
+          this.spawnBurst(n.x, n.y, RESOURCES[n.resource].color, 5);
+          if (n.hp <= 0) {
+            n.depleted = true;
+            n.respawnTimer = n.respawnTime;
+          }
+          if (drone.cargo.length >= stats.droneCap || n.depleted) {
+            drone.state = 'return';
+          } else {
+            drone.workTimer = 0.8 / stats.droneSpeedMult;
+          }
+        }
+      } else if (drone.state === 'return') {
+        const dx = homeX - drone.x;
+        const dy = (homeY - 12) - drone.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 18) {
+          drone.cargo.forEach(r => {
+            this.state.storage[r] = (this.state.storage[r] || 0) + 1;
+            this.state.stats.totalHarvested++;
+          });
+          if (drone.cargo.length > 0) {
+            this.spawnFloatingText(homeX, homeY - 34, `+${drone.cargo.length} 🤖`, '#a7f3d0');
+          }
+          drone.cargo = [];
+          drone.state = 'seek';
+        } else {
+          drone.x += (dx / dist) * spd * 1.15 * dt;
+          drone.y += (dy / dist) * spd * 1.15 * dt;
+        }
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     COMPRA DE UPGRADES & ESPECIALIZAÇÃO
+     ------------------------------------------------------------------------ */
+  buyUpgrade(upgradeId) {
+    const def = UPGRADES_DEF.find(u => u.id === upgradeId);
+    if (!def) return;
+    const cur = this.state.upgrades[upgradeId] || 0;
+    if (cur >= def.maxLevel) return;
+    if (def.requiresBuild && !this.state.builds[def.requiresBuild]?.built) return;
+
+    const cost = def.costs[cur];
+    if (!this.canAfford(cost)) return;
+
+    this.spendCost(cost);
+    this.state.upgrades[upgradeId] = cur + 1;
+
+    this.sound.playUpgrade();
+    this.syncDrones();
+    this.showToast(`✨ Melhoria adquirida: ${def.name}`);
+    this.saveGame(false);
+    this.renderWorkshopModal();
+    this.refreshAllUI();
+  }
+
+  selectSpecialization(specId) {
+    if (this.state.phase < 5) return;
+    this.state.specialization = specId;
+    this.sound.playUpgrade();
+    const sp = SPECIALIZATIONS.find(s => s.id === specId);
+    this.showToast(`👑 Especialização ativada: ${sp.name}!`);
+    this.saveGame(false);
+    this.renderWorkshopModal();
+    this.refreshAllUI();
+  }
+
+  advancePhase(newPhase) {
+    if (newPhase > this.state.phase) {
+      this.state.phase = newPhase;
+      this.saveGame(false);
+      this.refreshAllUI();
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     COLISÃO E UPDATE PRINCIPAL
+     ------------------------------------------------------------------------ */
+  isPointWalkable(x, y) {
+    for (const isl of this.islands) {
+      if (!isl.unlocked()) continue;
+      if (Math.abs(x - isl.x) <= isl.w / 2 - 16 && Math.abs(y - isl.y) <= isl.h / 2 - 16) {
+        return true;
+      }
+    }
+    if (this.state.builds.eastBridge.built && x >= 325 && x <= 510 && y >= -42 && y <= 42) return true;
+    if (this.state.builds.northBridge.built && x >= -42 && x <= 42 && y >= -400 && y <= -245) return true;
+    if (this.state.builds.westBridge.built && x >= -520 && x <= -325 && y >= -42 && y <= 42) return true;
+    return false;
+  }
+
+  update(dt) {
+    this.worldTime += dt;
+
+    this.clouds.forEach(c => {
+      c.x += c.speed * dt;
+      if (c.x > 1400) c.x = -1400;
+    });
+
+    if (!this.isPlaying) {
+      this.camera.x = Math.cos(this.worldTime * 0.25) * 70;
+      this.camera.y = Math.sin(this.worldTime * 0.2) * 45;
+      return;
+    }
+
+    if (this.hitStopTimer > 0) {
+      this.hitStopTimer -= dt;
+      return;
+    }
+
+    const stats = this.getStats();
+
+    if (this.player.swingTimer > 0) this.player.swingTimer = Math.max(0, this.player.swingTimer - dt);
+    if (this.player.cooldownTimer > 0) this.player.cooldownTimer = Math.max(0, this.player.cooldownTimer - dt);
+    if (this.player.dashCooldown > 0) this.player.dashCooldown = Math.max(0, this.player.dashCooldown - dt);
+
+    // Movimento do jogador
+    if (!this.activeModal) {
+      this.updateMouseWorld();
+
+      if (this.player.dashTimer > 0) {
+        this.player.dashTimer -= dt;
+        const spd = 680;
+        const nx = this.player.x + this.player.dashDirX * spd * dt;
+        const ny = this.player.y + this.player.dashDirY * spd * dt;
+        if (this.isPointWalkable(nx, this.player.y)) this.player.x = nx;
+        if (this.isPointWalkable(this.player.x, ny)) this.player.y = ny;
+      } else {
+        let ix = 0, iy = 0;
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) iy -= 1;
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) iy += 1;
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) ix -= 1;
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) ix += 1;
+        if (this.touchJoystick.active) {
+          ix += this.touchJoystick.dx;
+          iy += this.touchJoystick.dy;
+        }
+
+        // Teclado ou joystick cancela clique-para-andar
+        if (Math.hypot(ix, iy) > 0.05) {
+          this.player.moveTarget = null;
+          const mag = Math.hypot(ix, iy);
+          ix /= Math.max(1, mag);
+          iy /= Math.max(1, mag);
+        } else if (this.player.moveTarget) {
+          const dx = this.player.moveTarget.x - this.player.x;
+          const dy = this.player.moveTarget.y - this.player.y;
+          const dist = Math.hypot(dx, dy);
+          const stopDist = this.player.moveTarget.autoHitNode ? (stats.reachRadius * 0.75) : 10;
+
+          if (dist <= stopDist) {
+            if (this.player.moveTarget.autoHitNode && !this.player.moveTarget.autoHitNode.depleted) {
+              this.player.facing = Math.atan2(this.player.moveTarget.autoHitNode.y - this.player.y, this.player.moveTarget.autoHitNode.x - this.player.x);
+              this.triggerSwing();
+            }
+            this.player.moveTarget = null;
+          } else {
+            ix = dx / dist;
+            iy = dy / dist;
+          }
+        }
+
+        const targetVx = ix * stats.moveSpeed;
+        const targetVy = iy * stats.moveSpeed;
+        const accel = Math.min(1, 14 * dt);
+
+        this.player.vx += (targetVx - this.player.vx) * accel;
+        this.player.vy += (targetVy - this.player.vy) * accel;
+
+        const nx = this.player.x + this.player.vx * dt;
+        const ny = this.player.y + this.player.vy * dt;
+
+        if (this.isPointWalkable(nx, this.player.y)) this.player.x = nx;
+        else { this.player.vx = 0; this.player.moveTarget = null; }
+
+        if (this.isPointWalkable(this.player.x, ny)) this.player.y = ny;
+        else { this.player.vy = 0; this.player.moveTarget = null; }
+
+        const curSpd = Math.hypot(this.player.vx, this.player.vy);
+        if (curSpd > 25) {
+          this.player.walkCycle += dt * (curSpd * 0.045);
+          this.player.tilt = (this.player.vx / stats.moveSpeed) * 0.14;
+          if (Math.hypot(ix, iy) > 0.1) {
+            this.player.facing = Math.atan2(iy, ix);
+          }
+        } else {
+          this.player.tilt *= 0.85;
+        }
+      }
+    }
+
+    // Descarregamento automático ao passar perto da Bancada / Armazém (95, -25)
+    if (this.player.backpack.length > 0 && Math.hypot(this.player.x - 95, this.player.y - (-25)) < 82) {
+      this._unloadTimer = (this._unloadTimer || 0) - dt;
+      if (this._unloadTimer <= 0) {
+        this._unloadTimer = 0.06;
+        const res = this.player.backpack.pop();
+        this.state.storage[res] = (this.state.storage[res] || 0) + 1;
+        this.state.stats.totalHarvested++;
+        this.sound.playPickup();
+        this.updateHUDOnly();
+      }
+    }
+
+    // Atualizar Nós & Regeneração
+    this.nodes.forEach(n => {
+      if (n.hitAnim > 0) n.hitAnim = Math.max(0, n.hitAnim - dt * 4.5);
+      if (n.depleted) {
+        n.respawnTimer -= dt;
+        if (n.respawnTimer <= 0) {
+          n.depleted = false;
+          n.hp = n.maxHp;
+          this.spawnBurst(n.x, n.y, '#a7f3d0', 10);
+        }
+      } else if (n.sweetSpotTimer > 0) {
+        n.sweetSpotTimer = Math.max(0, n.sweetSpotTimer - dt);
+      }
+    });
+
+    // Coleta Magnética de Drops para a Mochila Física
+    for (let i = this.drops.length - 1; i >= 0; i--) {
+      const d = this.drops[i];
+      d.age += dt;
+      if (d.z > 0 || d.vz > 0) {
+        d.x += d.vx * dt;
+        d.y += d.vy * dt;
+        d.z += d.vz * dt;
+        d.vz -= 430 * dt;
+        if (d.z <= 0) {
+          d.z = 0;
+          d.vz = 0;
+          d.vx *= 0.3;
+          d.vy *= 0.3;
+        }
+      }
+
+      if (d.age > 0.2 && this.player.backpack.length < stats.maxBackpack) {
+        const dx = this.player.x - d.x;
+        const dy = this.player.y - d.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < stats.magnetRadius) {
+          const pull = 360 + (1 - dist / stats.magnetRadius) * 280;
+          d.x += (dx / Math.max(1, dist)) * pull * dt;
+          d.y += (dy / Math.max(1, dist)) * pull * dt;
+        }
+        if (dist < 24) {
+          this.player.backpack.push(d.resource);
+          this.sound.playPickup();
+          this.drops.splice(i, 1);
+          this.updateHUDOnly();
+          continue;
+        }
+      }
+    }
+
+    // Atualizar Expedição do Dirigível em Tempo Real
+    if (this.state.airship.activeRouteId && !this.state.airship.completed) {
+      this.state.airship.elapsed += dt;
+      if (this.state.airship.elapsed >= this.state.airship.duration) {
+        this.state.airship.elapsed = this.state.airship.duration;
+        this.state.airship.completed = true;
+        this.sound.playAirshipHorn();
+        this.showToast('🎈 O Dirigível retornou ao Cais com recompensas!');
+        if (this.activeModal === 'modalAirship') this.renderAirshipModal();
+      }
+    }
+
+    this.updateMachines(dt);
+    this.updateDrones(dt);
+
+    // Partículas e Textos Flutuantes
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0) this.particles.splice(i, 1);
+    }
+    for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = this.floatingTexts[i];
+      ft.y -= 34 * dt;
+      ft.life -= dt;
+      if (ft.life <= 0) this.floatingTexts.splice(i, 1);
+    }
+
+    // Câmera suave
+    this.camera.x += (this.player.x - this.camera.x) * Math.min(1, 8.5 * dt);
+    this.camera.y += (this.player.y - this.camera.y) * Math.min(1, 8.5 * dt);
+
+    if (this.camera.shakeMag > 0.1) {
+      this.camera.shakeX = (Math.random() - 0.5) * this.camera.shakeMag * 2;
+      this.camera.shakeY = (Math.random() - 0.5) * this.camera.shakeMag * 2;
+      this.camera.shakeMag *= Math.pow(0.04, dt);
+    } else {
+      this.camera.shakeX = 0;
+      this.camera.shakeY = 0;
+      this.camera.shakeMag = 0;
+    }
+
+    // Atualiza Cartão Flutuante de Inspeção das Zonas Amarelas e HUD
+    this.updateWorldInspectionCard();
+
+    this._uiTick = (this._uiTick || 0) + dt;
+    if (this._uiTick >= 0.25) {
+      this._uiTick = 0;
+      this.updateHUDOnly();
+      if (this.activeModal === 'modalAirship' && this.state.airship.activeRouteId) {
+        this.renderAirshipModal();
+      }
+    }
+
+    this._saveTick = (this._saveTick || 0) + dt;
+    if (this._saveTick >= 15) {
+      this._saveTick = 0;
+      this.saveGame(false);
+    }
+  }
+
+  addShake(amt) {
+    this.camera.shakeMag = Math.min(14, this.camera.shakeMag + amt);
+  }
+
+  spawnBurst(x, y, color, count = 10) {
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 45 + Math.random() * 120;
+      this.particles.push({
+        x, y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 18,
+        size: 2.5 + Math.random() * 3.5,
+        color,
+        life: 0.35 + Math.random() * 0.25,
+        maxLife: 0.6
+      });
+    }
+  }
+
+  spawnFloatingText(x, y, text, color = '#fef3c7') {
+    this.floatingTexts.push({ x, y, text, color, life: 1.05 });
+  }
+
+  /* ------------------------------------------------------------------------
+     RENDERIZAÇÃO 2.5D NO CANVAS
+     ------------------------------------------------------------------------ */
+  render() {
+    const ctx = this.ctx;
+    const w = this.width;
+    const h = this.height;
+
+    // Céu / Mar de Nuvens
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, '#193547');
+    bgGrad.addColorStop(0.5, '#234a60');
+    bgGrad.addColorStop(1, '#183344');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.save();
+    const camX = Math.round(w / 2 - this.camera.x + this.camera.shakeX);
+    const camY = Math.round(h / 2 - this.camera.y + this.camera.shakeY);
+    ctx.translate(camX, camY);
+
+    // 1. Nuvens abaixo das ilhas
+    this.clouds.forEach(c => {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.scale(c.scale, c.scale);
+      ctx.fillStyle = `rgba(224, 242, 254, ${c.alpha})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, 48, 0, Math.PI * 2);
+      ctx.arc(42, -8, 38, 0, Math.PI * 2);
+      ctx.arc(-40, 5, 34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // 2. Ilhas Flutuantes
+    this.islands.forEach(isl => {
+      const unlocked = isl.unlocked();
+      ctx.save();
+      if (!unlocked) ctx.globalAlpha = 0.45;
+      const left = isl.x - isl.w / 2;
+      const top = isl.y - isl.h / 2;
+
+      ctx.fillStyle = isl.cliffColor;
+      this.roundRect(ctx, left + 8, top + 28, isl.w - 16, isl.h, 38);
+      ctx.fill();
+
+      ctx.fillStyle = isl.edgeColor;
+      this.roundRect(ctx, left, top + 8, isl.w, isl.h, 38);
+      ctx.fill();
+
+      ctx.fillStyle = isl.topColor;
+      this.roundRect(ctx, left, top, isl.w, isl.h, 38);
+      ctx.fill();
+
+      if (isl.id === 'hub') {
+        // Praça Central de Pedra Clara
+        ctx.fillStyle = 'rgba(235, 218, 185, 0.34)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 175, 115, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (!unlocked) {
+        const badgeY = isl.id === 'north_dock' ? isl.y + 72 : isl.y;
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+        this.roundRect(ctx, isl.x - 115, badgeY - 20, 230, 40, 12);
+        ctx.fill();
+        ctx.fillStyle = '#fde68a';
+        ctx.font = '600 12.5px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(`🔒 ${isl.name}`, isl.x, badgeY + 4);
+      }
+      ctx.restore();
+    });
+
+    // 3. Zonas de Projeto em Amarelo (Não Construídas) & Estruturas/Pontes Construídas
+    this.blueprintsDef.forEach(bp => {
+      const st = this.state.builds[bp.id];
+      if (!st.built) {
+        this.renderYellowBlueprintZone(ctx, bp, st);
+      } else {
+        this.renderBuiltStructure(ctx, bp);
+      }
+    });
+
+    // 4. Praça Central: BANCA DO MERCADOR (Esquerda) & BANCADA / ARMAZÉM (Direita)
+    this.renderMerchantStall(ctx, -95, -25);
+    this.renderWorkbenchAndWarehouse(ctx, 95, -25);
+
+    // 5. Nós de Recursos + Anel Rítmico Sweet Spot
+    const stats = this.getStats();
+    this.nodes.forEach(n => {
+      if (n.depleted) {
+        ctx.fillStyle = 'rgba(255,255,255,0.16)';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+      const isl = this.islands.find(i => i.id === n.islandId);
+      if (isl && !isl.unlocked()) return;
+
+      ctx.save();
+      const shake = n.hitAnim > 0 ? Math.sin(n.hitAnim * 28) * 4 * n.hitAnim : 0;
+      ctx.translate(n.x + shake, n.y);
+
+      ctx.fillStyle = 'rgba(0,0,0,0.24)';
+      ctx.beginPath();
+      ctx.ellipse(0, 14, n.radius * 0.9, n.radius * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (n.type === 'tree') {
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(-6, -4, 12, 18);
+        ctx.fillStyle = '#15803d';
+        ctx.beginPath();
+        ctx.arc(0, -14, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(-4, -18, 17, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (n.type === 'rock') {
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath();
+        ctx.arc(0, 0, 22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.arc(-5, -5, 14, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (n.type === 'iron') {
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.arc(0, 0, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(-7, -5, 8, 0, Math.PI * 2);
+        ctx.arc(8, 3, 7, 0, Math.PI * 2);
+        ctx.arc(0, -10, 6, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (n.type === 'ether') {
+        const fy = Math.sin(this.worldTime * 3.5 + n.x) * 4;
+        ctx.fillStyle = '#4f46e5';
+        ctx.beginPath();
+        ctx.moveTo(0, -28 + fy);
+        ctx.lineTo(19, fy);
+        ctx.lineTo(0, 22 + fy);
+        ctx.lineTo(-19, fy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#a5b4fc';
+        ctx.beginPath();
+        ctx.arc(0, fy, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (n.hp < n.maxHp) {
+        const bw = 34;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(-bw / 2, 22, bw, 5);
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(-bw / 2, 22, bw * (n.hp / n.maxHp), 5);
+      }
+
+      if (n.sweetSpotTimer > 0) {
+        const progress = n.sweetSpotTimer / n.sweetSpotDuration;
+        const inZone = progress >= 0.10 && progress <= 0.10 + stats.sweetSpotWindow;
+        const targetR = 20;
+        const currentR = targetR + progress * 44;
+
+        ctx.strokeStyle = inZone ? '#fde047' : 'rgba(253, 224, 71, 0.48)';
+        ctx.lineWidth = inZone ? 4 : 2;
+        ctx.beginPath();
+        ctx.arc(0, -4, targetR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = inZone ? '#4ade80' : '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, -4, currentR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    });
+
+    // 6. Indicador de destino ao clicar no chão
+    if (this.player.moveTarget) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(253, 224, 71, 0.75)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.player.moveTarget.x, this.player.moveTarget.y, 10 + Math.sin(this.worldTime * 8) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 7. Orbes de Recursos no Chão
+    this.drops.forEach(d => {
+      const res = RESOURCES[d.resource];
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.beginPath();
+      ctx.ellipse(d.x, d.y + 6, 7, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const bob = Math.sin(this.worldTime * 5 + d.x) * 2;
+      ctx.fillStyle = res.color;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y - d.z + bob, 7.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fffbeb';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    // 8. Personagem + Mochila Física Empilhada + Seta Guia para Projeto Rastreado
+    this.renderPlayer(ctx);
+    this.renderProjectTrackerArrow(ctx);
+
+    // 9. Drones Autônomos
+    this.drones.forEach(drone => {
+      const bob = Math.sin(drone.bobPhase) * 4;
+      ctx.save();
+      ctx.translate(drone.x, drone.y + bob);
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(0, 26 - bob, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = drone.kind === 'lumber' ? '#d97706' : '#0284c7';
+      ctx.beginPath();
+      ctx.arc(0, 0, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fef3c7';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const propW = Math.sin(this.worldTime * 35) * 14;
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-propW, -12);
+      ctx.lineTo(propW, -12);
+      ctx.stroke();
+
+      if (drone.cargo.length > 0) {
+        ctx.fillStyle = RESOURCES[drone.cargo[0]].color;
+        ctx.beginPath();
+        ctx.arc(0, 12, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+
+    // 10. Partículas & Textos Flutuantes
+    this.particles.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    this.floatingTexts.forEach(ft => {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, ft.life * 1.4);
+      ctx.font = '700 13px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillText(ft.text, ft.x + 1, ft.y + 1);
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.restore();
+    });
+
+    ctx.restore();
+  }
+
+  /* ------------------------------------------------------------------------
+     DESENHO DETALHADO DAS ESTRUTURAS CLAREZA VISUAL
+     ------------------------------------------------------------------------ */
+  renderMerchantStall(ctx, x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Sombra
+    ctx.fillStyle = 'rgba(0,0,0,0.26)';
+    ctx.beginPath();
+    ctx.ellipse(0, 26, 48, 22, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Balcão de Madeira
+    ctx.fillStyle = '#78350f';
+    this.roundRect(ctx, -38, 2, 76, 26, 6);
+    ctx.fill();
+    ctx.fillStyle = '#b45309';
+    this.roundRect(ctx, -38, -2, 76, 12, 5);
+    ctx.fill();
+
+    // Postes de sustentação
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(-34, -34, 5, 36);
+    ctx.fillRect(29, -34, 5, 36);
+
+    // Toldo Listrado Dourado e Creme
+    const stripes = 6;
+    const sw = 84 / stripes;
+    for (let i = 0; i < stripes; i++) {
+      ctx.fillStyle = i % 2 === 0 ? '#f59e0b' : '#fef3c7';
+      this.roundRect(ctx, -42 + i * sw, -42, sw + 1, 20, 4);
+      ctx.fill();
+    }
+
+    // Ícone Flutuante de Moedas acima do toldo
+    const coinBob = Math.sin(this.worldTime * 3.5) * 4;
+    ctx.font = '20px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText('🪙', 0, -54 + coinBob);
+
+    // Placa Legível no Mundo
+    ctx.fillStyle = 'rgba(20, 29, 28, 0.88)';
+    this.roundRect(ctx, -108, 34, 216, 24, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.font = '700 10.5px Inter';
+    ctx.fillStyle = '#fde68a';
+    ctx.fillText('Banca do Mercador — Venda por Moedas [E]', 0, 49);
+
+    ctx.restore();
+  }
+
+  renderWorkbenchAndWarehouse(ctx, x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.24)';
+    ctx.beginPath();
+    ctx.ellipse(0, 24, 44, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bancada & Baú do Armazém
+    ctx.fillStyle = '#1e3a5f';
+    this.roundRect(ctx, -36, -18, 72, 42, 10);
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font = '22px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔨', 0, 9);
+
+    ctx.fillStyle = 'rgba(20, 29, 28, 0.85)';
+    this.roundRect(ctx, -88, 30, 176, 22, 8);
+    ctx.fill();
+    ctx.font = '600 10.5px Inter';
+    ctx.fillStyle = '#bae6fd';
+    ctx.fillText('Armazém & Upgrades [E]', 0, 44);
+
+    ctx.restore();
+  }
+
+  renderYellowBlueprintZone(ctx, bp, buildState) {
+    ctx.save();
+    // Borda tracejada amarela animada
+    ctx.fillStyle = 'rgba(250, 204, 21, 0.14)';
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 6]);
+    ctx.lineDashOffset = -this.worldTime * 22;
+    this.roundRect(ctx, bp.x, bp.y, bp.w, bp.h, 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Estacas de madeira nos 4 cantos da Zona Amarela
+    const corners = [
+      [bp.x + 4, bp.y + 4],
+      [bp.x + bp.w - 4, bp.y + 4],
+      [bp.x + 4, bp.y + bp.h - 4],
+      [bp.x + bp.w - 4, bp.y + bp.h - 4]
+    ];
+    corners.forEach(([cx, cy]) => {
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Silhueta holográfica e nome no centro da zona amarela
+    const centerX = bp.x + bp.w / 2;
+    const centerY = bp.y + bp.h / 2;
+    ctx.font = '700 11px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fef08a';
+    ctx.fillText(`📐 ${bp.name}`, centerX, centerY - 2);
+
+    // Mini barra de progresso caso já tenha depositado parte dos materiais
+    const pct = this.getBlueprintProgressPct(bp, buildState);
+    if (pct > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(centerX - 32, centerY + 6, 64, 5);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(centerX - 32, centerY + 6, 64 * (pct / 100), 5);
+    } else {
+      ctx.font = '600 9.5px Inter';
+      ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
+      ctx.fillText('Aproxime-se [E]', centerX, centerY + 12);
+    }
+
+    ctx.restore();
+  }
+
+  renderBuiltStructure(ctx, bp) {
+    ctx.save();
+    if (bp.isBridge) {
+      ctx.fillStyle = '#78350f';
+      this.roundRect(ctx, bp.x, bp.y + 6, bp.w, bp.h, 10);
+      ctx.fill();
+      ctx.fillStyle = '#b45309';
+      this.roundRect(ctx, bp.x, bp.y, bp.w, bp.h, 10);
+      ctx.fill();
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 2;
+      if (bp.w > bp.h) {
+        for (let px = bp.x + 14; px < bp.x + bp.w - 10; px += 18) {
+          ctx.beginPath();
+          ctx.moveTo(px, bp.y + 4);
+          ctx.lineTo(px, bp.y + bp.h - 4);
+          ctx.stroke();
+        }
+      } else {
+        for (let py = bp.y + 14; py < bp.y + bp.h - 10; py += 18) {
+          ctx.beginPath();
+          ctx.moveTo(bp.x + 4, py);
+          ctx.lineTo(bp.x + bp.w - 4, py);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      return;
+    }
+
+    const cx = bp.x + bp.w / 2;
+    const cy = bp.y + bp.h / 2;
+
+    if (bp.id === 'airshipDock') {
+      // Plataforma de madeira da Doca
+      ctx.fillStyle = '#78350f';
+      this.roundRect(ctx, bp.x, bp.y, bp.w, bp.h, 14);
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Desenho do Dirigível de Madeira & Balão a Vapor!
+      const air = this.state.airship;
+      let flyOffsetY = 0;
+      let flyOffsetX = 0;
+      let scale = 1;
+      if (air.activeRouteId && !air.completed) {
+        const t = air.elapsed / Math.max(1, air.duration);
+        flyOffsetY = -Math.sin(t * Math.PI) * 140;
+        flyOffsetX = Math.sin(t * Math.PI) * 95;
+        scale = 1 - Math.sin(t * Math.PI) * 0.28;
+      }
+
+      ctx.save();
+      ctx.translate(cx + flyOffsetX, cy - 28 + flyOffsetY + Math.sin(this.worldTime * 2.5) * 4);
+      ctx.scale(scale, scale);
+
+      // Balão principal
+      ctx.fillStyle = '#b91c1c';
+      ctx.beginPath();
+      ctx.ellipse(0, -18, 56, 26, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.ellipse(0, -18, 56, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gôndola de madeira
+      ctx.fillStyle = '#78350f';
+      this.roundRect(ctx, -26, 12, 52, 16, 6);
+      ctx.fill();
+
+      // Hélices girando
+      const propH = Math.sin(this.worldTime * 32) * 14;
+      ctx.strokeStyle = '#fef3c7';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(30, 18 - propH);
+      ctx.lineTo(30, 18 + propH);
+      ctx.stroke();
+
+      ctx.restore();
+
+      ctx.font = '700 11px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillText('🎈 Cais do Dirigível [E]', cx, bp.y + bp.h + 15);
+      ctx.restore();
+      return;
+    }
+
+    // Máquinas (Serraria, Fornalha, Oficina de Engrenagens, Estação de Drones)
+    const colors = {
+      sawmill: '#b45309',
+      furnace: '#dc2626',
+      gearWorkshop: '#d97706',
+      droneStation: '#0284c7'
+    };
+    const icons = {
+      sawmill: '🪚',
+      furnace: '🔥',
+      gearWorkshop: '⚙️',
+      droneStation: '🤖'
+    };
+
+    ctx.fillStyle = '#1c1917';
+    this.roundRect(ctx, bp.x, bp.y, bp.w, bp.h, 14);
+    ctx.fill();
+    ctx.fillStyle = colors[bp.id] || '#475569';
+    this.roundRect(ctx, bp.x + 4, bp.y + 4, bp.w - 8, bp.h - 10, 11);
+    ctx.fill();
+
+    ctx.font = '24px Inter';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(icons[bp.id] || '⚙️', cx, cy - 2);
+
+    ctx.font = '600 10.5px Inter';
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillText(bp.name, cx, bp.y + bp.h + 13);
+
+    // Barra de progresso de produção
+    const mach = this.state.machines[bp.id];
+    if (mach && mach.progress > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(bp.x + 12, bp.y - 9, bp.w - 24, 5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(bp.x + 12, bp.y - 9, (bp.w - 24) * mach.progress, 5);
+    }
+
+    ctx.restore();
+  }
+
+  renderPlayer(ctx) {
+    const p = this.player;
+    const stats = this.getStats();
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.beginPath();
+    ctx.ellipse(0, 14, 15, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (p.swingTimer > 0) {
+      const progress = 1 - p.swingTimer / p.swingDuration;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(254, 240, 138, 0.6)';
+      ctx.fillStyle = 'rgba(254, 240, 138, 0.14)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, stats.reachRadius * 0.85, p.swingAngleStart, p.swingAngleStart + (p.swingAngleEnd - p.swingAngleStart) * progress);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const bobY = Math.abs(Math.sin(p.walkCycle)) * 3;
+    ctx.rotate(p.tilt);
+
+    // Pilha física de itens nas costas da mochila!
+    if (p.backpack.length > 0) {
+      const maxShown = Math.min(p.backpack.length, 16);
+      for (let i = 0; i < maxShown; i++) {
+        const resId = p.backpack[i];
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const bx = -13 - col * 5;
+        const by = 4 - row * 4.5 - bobY;
+        ctx.fillStyle = RESOURCES[resId]?.color || '#eab308';
+        ctx.fillRect(bx, by, 9, 4);
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(bx, by, 9, 4);
+      }
+    }
+
+    // Corpo do Artesão
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.arc(0, 2 - bobY, 13, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = this.state.specialization === 'airshipMagnate' ? '#0284c7'
+                  : this.state.specialization === 'automataEngineer' ? '#059669'
+                  : '#b45309';
+    ctx.beginPath();
+    ctx.arc(0, 1 - bobY, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cabeça & Chapéu
+    ctx.fillStyle = '#fde68a';
+    ctx.beginPath();
+    ctx.arc(0, -9 - bobY, 8.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#78350f';
+    ctx.beginPath();
+    ctx.ellipse(0, -13 - bobY, 12, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ferramenta
+    const toolAngle = p.swingTimer > 0
+      ? p.swingAngleStart + (p.swingAngleEnd - p.swingAngleStart) * (1 - p.swingTimer / p.swingDuration)
+      : p.facing + 0.55;
+
+    ctx.save();
+    ctx.rotate(toolAngle);
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(8, -2, 20, 4);
+    const tierColors = ['#cbd5e1', '#f59e0b', '#818cf8', '#38bdf8', '#fde047'];
+    ctx.fillStyle = tierColors[Math.min(4, this.state.upgrades.toolPower)];
+    ctx.beginPath();
+    ctx.arc(26, 0, 6, -1.1, 1.1);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // Seta Guia Dourada ao redor do personagem apontando para o Projeto Amarelo Rastreado
+  renderProjectTrackerArrow(ctx) {
+    const tid = this.state.trackedBuildId;
+    if (!tid) return;
+    const bp = this.blueprintsDef.find(b => b.id === tid);
+    if (!bp || this.state.builds[tid]?.built) return;
+
+    const tx = bp.x + bp.w / 2;
+    const ty = bp.y + bp.h / 2;
+    const dx = tx - this.player.x;
+    const dy = ty - this.player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 85) return; // Já está bem em cima do projeto
+
+    const ang = Math.atan2(dy, dx);
+    ctx.save();
+    ctx.translate(this.player.x + Math.cos(ang) * 44, this.player.y + Math.sin(ang) * 44);
+    ctx.rotate(ang);
+
+    ctx.fillStyle = '#facc15';
+    ctx.strokeStyle = '#422006';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(11, 0);
+    ctx.lineTo(-6, -7);
+    ctx.lineTo(-3, 0);
+    ctx.lineTo(-6, 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  loop(timestamp) {
+    if (!this.lastTime) this.lastTime = timestamp;
+    const dt = Math.min(0.05, (timestamp - this.lastTime) / 1000);
+    this.lastTime = timestamp;
+    this.update(dt);
+    this.render();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  /* ------------------------------------------------------------------------
+     CARTÃO FLUTUANTE NO MUNDO PARA ZONAS AMARELAS
+     ------------------------------------------------------------------------ */
+  getBlueprintProgressPct(bp, buildState) {
+    let totalReq = 0;
+    let totalPaid = 0;
+    for (const [res, amt] of Object.entries(bp.cost)) {
+      totalReq += amt;
+      totalPaid += Math.min(amt, buildState.paid[res] || 0);
+    }
+    return totalReq > 0 ? Math.round((totalPaid / totalReq) * 100) : 0;
+  }
+
+  updateWorldInspectionCard() {
+    const card = document.getElementById('worldInspectionCard');
+    if (!this.isPlaying || this.activeModal) {
+      card.classList.add('hidden');
+      this.activeInspectedZone = null;
+      return;
+    }
+
+    const targetBp = this.getNearbyBlueprint() || this.hoveredBlueprint;
+    if (!targetBp || this.state.builds[targetBp.id]?.built) {
+      card.classList.add('hidden');
+      this.activeInspectedZone = null;
+      return;
+    }
+
+    this.activeInspectedZone = targetBp;
+    const buildState = this.state.builds[targetBp.id];
+
+    document.getElementById('wicTitle').textContent = targetBp.name;
+    document.getElementById('wicDesc').textContent = targetBp.desc;
+    document.getElementById('wicProgressPct').textContent = `${this.getBlueprintProgressPct(targetBp, buildState)}%`;
+
+    let canDepositAny = false;
+    const costsHtml = Object.entries(targetBp.cost).map(([res, needed]) => {
+      const def = RESOURCES[res];
+      const paid = buildState.paid[res] || 0;
+      const missing = needed - paid;
+      const haveInBag = this.getTotalResource(res);
+      const satisfied = paid >= needed;
+      const readyToDeposit = !satisfied && haveInBag > 0;
+      if (readyToDeposit) canDepositAny = true;
+
+      return `
+        <div class="flex items-center justify-between ${satisfied ? 'text-emerald-300' : (haveInBag >= missing ? 'text-emerald-200' : 'text-rose-200')}">
+          <span>${def.icon} ${def.name}</span>
+          <span class="font-bold">${paid + Math.min(missing, haveInBag)}/${needed} ${satisfied ? '✓' : ''}</span>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('wicCosts').innerHTML = costsHtml;
+
+    const btn = document.getElementById('wicActionBtn');
+    const btnText = document.getElementById('wicActionText');
+    if (canDepositAny) {
+      btn.disabled = false;
+      btn.className = 'mt-3 w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5';
+      btnText.textContent = '[E] Construir / Depositar Recursos';
+    } else {
+      btn.disabled = true;
+      btn.className = 'mt-3 w-full py-2 px-3 rounded-xl bg-stone-800 text-stone-400 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed';
+      btnText.textContent = 'Colete ou Venda Recursos para Construir';
+    }
+
+    // Posiciona o cartão suavemente acima da Zona Amarela na tela
+    const screenX = (targetBp.x + targetBp.w / 2) - this.camera.x + this.width / 2;
+    const screenY = targetBp.y - this.camera.y + this.height / 2 - 16;
+
+    const clampedX = Math.max(155, Math.min(this.width - 155, screenX));
+    const clampedY = Math.max(210, Math.min(this.height - 40, screenY));
+
+    card.style.left = `${clampedX}px`;
+    card.style.top = `${clampedY}px`;
+    card.style.transform = 'translate(-50%, -100%)';
+    card.classList.remove('hidden');
+  }
+
+  /* ------------------------------------------------------------------------
+     ATUALIZAÇÃO DE HUD E MODAIS
+     ------------------------------------------------------------------------ */
+  refreshAllUI() {
+    this.updateHUDOnly();
+    this.updateObjectiveCard();
+    this.syncAudioSlidersUI();
+
+    const airBtn = document.getElementById('btnOpenAirship');
+    if (this.state.builds.airshipDock.built) {
+      airBtn.classList.remove('hidden');
+      airBtn.classList.add('flex');
+    } else {
+      airBtn.classList.add('hidden');
+      airBtn.classList.remove('flex');
+    }
+  }
+
+  updateHUDOnly() {
+    const resBar = document.getElementById('resourceBar');
+    const keys = ['coins', 'wood', 'stone', 'planks'];
+    if (this.state.builds.eastBridge.built || this.getTotalResource('ironOre') > 0 || this.getTotalResource('ironIngot') > 0) {
+      keys.push('ironOre', 'ironIngot');
+    }
+    if (this.state.builds.gearWorkshop.built || this.getTotalResource('gears') > 0) {
+      keys.push('gears');
+    }
+    if (this.state.builds.airshipDock.built || this.getTotalResource('steamCore') > 0 || this.getTotalResource('etherCryst') > 0) {
+      keys.push('steamCore', 'etherCryst');
+    }
+    if (this.getTotalResource('relic') > 0) {
+      keys.push('relic');
+    }
+
+    resBar.innerHTML = keys.map(k => {
+      const def = RESOURCES[k];
+      const val = this.getTotalResource(k);
+      const isCoin = k === 'coins';
+      return `
+        <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-lg ${isCoin ? 'bg-amber-400/20 border border-amber-400/35 text-amber-200' : 'bg-white/5 text-stone-100'}" title="${def.name}">
+          <span>${def.icon}</span>
+          <span class="font-bold">${val}</span>
+        </div>
+      `;
+    }).join('');
+
+    const stats = this.getStats();
+    const bpCount = this.player.backpack.length;
+    const bpMax = stats.maxBackpack;
+    document.getElementById('backpackText').textContent = `${bpCount}/${bpMax}`;
+    const bpPct = Math.min(100, Math.round((bpCount / Math.max(1, bpMax)) * 100));
+    const bpFill = document.getElementById('backpackFill');
+    bpFill.style.width = `${bpPct}%`;
+    bpFill.className = bpCount >= bpMax
+      ? 'h-full bg-rose-400 rounded-full transition-all duration-150'
+      : 'h-full bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-150';
+
+    const dashEl = document.getElementById('hudDashStatus');
+    if (this.player.dashCooldown > 0) {
+      dashEl.textContent = `${this.player.dashCooldown.toFixed(1)}s`;
+      dashEl.className = 'font-medium text-stone-400';
+    } else {
+      dashEl.textContent = 'Pronto';
+      dashEl.className = 'font-medium text-sky-200';
+    }
+
+    const air = this.state.airship;
+    const airBanner = document.getElementById('airshipFlightBanner');
+    const airBtnHud = document.getElementById('btnCollectAirshipHud');
+    if (air.activeRouteId) {
+      const route = AIRSHIP_ROUTES.find(r => r.id === air.activeRouteId);
+      const pct = Math.min(100, Math.round((air.elapsed / Math.max(1, air.duration)) * 100));
+      const rem = Math.max(0, Math.ceil(air.duration - air.elapsed));
+      airBanner.classList.remove('hidden');
+      airBanner.classList.add('flex');
+      document.getElementById('airshipFlightTitle').textContent = air.completed
+        ? `🎈 ${route?.name || 'Dirigível'} — Retornou!`
+        : `🎈 ${route?.name || 'Expedição'} (${rem}s)`;
+      document.getElementById('airshipFlightFill').style.width = `${pct}%`;
+      if (air.completed) airBtnHud.classList.remove('hidden');
+      else airBtnHud.classList.add('hidden');
+    } else {
+      airBanner.classList.add('hidden');
+      airBanner.classList.remove('flex');
+      airBtnHud.classList.add('hidden');
+    }
+  }
+
+  updateObjectiveCard() {
+    const phaseInfo = PHASES_INFO.find(p => p.phase === this.state.phase) || PHASES_INFO[0];
+    document.getElementById('phaseBadge').textContent = phaseInfo.title;
+
+    const trackedId = this.state.trackedBuildId;
+    const trackedBp = trackedId ? this.blueprintsDef.find(b => b.id === trackedId && !this.state.builds[b.id]?.built) : null;
+    const nextUnbuilt = trackedBp || this.blueprintsDef.find(b => !this.state.builds[b.id]?.built);
+
+    if (nextUnbuilt) {
+      document.getElementById('objectiveTitle').textContent = `Construir: ${nextUnbuilt.name}`;
+      document.getElementById('objectiveDesc').textContent = `${nextUnbuilt.desc} Siga a seta dourada e aperte [E].`;
+    } else if (this.state.upgrades.relicCelestialCore === 0) {
+      document.getElementById('objectiveTitle').textContent = 'Expedição: Cidadela Celeste';
+      document.getElementById('objectiveDesc').textContent = 'Lance o Dirigível para obter Relíquias e forjar o Coração Celeste.';
+    } else {
+      document.getElementById('objectiveTitle').textContent = 'Maestria do Arquipélago';
+      document.getElementById('objectiveDesc').textContent = 'Todas as ilhas e relíquias conquistadas! Continue expandindo sua oficina.';
+    }
+  }
+
+  toggleModal(modalId) {
+    if (this.activeModal === modalId) {
+      this.closeAllModals();
+    } else {
+      this.openModal(modalId);
+    }
+  }
+
+  openModal(modalId) {
+    this.closeAllModals();
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+    this.activeModal = modalId;
+    this.player.moveTarget = null;
+
+    if (modalId === 'modalMerchant') this.renderMerchantModal();
+    else if (modalId === 'modalWorkshop') this.renderWorkshopModal();
+    else if (modalId === 'modalProjects') this.renderProjectsModal();
+    else if (modalId === 'modalAirship') this.renderAirshipModal();
+    else if (modalId === 'modalTransfer') {
+      document.getElementById('exportCodeBox').value = this.generateExportCode();
+      const fb = document.getElementById('importFeedbackMsg');
+      if (fb) fb.classList.add('hidden');
+    } else if (modalId === 'modalSettings') {
+      this.syncAudioSlidersUI();
+    }
+  }
+
+  closeAllModals() {
+    document.querySelectorAll('[id^="modal"]').forEach(m => {
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    });
+    this.activeModal = null;
+  }
+
+  showToast(message) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'glass-panel rounded-2xl px-3.5 py-2.5 text-xs font-medium text-amber-100 border border-amber-300/35 shadow-lg transition-all duration-300 modal-enter';
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    while (container.children.length > 4) {
+      container.removeChild(container.firstChild);
+    }
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(6px)';
+      setTimeout(() => toast.remove(), 300);
+    }, 3400);
+  }
+
+  renderMerchantModal() {
+    const stats = this.getStats();
+    document.getElementById('merchantCoinsDisplay').textContent = this.state.storage.coins || 0;
+
+    // 1. Venda Direta
+    const sellList = document.getElementById('merchantSellList');
+    const sellable = Object.values(RESOURCES).filter(r => r.sellPrice > 0);
+    sellList.innerHTML = sellable.map(r => {
+      const have = this.getTotalResource(r.id);
+      const unitPrice = Math.max(1, Math.round(r.sellPrice * stats.merchantMult));
+      const allPrice = have * unitPrice;
+      return `
+        <div class="rounded-2xl p-3 bg-black/30 border border-stone-800 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="text-xl">${r.icon}</span>
+            <div>
+              <div class="text-xs font-bold text-stone-100">${r.name} <span class="text-stone-400 font-normal">(${have} em posse)</span></div>
+              <div class="text-[11px] text-amber-300 font-semibold">${unitPrice} 🪙 / unidade</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button data-sell-res="${r.id}" data-sell-mode="one" ${have < 1 ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition ${
+              have >= 1 ? 'bg-amber-400/20 hover:bg-amber-400/35 text-amber-200 border border-amber-400/30 cursor-pointer' : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+            }">Vender 1</button>
+            <button data-sell-res="${r.id}" data-sell-mode="all" ${have < 1 ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition ${
+              have >= 1 ? 'bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer' : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+            }">Tudo (${allPrice} 🪙)</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    sellList.querySelectorAll('[data-sell-res]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.sellDirectResource(btn.getAttribute('data-sell-res'), btn.getAttribute('data-sell-mode'));
+      });
+    });
+
+    // 2. Contratos do Vale
+    const ctList = document.getElementById('merchantContractsList');
+    ctList.innerHTML = this.state.contracts.map(ct => {
+      const ready = this.canAfford(ct.req);
+      const rewardCoins = Math.round(ct.coins * stats.merchantMult);
+      const reqTags = Object.entries(ct.req).map(([res, amt]) => {
+        const def = RESOURCES[res];
+        const have = this.getTotalResource(res);
+        const ok = have >= amt;
+        return `<span class="px-2 py-0.5 rounded-lg text-xs font-medium ${ok ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/30' : 'bg-stone-800 text-stone-300'}">${def.icon} ${have}/${amt}</span>`;
+      }).join(' ');
+
+      return `
+        <div class="rounded-2xl p-3.5 bg-black/30 border border-stone-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-stone-100">${ct.title}</span>
+            <span class="text-xs font-bold text-amber-300">+${rewardCoins} 🪙  +${ct.blueprints} 📜</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">${reqTags}</div>
+          <button data-ct-id="${ct.id}" ${!ready ? 'disabled' : ''} class="w-full py-2 rounded-xl text-xs font-bold transition ${
+            ready
+              ? 'bg-emerald-400 hover:bg-emerald-300 text-stone-950 cursor-pointer active:scale-95'
+              : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+          }">
+            ${ready ? 'Entregar Contrato' : 'Recursos Faltando'}
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    ctList.querySelectorAll('[data-ct-id]').forEach(btn => {
+      btn.addEventListener('click', () => this.completeContract(btn.getAttribute('data-ct-id')));
+    });
+  }
+
+  renderWorkshopModal() {
+    const tabsEl = document.getElementById('upgradeTabs');
+    const tabs = [...UPGRADE_CATEGORIES];
+    if (this.state.phase >= 5) {
+      tabs.push({ id: 'specialization', label: 'Especialização', icon: '👑' });
+    }
+
+    tabsEl.innerHTML = tabs.map(t => {
+      const active = this.activeUpgradeTab === t.id;
+      return `
+        <button data-upg-tab="${t.id}" class="px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+          active ? 'bg-amber-400 text-stone-950 shadow' : 'bg-white/5 hover:bg-white/10 text-stone-300'
+        }">
+          <span>${t.icon}</span><span>${t.label}</span>
+        </button>
+      `;
+    }).join('');
+
+    tabsEl.querySelectorAll('[data-upg-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.activeUpgradeTab = btn.getAttribute('data-upg-tab');
+        this.renderWorkshopModal();
+      });
+    });
+
+    const listEl = document.getElementById('upgradeList');
+
+    if (this.activeUpgradeTab === 'specialization') {
+      listEl.innerHTML = SPECIALIZATIONS.map(sp => {
+        const active = this.state.specialization === sp.id;
+        return `
+          <div class="rounded-2xl p-4 border flex flex-col justify-between ${active ? 'bg-amber-500/15 border-amber-400' : 'bg-black/30 border-stone-800'}">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-base font-bold text-stone-100">${sp.icon} ${sp.name}</span>
+                ${active ? '<span class="px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 text-[10px] font-bold">ATIVA</span>' : ''}
+              </div>
+              <p class="text-xs text-stone-300 mb-3">${sp.tagline}</p>
+              <ul class="space-y-1 text-xs text-emerald-200 mb-4">
+                ${sp.bonuses.map(b => `<li>✦ ${b}</li>`).join('')}
+              </ul>
+            </div>
+            <button data-spec-id="${sp.id}" class="w-full py-2 rounded-xl text-xs font-bold cursor-pointer ${active ? 'bg-stone-700 text-stone-300' : 'bg-amber-400 hover:bg-amber-300 text-stone-950'}">
+              ${active ? 'Especialização Ativa' : 'Escolher Build'}
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('[data-spec-id]').forEach(btn => {
+        btn.addEventListener('click', () => this.selectSpecialization(btn.getAttribute('data-spec-id')));
+      });
+      return;
+    }
+
+    const filtered = UPGRADES_DEF.filter(u => u.category === this.activeUpgradeTab);
+    listEl.innerHTML = filtered.map(u => {
+      const cur = this.state.upgrades[u.id] || 0;
+      const isMax = cur >= u.maxLevel;
+      const reqLocked = u.requiresBuild && !this.state.builds[u.requiresBuild]?.built;
+      const cost = isMax ? null : u.costs[cur];
+      const affordable = !reqLocked && cost && this.canAfford(cost);
+
+      const costHtml = isMax
+        ? '<span class="text-emerald-300 font-semibold text-xs">Nível Máximo ✓</span>'
+        : reqLocked
+          ? '<span class="text-amber-300 text-xs">Construa a Estação de Drones primeiro</span>'
+          : Object.entries(cost).map(([res, amt]) => {
+              const def = RESOURCES[res];
+              const have = this.getTotalResource(res);
+              const ok = have >= amt;
+              return `<span class="px-2 py-0.5 rounded-lg text-[11px] font-medium ${ok ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/30' : 'bg-rose-950/60 text-rose-200 border border-rose-500/30'}">${def.icon} ${have}/${amt}</span>`;
+            }).join(' ');
+
+      return `
+        <div class="rounded-2xl p-4 bg-black/30 border border-stone-800 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="text-sm font-bold text-amber-100">${u.name}</h3>
+              <span class="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-semibold text-stone-200">Nv. ${cur}/${u.maxLevel}</span>
+            </div>
+            <p class="text-xs text-stone-300 mt-1 leading-relaxed">${u.desc}</p>
+            ${!isMax ? `<div class="mt-2 text-[11px] font-semibold text-sky-300">${u.effectText(cur)}</div>` : ''}
+          </div>
+          <div class="pt-2 border-t border-stone-800 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap gap-1.5">${costHtml}</div>
+            ${!isMax && !reqLocked ? `
+              <button data-buy-upg="${u.id}" ${!affordable ? 'disabled' : ''} class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                affordable ? 'bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer active:scale-95' : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+              }">Melhorar</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('[data-buy-upg]').forEach(btn => {
+      btn.addEventListener('click', () => this.buyUpgrade(btn.getAttribute('data-buy-upg')));
+    });
+  }
+
+  renderProjectsModal() {
+    const grid = document.getElementById('projectsGrid');
+    grid.innerHTML = this.blueprintsDef.map(bp => {
+      const st = this.state.builds[bp.id];
+      const built = st.built;
+      const isTracked = this.state.trackedBuildId === bp.id;
+      const costHtml = Object.entries(bp.cost).map(([res, amt]) => {
+        const def = RESOURCES[res];
+        const paid = st.paid[res] || 0;
+        const have = this.getTotalResource(res);
+        const total = built ? amt : Math.min(amt, paid + have);
+        return `<span class="px-2 py-0.5 rounded-lg text-[11px] ${total >= amt ? 'bg-emerald-950/80 text-emerald-200' : 'bg-stone-800 text-stone-300'}">${def.icon} ${total}/${amt}</span>`;
+      }).join(' ');
+
+      return `
+        <div class="rounded-2xl p-4 border flex flex-col justify-between gap-2.5 ${
+          built ? 'bg-emerald-950/25 border-emerald-500/30'
+          : isTracked ? 'bg-yellow-500/12 border-yellow-400/60'
+          : 'bg-black/30 border-stone-800'
+        }">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-bold ${built ? 'text-emerald-300' : 'text-yellow-200'}">${bp.name}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                built ? 'bg-emerald-500/20 text-emerald-200' : 'bg-yellow-400/20 text-yellow-200'
+              }">${built ? 'Concluído ✓' : 'Zona Amarela'}</span>
+            </div>
+            <p class="text-xs text-stone-300 mt-1">${bp.desc}</p>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-800">
+            <div class="flex flex-wrap gap-1">${costHtml}</div>
+            ${!built ? `
+              <button data-track-bp="${bp.id}" class="px-3 py-1 rounded-xl text-xs font-bold cursor-pointer transition ${
+                isTracked ? 'bg-yellow-400 text-stone-950' : 'bg-white/10 hover:bg-white/20 text-yellow-200'
+              }">
+                ${isTracked ? '🧭 Rastreando' : 'Rastrear Projeto'}
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('[data-track-bp]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.state.trackedBuildId = btn.getAttribute('data-track-bp');
+        this.updateObjectiveCard();
+        this.renderProjectsModal();
+        this.showToast('🧭 Seta guia dourada apontando para o projeto selecionado!');
+      });
+    });
+
+    const phasesEl = document.getElementById('phasesGrid');
+    phasesEl.innerHTML = PHASES_INFO.map(pi => {
+      const done = this.state.phase > pi.phase;
+      const cur = this.state.phase === pi.phase;
+      return `
+        <div class="rounded-2xl p-3 border ${cur ? 'bg-amber-500/15 border-amber-400/50' : done ? 'bg-emerald-950/25 border-emerald-500/30' : 'bg-black/25 border-stone-800 opacity-65'}">
+          <div class="text-xs font-bold ${cur ? 'text-amber-200' : done ? 'text-emerald-300' : 'text-stone-400'}">${pi.title}</div>
+          <p class="text-[11px] text-stone-300 mt-1 leading-snug">${pi.desc}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  renderAirshipModal() {
+    const air = this.state.airship;
+    const stats = this.getStats();
+    const statusBox = document.getElementById('airshipStatusBox');
+
+    if (air.activeRouteId) {
+      const route = AIRSHIP_ROUTES.find(r => r.id === air.activeRouteId);
+      const pct = Math.min(100, Math.round((air.elapsed / Math.max(1, air.duration)) * 100));
+      const rem = Math.max(0, Math.ceil(air.duration - air.elapsed));
+
+      statusBox.innerHTML = `
+        <div class="flex-1 w-full">
+          <div class="flex items-center justify-between text-xs font-bold mb-1.5">
+            <span class="text-amber-200">🎈 Expedição: ${route?.name}</span>
+            <span class="text-emerald-300">${air.completed ? 'Dirigível Atracado — Pronto!' : `Retorna em ${rem}s (${pct}%)`}</span>
+          </div>
+          <div class="w-full h-2.5 bg-stone-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-200" style="width: ${pct}%"></div>
+          </div>
+        </div>
+        ${air.completed ? `
+          <button id="btnCollectAirshipModal" class="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-stone-950 font-bold text-xs cursor-pointer shadow">
+            🎉 Coletar Recompensas
+          </button>
+        ` : ''}
+      `;
+      const btn = document.getElementById('btnCollectAirshipModal');
+      if (btn) btn.addEventListener('click', () => this.collectAirshipRewards());
+    } else {
+      statusBox.innerHTML = `
+        <div class="text-xs text-stone-200 flex items-center gap-2.5">
+          <span class="text-2xl">⚓</span>
+          <div>
+            <div class="font-bold text-emerald-200">Dirigível Atracado e Pronto para Decolar</div>
+            <div class="text-stone-400">Escolha uma das 3 rotas aéreas abaixo para enviar cargas processadas.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    const routesGrid = document.getElementById('airshipRoutesGrid');
+    routesGrid.innerHTML = AIRSHIP_ROUTES.map(r => {
+      const canLaunch = !air.activeRouteId && this.canAfford(r.cost);
+      const dur = Math.max(10, Math.round(r.duration / stats.airshipSpeedMult));
+
+      const costHtml = Object.entries(r.cost).map(([res, amt]) => {
+        const def = RESOURCES[res];
+        const have = this.getTotalResource(res);
+        const ok = have >= amt;
+        return `<span class="px-2 py-0.5 rounded-lg text-xs ${ok ? 'bg-emerald-950/80 text-emerald-200' : 'bg-rose-950/60 text-rose-200'}">${def.icon} ${have}/${amt}</span>`;
+      }).join(' ');
+
+      const rewHtml = Object.entries(r.rewards).map(([res, amt]) => {
+        const def = RESOURCES[res];
+        const val = res === 'coins' ? Math.round(amt * stats.airshipRewardMult) : amt;
+        return `<span class="px-2 py-0.5 rounded-lg text-xs bg-amber-500/15 text-amber-200 border border-amber-400/30 font-semibold">+${val} ${def.icon} ${def.name}</span>`;
+      }).join(' ');
+
+      return `
+        <div class="rounded-2xl p-4 bg-black/30 border border-stone-800 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-sm font-bold text-stone-100">${r.name}</h3>
+              <span class="text-xs font-semibold text-sky-300">⏱️ ${dur}s</span>
+            </div>
+            <p class="text-xs text-stone-300 leading-relaxed mb-3">${r.desc}</p>
+
+            <div class="text-[11px] font-bold text-stone-400 uppercase mb-1">Carga Necessária:</div>
+            <div class="flex flex-wrap gap-1.5 mb-3">${costHtml}</div>
+
+            <div class="text-[11px] font-bold text-amber-300 uppercase mb-1">Recompensa:</div>
+            <div class="flex flex-wrap gap-1.5">${rewHtml}</div>
+          </div>
+
+          <button data-launch-route="${r.id}" ${!canLaunch ? 'disabled' : ''} class="w-full py-2.5 rounded-xl text-xs font-bold transition ${
+            canLaunch
+              ? 'bg-emerald-400 hover:bg-emerald-300 text-stone-950 cursor-pointer active:scale-95 shadow'
+              : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+          }">
+            ${air.activeRouteId ? 'Dirigível em Viagem' : canLaunch ? '🎈 Iniciar Expedição' : 'Carga Insuficiente'}
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    routesGrid.querySelectorAll('[data-launch-route]').forEach(btn => {
+      btn.addEventListener('click', () => this.launchAirshipRoute(btn.getAttribute('data-launch-route')));
+    });
+  }
+
+  syncAudioSlidersUI() {
+    const st = this.sound.settings;
+    document.getElementById('volMasterSlider').value = Math.round(st.master * 100);
+    document.getElementById('volMasterVal').textContent = `${Math.round(st.master * 100)}%`;
+
+    document.getElementById('volMusicSlider').value = Math.round(st.music * 100);
+    document.getElementById('volMusicVal').textContent = `${Math.round(st.music * 100)}%`;
+
+    document.getElementById('volSfxSlider').value = Math.round(st.sfx * 100);
+    document.getElementById('volSfxVal').textContent = `${Math.round(st.sfx * 100)}%`;
+
+    const btnM = document.getElementById('btnMuteMusic');
+    btnM.textContent = st.musicMuted ? 'Mutada' : 'Ativa';
+    btnM.className = `px-2 py-0.5 rounded text-[10px] cursor-pointer ${st.musicMuted ? 'bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 text-emerald-200'}`;
+
+    const btnS = document.getElementById('btnMuteSfx');
+    btnS.textContent = st.sfxMuted ? 'Mutados' : 'Ativos';
+    btnS.className = `px-2 py-0.5 rounded text-[10px] cursor-pointer ${st.sfxMuted ? 'bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 text-emerald-200'}`;
+  }
+}
+
+window.onload = function () {
+  window.oficinaGame = new OficinaDoValeGame();
+};
+</script>
+</body>
+</html>
