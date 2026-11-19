@@ -12,11 +12,8 @@ export class GameSimulationController {
     const state = c.getState();
     const player = c.getPlayer();
 
-    // O movimento das nuvens também ocorre na tela inicial para manter o mundo vivo.
-    c.worldSystem.clouds.forEach(cloud => {
-      cloud.x += cloud.speed * dt;
-      if (cloud.x > 1400) cloud.x = -1400;
-    });
+    // Keep clouds animated on the title screen, during hit-stop, and during gameplay.
+    c.worldSystem.updateClouds(dt);
 
     if (!c.getIsPlaying()) {
       c.renderer.camera.setIdlePan(c.clock.worldTime);
