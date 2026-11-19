@@ -23,7 +23,7 @@ export class AirshipModal {
       statusBox.innerHTML = `
         <div class="flex-1 w-full">
           <div class="flex items-center justify-between text-xs font-bold mb-1.5">
-            <span class="text-amber-200">🎈 Expedição: ${route?.name}</span>
+            <span class="text-amber-200"> Expedição: ${route?.name}</span>
             <span class="text-emerald-300">${
               air.completed ? 'Dirigível Atracado — Pronto!' : `Retorna em ${rem}s (${pct}%)`
             }</span>
@@ -36,7 +36,7 @@ export class AirshipModal {
           air.completed
             ? `
           <button id="btnCollectAirshipModal" class="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-stone-950 font-bold text-xs cursor-pointer shadow">
-            🎉 Coletar Recompensas
+             Coletar Recompensas
           </button>
         `
             : ''
@@ -53,7 +53,7 @@ export class AirshipModal {
     } else {
       statusBox.innerHTML = `
         <div class="text-xs text-stone-200 flex items-center gap-2.5">
-          <span class="text-2xl">⚓</span>
+          <span class="route-marker">DOCA</span>
           <div>
             <div class="font-bold text-emerald-200">Dirigível Atracado e Pronto para Decolar</div>
             <div class="text-stone-400">Escolha uma das 3 rotas aéreas abaixo para enviar cargas processadas.</div>
@@ -93,7 +93,7 @@ export class AirshipModal {
           <div>
             <div class="flex items-center justify-between mb-1">
               <h3 class="text-sm font-bold text-stone-100">${r.name}</h3>
-              <span class="text-xs font-semibold text-sky-300">⏱️ ${dur}s</span>
+              <span class="text-xs font-semibold text-sky-300"> ${dur}s</span>
             </div>
             <p class="text-xs text-stone-300 leading-relaxed mb-3">${r.desc}</p>
 
@@ -113,7 +113,7 @@ export class AirshipModal {
               air.activeRouteId
                 ? 'Dirigível em Viagem'
                 : canLaunch
-                ? '🎈 Iniciar Expedição'
+                ? ' Iniciar Expedição'
                 : 'Carga Insuficiente'
             }
           </button>

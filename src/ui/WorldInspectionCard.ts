@@ -101,16 +101,13 @@ export class WorldInspectionCard {
       }
     }
 
-    // Posiciona suavemente sobre o Canvas
-    const screenX = targetBp.x + targetBp.w / 2 - camera.x + screenWidth / 2;
-    const screenY = targetBp.y - camera.y + screenHeight / 2 - 16;
-
-    const clampedX = Math.max(155, Math.min(screenWidth - 155, screenX));
-    const clampedY = Math.max(210, Math.min(screenHeight - 40, screenY));
+    // Card stays in a stable HUD area rather than floating over the world target.
+    const clampedX = Math.max(160, Math.min(screenWidth - 160, screenWidth / 2));
+    const clampedY = Math.max(108, Math.min(screenHeight - 180, 124));
 
     this.cardEl.style.left = `${clampedX}px`;
     this.cardEl.style.top = `${clampedY}px`;
-    this.cardEl.style.transform = 'translate(-50%, -100%)';
+    this.cardEl.style.transform = 'translate(-50%, 0)';
     this.cardEl.classList.remove('hidden');
   }
 }

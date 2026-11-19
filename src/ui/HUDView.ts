@@ -111,8 +111,8 @@ export class HUDView {
       const titleEl = document.getElementById('airshipFlightTitle');
       if (titleEl) {
         titleEl.textContent = air.completed
-          ? `🎈 ${route?.name || 'Dirigível'} — Retornou!`
-          : `🎈 ${route?.name || 'Expedição'} (${rem}s)`;
+          ? ` ${route?.name || 'Dirigível'} — Retornou!`
+          : ` ${route?.name || 'Expedição'} (${rem}s)`;
       }
 
       const fillEl = document.getElementById('airshipFlightFill');
