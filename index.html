@@ -122,6 +122,59 @@
   #worldInspectionCard #wicActionBtn { min-height: 42px; }
   #toastContainer > div { background: rgba(26,35,31,.96); border-color: rgba(210,174,119,.18); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
   @media (max-width:640px) { #resourceBar { max-width: calc(100vw - 24px); gap: 3px; } #resourceBar > div { font-size: 10px; padding: 3px 5px; } #worldInspectionCard { left: 50% !important; top: 112px !important; transform: translateX(-50%) !important; } [data-modal-backdrop] > .glass-panel { max-height: calc(100dvh - 20px); border-radius: 20px; } #touchJoystickZone { border-color: rgba(230,198,143,.18); background: rgba(27,37,34,.38); } #touchJoystickKnob { background: rgba(213,171,105,.84); } }
+  /* Keep every modal usable inside short viewports and mobile safe areas. */
+  [data-modal-backdrop] {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  [data-modal-backdrop] > .glass-panel {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: min(88vh, calc(100vh - 24px));
+    max-height: min(88vh, calc(100dvh - 24px));
+  }
+  [data-modal-backdrop] > .glass-panel > * { min-width: 0; flex-shrink: 0; }
+  [data-modal-backdrop] > .glass-panel > .overflow-y-auto,
+  [data-modal-backdrop] > .glass-panel > .p-5:not(.overflow-y-auto) {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  #upgradeTabs { flex: 0 0 auto; }
+  #upgradeList { min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #upgradeList > * { min-width: 0; }
+
+  @media (max-width: 640px) {
+    [data-modal-backdrop] {
+      padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+    }
+    [data-modal-backdrop] > .glass-panel {
+      width: 100%;
+      max-height: calc(100dvh - max(20px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+      border-radius: 20px;
+    }
+    #upgradeTabs { padding-inline: 12px; gap: 6px; }
+    #upgradeTabs button { min-height: 40px; }
+    #upgradeList {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      padding: 12px;
+    }
+    #upgradeList > * { padding: 14px; }
+  }
+
+  @media (max-height: 560px) {
+    [data-modal-backdrop] { align-items: flex-start; }
+    [data-modal-backdrop] > .glass-panel {
+      max-height: calc(100dvh - 16px);
+      margin-block: 8px;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
   </style>
