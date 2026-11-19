@@ -94,6 +94,7 @@ export class GameSimulationController {
     // 8. Atualizações periódicas da interface e autosave.
     if (clockInfo.shouldTickUI) {
       c.ui.hudView.update(state, player, stats);
+      c.ui.refreshActiveModalResources?.(state, player);
       if (c.ui.activeModal === 'modalAirship' && state.airship.activeRouteId) {
         c.ui.airshipModal.render(state, player, stats);
       }
