@@ -215,6 +215,12 @@ export class UIManager {
     this.activeModal = null;
   }
 
+  refreshActiveModalResources(state: GameState, player: PlayerState): void {
+    if (this.activeModal === 'modalWorkshop') {
+      this.workshopModal.refreshResources(state, player);
+    }
+  }
+
   refreshAll(
     getState: () => GameState,
     getPlayer: () => PlayerState,
@@ -236,6 +242,11 @@ export class UIManager {
         airBtn.classList.add('hidden');
         airBtn.classList.remove('flex');
       }
+    }
+
+    // A compra pode alterar nível, custo e disponibilidade do upgrade selecionado.
+    if (this.activeModal === 'modalWorkshop') {
+      this.workshopModal.render(state, player);
     }
   }
 }
