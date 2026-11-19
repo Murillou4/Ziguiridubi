@@ -32,7 +32,7 @@ export class MerchantModal {
               <span class="text-xl">${r.icon}</span>
               <div>
                 <div class="text-xs font-bold text-stone-100">${r.name} <span class="text-stone-400 font-normal">(${have} em posse)</span></div>
-                <div class="text-[11px] text-amber-300 font-semibold">${unitPrice} 🪙 / unidade</div>
+                <div class="text-[11px] text-amber-300 font-semibold">${unitPrice}  / unidade</div>
               </div>
             </div>
             <div class="flex items-center gap-1.5">
@@ -45,7 +45,7 @@ export class MerchantModal {
                 have >= 1
                   ? 'bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer'
                   : 'bg-stone-800 text-stone-500 cursor-not-allowed'
-              }">Tudo (${allPrice} 🪙)</button>
+              }">Tudo (${allPrice} )</button>
             </div>
           </div>
         `;
@@ -83,7 +83,7 @@ export class MerchantModal {
           <div class="rounded-2xl p-3.5 bg-black/30 border border-stone-800 space-y-2.5">
             <div class="flex items-center justify-between">
               <span class="text-sm font-bold text-stone-100">${ct.title}</span>
-              <span class="text-xs font-bold text-amber-300">+${rewardCoins} 🪙  +${ct.blueprints} 📜</span>
+              <span class="text-xs font-bold text-amber-300">+${rewardCoins}   +${ct.blueprints} </span>
             </div>
             <div class="flex flex-wrap gap-1.5">${reqTags}</div>
             <button data-ct-id="${ct.id}" ${!ready ? 'disabled' : ''} class="w-full py-2 rounded-xl text-xs font-bold transition ${
