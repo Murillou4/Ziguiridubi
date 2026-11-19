@@ -21,7 +21,7 @@ export class TransferModal {
         this.saveService.save(getState(), getPlayer(), getAudio(), false);
         const box = document.getElementById('exportCodeBox') as HTMLTextAreaElement | null;
         if (box) box.value = this.saveService.generateExportCode(getState(), getPlayer(), getAudio());
-        this.eventBus.emit('ui:toast', { message: '💾 Progresso salvo no navegador!' });
+        this.eventBus.emit('ui:toast', { message: ' Progresso salvo no navegador!' });
       });
     }
 
@@ -55,7 +55,7 @@ export class TransferModal {
     if (btnDownload) {
       btnDownload.addEventListener('click', () => {
         this.saveService.downloadBackupJson(getState(), getPlayer(), getAudio());
-        this.eventBus.emit('ui:toast', { message: '⬇️ Backup oficina-do-vale-save.json baixado!' });
+        this.eventBus.emit('ui:toast', { message: ' Backup oficina-do-vale-save.json baixado!' });
       });
     }
 
@@ -71,16 +71,16 @@ export class TransferModal {
           const payload = this.saveService.importFromCode(rawBox.value);
           onPayloadLoaded(payload);
           if (fb) {
-            fb.textContent = '✅ Progresso carregado com sucesso!';
+            fb.textContent = ' Progresso carregado com sucesso!';
             fb.className = 'text-xs font-semibold text-emerald-300';
             fb.classList.remove('hidden');
           }
           this.eventBus.emit('sound:upgrade');
-          this.eventBus.emit('ui:toast', { message: '✅ Progresso importado e restaurado!' });
+          this.eventBus.emit('ui:toast', { message: ' Progresso importado e restaurado!' });
           setTimeout(() => this.eventBus.emit('ui:closeModals'), 900);
         } catch (err: any) {
           if (fb) {
-            fb.textContent = '❌ Código inválido: ' + (err?.message || 'Formato desconhecido');
+            fb.textContent = ' Código inválido: ' + (err?.message || 'Formato desconhecido');
             fb.className = 'text-xs font-semibold text-rose-300';
             fb.classList.remove('hidden');
           }
@@ -104,16 +104,16 @@ export class TransferModal {
             const payload = this.saveService.importFromJsonString(rawStr);
             onPayloadLoaded(payload);
             if (fb) {
-              fb.textContent = '✅ Arquivo JSON importado com sucesso!';
+              fb.textContent = ' Arquivo JSON importado com sucesso!';
               fb.className = 'text-xs font-semibold text-emerald-300';
               fb.classList.remove('hidden');
             }
             this.eventBus.emit('sound:upgrade');
-            this.eventBus.emit('ui:toast', { message: '✅ Backup JSON restaurado com sucesso!' });
+            this.eventBus.emit('ui:toast', { message: ' Backup JSON restaurado com sucesso!' });
             setTimeout(() => this.eventBus.emit('ui:closeModals'), 900);
           } catch {
             if (fb) {
-              fb.textContent = '❌ Arquivo JSON inválido.';
+              fb.textContent = ' Arquivo JSON inválido.';
               fb.className = 'text-xs font-semibold text-rose-300';
               fb.classList.remove('hidden');
             }
