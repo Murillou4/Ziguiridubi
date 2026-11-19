@@ -94,10 +94,10 @@ test('exibe os controles touch e processa toque em golpear, dash e joystick', as
   });
 
   await expect.poll(() =>
-    page.evaluate(() => window.gameApp.input.virtualJoystick.state.active)
+    page.evaluate(() => window.gameApp.services.input.virtualJoystick.state.active)
   ).toBe(true);
   await expect.poll(() =>
-    page.evaluate(() => window.gameApp.input.virtualJoystick.state.dx)
+    page.evaluate(() => window.gameApp.services.input.virtualJoystick.state.dx)
   ).toBeGreaterThan(0.5);
 
   await joystick.evaluate(element => {
@@ -118,7 +118,7 @@ test('exibe os controles touch e processa toque em golpear, dash e joystick', as
   });
 
   await expect.poll(() =>
-    page.evaluate(() => window.gameApp.input.virtualJoystick.state.active)
+    page.evaluate(() => window.gameApp.services.input.virtualJoystick.state.active)
   ).toBe(false);
   expect(pageErrors).toEqual([]);
 });
