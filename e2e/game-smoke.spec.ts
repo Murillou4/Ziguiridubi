@@ -39,7 +39,7 @@ test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse
   const canvasBounds = await page.locator('#gameCanvas').boundingBox();
   expect(canvasBounds).not.toBeNull();
   await page.mouse.click(
-    canvasBounds!.x + canvasBounds!.width * 0.70,
+    canvasBounds!.x + canvasBounds!.width * 0.56,
     canvasBounds!.y + canvasBounds!.height * 0.50
   );
   await expect.poll(() => page.evaluate(() => window.gameApp.player.moveTarget !== null)).toBe(true);
