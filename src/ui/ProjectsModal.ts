@@ -61,7 +61,7 @@ export class ProjectsModal {
                         ? 'bg-yellow-400 text-stone-950'
                         : 'bg-white/10 hover:bg-white/20 text-yellow-200'
                     }">
-                  ${isTracked ? '🧭 Rastreando' : 'Rastrear Projeto'}
+                  ${isTracked ? ' Rastreando' : 'Rastrear Projeto'}
                 </button>
               `
                   : ''
@@ -77,7 +77,7 @@ export class ProjectsModal {
           this.eventBus.emit('ui:hud');
           this.render(state, player);
           this.eventBus.emit('ui:toast', {
-            message: '🧭 Seta guia dourada apontando para o projeto selecionado!'
+            message: ' Seta guia dourada apontando para o projeto selecionado!'
           });
         });
       });
