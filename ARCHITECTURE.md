@@ -211,3 +211,16 @@ Responsabilidade exclusiva de desenhar no Canvas 2D sem alterar estado econômic
    Códigos prefixados com `ODV1_` continuam sendo gerados e decodificados com a mesma rotina de Base64 e URI decoding, garantindo que qualquer código antigo compartilhado por jogadores funcione sem perdas.
 3. **Mecânicas e Balanço**:
    Nenhuma fórmula de dano, tempo de produção de máquinas, preço de recursos, custo de blueprints ou velocidade de viagem de dirigível foi alterada.
+
+
+---
+
+## 10. Estado operacional da migração
+
+A aplicação modular utiliza `index.html` como shell da interface e `src/main.ts` como ponto de entrada. O HTML legado `oficina_do_vale.html` é mantido apenas como referência de comportamento e de compatibilidade.
+
+Os módulos TypeScript em `src/` são a fonte de verdade; cópias JavaScript paralelas não devem ser mantidas nessa árvore. O projeto utiliza Vite para servir e empacotar a aplicação, TypeScript para validação estática e Vitest para testes unitários.
+
+### Limite arquitetural conhecido
+
+`GameApp` ainda funciona como coordenador de aplicação e contém alguns fluxos de interação de alto nível (golpe, dash, clique no mundo e interação contextual). Isso mantém a integração atual explícita, mas não deve virar um novo monólito. A extração dessas rotinas para controladores/sistemas especializados é uma etapa de evolução posterior e deve ser feita com testes de regressão, não por uma reescrita arriscada.
