@@ -64,6 +64,15 @@ test('exibe os controles touch e processa toque em golpear, dash e joystick', as
   await expect(page.locator('#titleScreen')).toBeHidden({ timeout: 2_000 });
   await expect(page.locator('#touchControls')).toBeVisible();
 
+  const topHudBounds = await page.locator('#hudLayer > div').first().evaluate(row => {
+    const childBounds = Array.from(row.children).map(child => child.getBoundingClientRect());
+    return {
+      maxRight: Math.max(...childBounds.map(rect => rect.right)),
+      viewportWidth: window.innerWidth
+    };
+  });
+  expect(topHudBounds.maxRight).toBeLessThanOrEqual(topHudBounds.viewportWidth + 1);
+
   await page.locator('#touchBtnHit').tap();
   await expect.poll(() => page.evaluate(() => window.gameApp.player.swingTimer)).toBeGreaterThan(0);
 

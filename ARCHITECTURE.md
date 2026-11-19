@@ -239,3 +239,8 @@ A classe `GameApp` mantém a composição dos serviços, inicialização, ciclo 
 A aplicação injeta as dependências por meio de um objeto `GameAppServices`, evitando um construtor posicional com muitos argumentos. A ordem de atualização existente foi preservada deliberadamente.
 
 A validação de navegador é automatizada com Playwright em Chromium desktop e mobile emulado. Os testes exercitam inicialização, início da jornada, movimento com teclado, abertura/fechamento do mercador, toque nos botões de golpe e dash, e eventos do joystick virtual. Isso é uma verificação automatizada de interação no navegador; não substitui inspeção visual manual em dispositivos físicos.
+
+
+### Revisão visual de navegador
+
+As capturas produzidas pelo Playwright foram revisadas em Chromium desktop (1440×900) e no perfil mobile emulado. A inspeção encontrou um cartão de objetivo largo demais para compartilhar a linha superior em telas estreitas. O HUD foi ajustado com larguras responsivas e o teste mobile agora verifica que os elementos da linha superior permanecem dentro da largura do viewport. A validação automatizada continua sem substituir uma verificação em aparelhos físicos.
