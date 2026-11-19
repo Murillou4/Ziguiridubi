@@ -1,11 +1,11 @@
 import { UpgradeCategoryDef, UpgradeDef } from '../domain/types.ts';
 
 export const UPGRADE_CATEGORIES: UpgradeCategoryDef[] = [
-  { id: 'tools',      label: 'Ferramentas',   icon: '🪓' },
-  { id: 'capacity',   label: 'Capacidade',    icon: '🎒' },
-  { id: 'efficiency', label: 'Eficiência',    icon: '⚙️' },
-  { id: 'automation', label: 'Automação',     icon: '🤖' },
-  { id: 'special',    label: 'Especiais',     icon: '🌟' }
+  { id: 'tools',      label: 'Ferramentas',   icon: '' },
+  { id: 'capacity',   label: 'Capacidade',    icon: '' },
+  { id: 'efficiency', label: 'Eficiência',    icon: '' },
+  { id: 'automation', label: 'Automação',     icon: '' },
+  { id: 'special',    label: 'Especiais',     icon: '' }
 ];
 
 export const UPGRADES_DEF: UpgradeDef[] = [
