@@ -80,4 +80,35 @@ describe('MachineSystem', () => {
     expect(state.storage.wood).toBe(0);
     expect(state.storage.planks).toBe(1);
   });
+
+  it('pausa só a máquina escolhida, mesmo por perto, e retoma o progresso acumulado', () => {
+    const state = createDefaultState();
+    const player = createDefaultPlayer();
+    const events = new EventBus();
+    const save = vi.fn();
+    events.on('save:request', save);
+    const system = new MachineSystem(new InventorySystem(), events);
+
+    state.upgrades.autoMachines = 1;
+    for (const id of ['sawmill', 'furnace', 'gearWorkshop']) state.builds[id].built = true;
+    Object.assign(state.storage, { wood: 2, ironOre: 2, ironIngot: 2, planks: 2 });
+    state.machines.gearWorkshop.progress = .95;
+    const workshop = BLUEPRINTS_DEF.find(bp => bp.id === 'gearWorkshop')!;
+    player.x = workshop.x + workshop.w / 2;
+    player.y = workshop.y + workshop.h / 2;
+    const stats = { ...getDerivedStats(state), doubleYieldChance: 0 };
+
+    expect(system.setPaused(state, 'gearWorkshop', true)).toBe(true);
+    system.update(state, player, stats, 2.3);
+
+    expect(state.storage).toMatchObject({ wood: 0, ironOre: 0, ironIngot: 3, planks: 3, gears: 0 });
+    expect(state.machines.gearWorkshop.progress).toBe(.95);
+
+    expect(system.setPaused(state, 'gearWorkshop', false)).toBe(true);
+    system.update(state, player, stats, .2);
+
+    expect(state.storage).toMatchObject({ ironIngot: 1, planks: 1, gears: 1 });
+    expect(state.machines.gearWorkshop.progress).toBe(0);
+    expect(save).toHaveBeenCalledTimes(2);
+  });
 });

@@ -62,6 +62,7 @@ describe('GameApp drone lifecycle', () => {
       gears: 100,
       ironIngot: 100,
       coins: 5000,
+      planks: 50,
       steamCore: 100,
       etherCryst: 100
     });
@@ -72,6 +73,14 @@ describe('GameApp drone lifecycle', () => {
     expect(upgradeSystem.buyUpgrade(app.state, app.player, 'minerDrone')).toBe(true);
     expect(droneSystem.drones.filter(drone => drone.kind === 'miner')).toHaveLength(1);
     expect(droneSystem.drones).toHaveLength(2);
+
+    expect(upgradeSystem.buyUpgrade(app.state, app.player, 'ironDrone')).toBe(false);
+    expect(upgradeSystem.buyUpgrade(app.state, app.player, 'crystalDrone')).toBe(false);
+    app.state.builds.eastBridge.built = true;
+    expect(upgradeSystem.buyUpgrade(app.state, app.player, 'ironDrone')).toBe(true);
+    app.state.builds.westBridge.built = true;
+    expect(upgradeSystem.buyUpgrade(app.state, app.player, 'crystalDrone')).toBe(true);
+    expect(droneSystem.drones.map(drone => drone.kind)).toEqual(['lumber', 'miner', 'iron', 'crystal']);
   });
 
   it('recreates runtime drones from imported save levels without retaining old cargo', () => {

@@ -3,8 +3,12 @@ import { PlayerInput } from '../gameplay/PlayerSystem.ts';
 import { EventBus } from '../core/EventBus.ts';
 import type { Camera } from '../rendering/Camera.ts';
 
+export type InputMode = 'keyboard' | 'mouse' | 'touch';
+const GAMEPLAY_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyE', 'ShiftLeft', 'ShiftRight']);
+
 export class InputManager {
   public keys: Record<string, boolean> = {};
+  public mode: InputMode = 'keyboard';
   public mouse = {
     screenX: 0,
     screenY: 0,
@@ -22,6 +26,11 @@ export class InputManager {
   }
 
   init(canvas: HTMLCanvasElement, isPlaying: () => boolean, isModalOpen: () => boolean): void {
+    if (window.matchMedia('(pointer: coarse)').matches) this.mode = 'touch';
+    window.addEventListener('pointerdown', event => {
+      if (isPlaying()) this.mode = event.pointerType === 'touch' ? 'touch' : 'mouse';
+    }, { capture: true });
+
     // 1. Teclado
     window.addEventListener('keydown', (e) => {
       if (!isPlaying()) return;
@@ -39,6 +48,8 @@ export class InputManager {
         }
         return;
       }
+
+      if (!isModalOpen() && GAMEPLAY_KEYS.has(code)) this.mode = 'keyboard';
 
       if (code === 'Escape') {
         this.eventBus.emit('input:escape');

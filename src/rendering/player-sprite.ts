@@ -18,6 +18,7 @@
  */
 
 import type { ResourceId } from '../domain/types.ts';
+import { DEFAULT_PLAYER_OUTFITS, type PlayerAppearance, type PlayerOutfit } from '../domain/PlayerAppearance.ts';
 import { drawResourceIcon } from './world-drops.ts';
 
 export type Facing = "down" | "up" | "left" | "right";
@@ -30,7 +31,8 @@ export interface PlayerPose {
   /** Progresso do golpe da ferramenta: 0 = sem golpe; (0, 1] = golpe em andamento. */
   swing?: number;
   tool?: 'axe' | 'pickaxe';
-  bladeColor?: string;
+  toolLevel?: number;
+  appearance?: PlayerAppearance;
   packFill?: number;
   packOpen?: number;
   cargo?: readonly ResourceId[];
@@ -58,28 +60,106 @@ interface Tone {
 
 const SKIN: Tone = { base: "#f4c6a0", light: "#ffe4c9", dark: "#d99c76", line: "#a46747" };
 const SKIN_F: Tone = { base: "#e6b28a", light: "#f4c9a4", dark: "#c58760", line: "#935a3b" };
-const HAIR: Tone = { base: "#7b4a2a", light: "#a06b43", dark: "#55301a", line: "#3a1f10" };
 const STRAW: Tone = { base: "#c98d48", light: "#e8b574", dark: "#9c6730", line: "#69401a" };
-const BAND: Tone = { base: "#dc4a3c", light: "#f77f68", dark: "#aa302a", line: "#7a1f1d" };
-const SHIRT: Tone = { base: "#f7efd9", light: "#ffffff", dark: "#d8caa8", line: "#9c8d6b" };
-const SHIRT_F: Tone = { base: "#dcd2b1", light: "#eee5c8", dark: "#b8aa86", line: "#80734f" };
-const VEST: Tone = { base: "#a8622f", light: "#cc8647", dark: "#72401c", line: "#472510" };
-const PANTS: Tone = { base: "#46689e", light: "#6a8bc2", dark: "#2f4975", line: "#1d3050" };
-const PANTS_F: Tone = { base: "#38577f", light: "#4f6f9f", dark: "#263f66", line: "#18243d" };
-const BOOT: Tone = { base: "#6c4023", light: "#926036", dark: "#43250f", line: "#2a150a" };
-const BOOT_F: Tone = { base: "#54311a", light: "#704629", dark: "#341c0c", line: "#1f0f06" };
+const BAND: Tone = { base: "#9b4938", light: "#cf795a", dark: "#723a2d", line: "#552c25" };
+const CAP: Tone = { base: "#9a5139", light: "#c97a51", dark: "#753c2d", line: "#502f24" };
+const LINEN: Tone = { base: "#e9d5ae", light: "#f8e8c9", dark: "#bd9e73", line: "#796043" };
+const LINEN_SHADE: Tone = { base: "#cbb48f", light: "#e4cca5", dark: "#9e845e", line: "#755d43" };
 const GLOVE: Tone = { base: "#8e5c31", light: "#b4824f", dark: "#5e3b1b", line: "#3b2210" };
 const GLOVE_F: Tone = { base: "#74491f", light: "#966a3c", dark: "#4a2d12", line: "#2f1a0a" };
 const BELT: Tone = { base: "#52321a", light: "#74492a", dark: "#35200f", line: "#22130a" };
 const GOLD: Tone = { base: "#f5d058", light: "#fff3ae", dark: "#c99b23", line: "#80600f" };
 const POUCH: Tone = { base: "#c27a3c", light: "#e39a5c", dark: "#8d5324", line: "#55300f" };
-const PACK: Tone = { base: "#f08c2e", light: "#ffb75a", dark: "#bf6119", line: "#85410d" };
-const PACK2: Tone = { base: "#d9721f", light: "#f79a48", dark: "#a8500f", line: "#6f3408" };
 const ROLL: Tone = { base: "#ebdfba", light: "#fff8dc", dark: "#c4b488", line: "#8a7a50" };
 const TEAL: Tone = { base: "#3f9f99", light: "#6fcbc4", dark: "#2a736f", line: "#16413e" };
 const TIN: Tone = { base: "#c5cfd9", light: "#f6fafd", dark: "#8896a6", line: "#566577" };
-const STEEL: Tone = { base: "#d3dce5", light: "#ffffff", dark: "#8d9eb2", line: "#566a7e" };
 const WOOD: Tone = { base: "#b57d44", light: "#d9a064", dark: "#7c4f27", line: "#4e2e14" };
+const OILED_WOOD: Tone = { base: "#935d34", light: "#c58d55", dark: "#653d26", line: "#412619" };
+const TOOL_IRON: Tone = { base: "#827c70", light: "#b6ab98", dark: "#5a554b", line: "#3e3931" };
+const TOOL_STEEL: Tone = { base: "#a19d90", light: "#d9d0ba", dark: "#716b60", line: "#494238" };
+const POLISHED_STEEL: Tone = { base: "#bbb6a6", light: "#f2e6cd", dark: "#817968", line: "#4a4136" };
+const TOOL_BRASS: Tone = { base: "#b8884d", light: "#e5be7e", dark: "#805832", line: "#513923" };
+
+const TOOL_HEADS = [TOOL_IRON, TOOL_IRON, TOOL_STEEL, TOOL_STEEL, POLISHED_STEEL, POLISHED_STEEL] as const;
+
+const HAIR_TONES: Record<PlayerOutfit['hair'], Tone> = {
+  swept: { base: "#6e4932", light: "#a5774c", dark: "#493024", line: "#35251e" },
+  braid: { base: "#a45d3c", light: "#d3905c", dark: "#733e2b", line: "#4c2a22" }
+};
+const TOP_TONES: Record<PlayerOutfit['top'], { fabric: Tone; sleeve: Tone; farSleeve: Tone }> = {
+  fieldVest: {
+    fabric: { base: "#6f7751", light: "#a0a575", dark: "#52583c", line: "#363d2d" },
+    sleeve: LINEN,
+    farSleeve: LINEN_SHADE
+  },
+  trailJacket: {
+    fabric: { base: "#845363", light: "#b48188", dark: "#633a49", line: "#492e36" },
+    sleeve: { base: "#946576", light: "#bc929a", dark: "#6a4150", line: "#4f333e" },
+    farSleeve: { base: "#714957", light: "#966f79", dark: "#563740", line: "#40303a" }
+  }
+};
+const BOTTOM_TONES: Record<PlayerOutfit['bottoms'], { near: Tone; far: Tone }> = {
+  charcoal: {
+    near: { base: "#615a4f", light: "#8b7c67", dark: "#49433b", line: "#37332d" },
+    far: { base: "#4f483f", light: "#746352", dark: "#3b342c", line: "#302b26" }
+  },
+  moss: {
+    near: { base: "#777d60", light: "#a7a789", dark: "#595f48", line: "#404637" },
+    far: { base: "#5e654e", light: "#8b8d71", dark: "#484f3d", line: "#373d33" }
+  }
+};
+const BOOT_TONES: Record<PlayerOutfit['boots'], { near: Tone; far: Tone }> = {
+  leather: {
+    near: { base: "#70472f", light: "#9b6c48", dark: "#4e3226", line: "#35261f" },
+    far: { base: "#593829", light: "#81543d", dark: "#41291e", line: "#31251e" }
+  },
+  suede: {
+    near: { base: "#946340", light: "#c59462", dark: "#6c462f", line: "#4d3428" },
+    far: { base: "#795337", light: "#a47650", dark: "#563826", line: "#3e2b22" }
+  }
+};
+const PACK_TONES: Record<PlayerOutfit['backpack'], { body: Tone; trim: Tone }> = {
+  amber: {
+    body: { base: "#b67842", light: "#d9a062", dark: "#895633", line: "#593a2a" },
+    trim: { base: "#9c603e", light: "#c38656", dark: "#73452f", line: "#55372a" }
+  },
+  plum: {
+    body: { base: "#9b6970", light: "#c48e87", dark: "#704b51", line: "#4e353b" },
+    trim: { base: "#754b52", light: "#a27570", dark: "#583841", line: "#452e35" }
+  }
+};
+const SAGE_SCARF: Tone = { base: "#859764", light: "#b4bd89", dark: "#5a6a48", line: "#445039" };
+const NECKWEAR_TONES = { rustScarf: BAND, sageScarf: SAGE_SCARF, none: null };
+
+let outfit: Readonly<PlayerOutfit> = DEFAULT_PLAYER_OUTFITS.male;
+let hair = HAIR_TONES.swept;
+let top = TOP_TONES.fieldVest;
+let bottoms = BOTTOM_TONES.charcoal;
+let boots = BOOT_TONES.leather;
+let pack = PACK_TONES.amber;
+let scarf: Tone | null = BAND;
+let faceWidth = 1;
+
+function setAppearance(appearance?: PlayerAppearance): void {
+  const preset = DEFAULT_PLAYER_OUTFITS[appearance?.variant ?? 'male'];
+  outfit = appearance ? {
+    hair: appearance.hair ?? preset.hair,
+    headwear: appearance.headwear ?? preset.headwear,
+    top: appearance.top ?? preset.top,
+    bottoms: appearance.bottoms ?? preset.bottoms,
+    boots: appearance.boots ?? preset.boots,
+    backpack: appearance.backpack ?? preset.backpack,
+    neckwear: appearance.neckwear ?? preset.neckwear,
+    accessory: appearance.accessory ?? preset.accessory
+  } : preset;
+  hair = HAIR_TONES[outfit.hair];
+  top = TOP_TONES[outfit.top];
+  bottoms = BOTTOM_TONES[outfit.bottoms];
+  boots = BOOT_TONES[outfit.boots];
+  pack = PACK_TONES[outfit.backpack];
+  scarf = NECKWEAR_TONES[outfit.neckwear];
+  faceWidth = appearance?.variant === 'female' ? .94 : 1;
+}
 
 // ============================================================================
 // Estado de animação reaproveitado (nenhuma alocação por frame)
@@ -91,8 +171,8 @@ const A = {
   oy: 0, // deslocamento vertical do tronco (quique/respiração/agachar)
   bob: 0,
   sw: 0, // swing 0..1
-  th: 0, // ângulo do braço da foice (rad, já espelhado se preciso)
-  ga: 0, // ângulo do cabo da foice (rad)
+  th: 0, // ângulo do braço da ferramenta (rad, já espelhado se preciso)
+  ga: 0, // ângulo do cabo (rad)
   bs: 1, // escala da lâmina (perspectiva: encurta quando aponta pra câmera)
   effort: false,
   blink: false,
@@ -144,6 +224,11 @@ function solveSwing(kf: readonly number[], s: number, mir: boolean): void {
     th = lerp(kf[2], kf[3], e);
     ga = lerp(kf[6], kf[7], e);
     bs = lerp(1, bsR, e);
+  }
+  if (activeTool === 'pickaxe') {
+    // A cabeça larga fica afastada do rosto, voltando ao alinhamento no golpe.
+    const resting = (1 - bs) / (1 - bsR);
+    ga += (kf === KF_SIDE ? 24 : -27) * resting;
   }
   th *= DEG;
   ga *= DEG;
@@ -342,45 +427,105 @@ function bandPath(c: Ctx): void {
   c.closePath();
 }
 
-/** Lâmina curva da foice no referencial do cabo (cabo ao longo de -y). */
-
 // ============================================================================
 // Ferramenta, braços e luvas
 // ============================================================================
 let activeTool: PlayerPose['tool'];
-let bladeColor: string | undefined;
+let toolLevel = 0;
+
+function toolHeadScale(): number {
+  return (.91 + toolLevel * .042) * (.78 + .22 * A.bs);
+}
+
+function axeHeadPath(c: Ctx): void {
+  const beard = toolLevel >= 3 ? -6.8 : -9;
+  c.beginPath();
+  c.moveTo(-4.3, -17.8);
+  c.quadraticCurveTo(-1, -19.3, 3.6, -17.9);
+  c.lineTo(11, -22.3);
+  c.quadraticCurveTo(16.5, -15.7, 11.5, beard);
+  c.quadraticCurveTo(8.8, beard + .65, 3.6, -12.5);
+  c.lineTo(-4.3, -12.5);
+  c.closePath();
+}
+
+function pickaxeHeadPath(c: Ctx): void {
+  c.beginPath();
+  c.moveTo(-13.1, -9.6);
+  c.bezierCurveTo(-10.6, -15.8, -5.1, -20.6, 0, -19.8);
+  c.bezierCurveTo(5.4, -20.5, 11.6, -16.5, 14, -8.8);
+  c.quadraticCurveTo(6.5, -14.9, 2.2, -14.7);
+  c.quadraticCurveTo(0, -13.4, -2.5, -14.7);
+  c.quadraticCurveTo(-7.2, -14.3, -13.1, -9.6);
+  c.closePath();
+}
 
 function drawTool(c: Ctx, hx: number, hy: number, fm: number): void {
   c.save();
   c.translate(hx, hy);
   c.scale(fm, 1);
   c.rotate(fm * (A.ga + Math.PI / 2));
-  tube(c, 0, 10.5, 0, -14.6, 1.9, WOOD); // cabo
-  paintRRect(c, TIN, -1.6, -16.2, 3.2, 2.4, 0.7, 0.7); // virola de metal
-  c.save();
-  const isPickaxe = activeTool === 'pickaxe';
-  paintPath(c, path => {
-    path.beginPath();
-    if (isPickaxe) {
-      path.moveTo(-11, -9);
-      path.quadraticCurveTo(0, -26, 12, -9);
-      path.quadraticCurveTo(1, -18, -11, -9);
-    } else {
-      path.moveTo(-3, -17);
-      path.lineTo(3, -17);
-      path.lineTo(11, -22);
-      path.quadraticCurveTo(15, -15, 11, -8);
-      path.lineTo(3, -12);
-      path.lineTo(-3, -12);
+  tube(c, -.5, 10.8, 0, -15.6, 2, toolLevel >= 2 ? OILED_WOOD : WOOD);
+  if (toolLevel >= 1) {
+    paintRRect(c, BELT, -2, 3, 3.25, 7.4, 1, .65);
+    c.strokeStyle = GLOVE.light;
+    c.lineWidth = .65;
+    c.beginPath();
+    for (let y = 4.7; y < 10; y += 1.8) {
+      c.moveTo(-1.5, y);
+      c.lineTo(.8, y - .6);
     }
-    path.closePath();
-  }, { ...STEEL, base: bladeColor ?? STEEL.base }, -11, -22, 25, 14, 0.9);
+    c.stroke();
+  }
+
+  const metal = TOOL_HEADS[toolLevel];
+  const pickaxe = activeTool === 'pickaxe';
+  c.save();
+  c.scale(toolHeadScale(), 1);
+  paintPath(c, pickaxe ? pickaxeHeadPath : axeHeadPath, metal, -12, -23, 27, 16, 1);
+
+  c.beginPath();
+  if (pickaxe) {
+    c.moveTo(-11.8, -11.1);
+    c.quadraticCurveTo(-9.7, -15, -5.3, -16.8);
+    c.moveTo(5.2, -17.2);
+    c.quadraticCurveTo(10.7, -15.7, 12.7, -10.7);
+  } else {
+    const beard = toolLevel >= 3 ? -6.8 : -9;
+    c.moveTo(10.6, -20.8);
+    c.quadraticCurveTo(14.4, -15.1, 10.9, beard - 1.3);
+  }
+  c.strokeStyle = metal.light;
+  c.lineWidth = toolLevel >= 3 ? 1.7 : 1.05;
+  c.stroke();
+
+  if (toolLevel === TOOL_HEADS.length - 1) {
+    c.beginPath();
+    const x = pickaxe ? 4.9 : 7;
+    c.moveTo(x, -17.6);
+    c.lineTo(x + 1.5, -15.9);
+    c.lineTo(x, -14.2);
+    c.lineTo(x - 1.5, -15.9);
+    c.closePath();
+    c.strokeStyle = TOOL_BRASS.light;
+    c.lineWidth = .75;
+    c.stroke();
+  }
   c.restore();
+
+  const collar = toolLevel >= 4 ? TOOL_BRASS : toolLevel >= 2 ? TOOL_STEEL : TOOL_IRON;
+  const collarHeight = toolLevel >= 2 ? 5.8 : 3.6;
+  paintRRect(c, collar, -2, -15.4, 4, collarHeight, .8, .75);
+  if (toolLevel >= 2) {
+    c.fillStyle = collar.light;
+    c.fillRect(-.55, -13.5, 1.1, 1.1);
+    if (toolLevel >= 4) c.fillRect(-.55, -11.5, 1.1, 1.1);
+  }
   c.restore();
 }
 
 function armTubes(c: Ctx, sx: number, sy: number, hx: number, hy: number, far: boolean): void {
-  const sl = far ? SHIRT_F : SHIRT;
+  const sl = far ? top.farSleeve : top.sleeve;
   const dx = hx - sx;
   const dy = hy - sy;
   const mx = sx + dx * 0.5;
@@ -405,7 +550,7 @@ const trMy = new Float32Array(TRAIL_N + 1);
 let PX = 0;
 let PY = 0;
 
-/** Converte um ponto do referencial da foice para o referencial do desenho. */
+/** Converte um ponto da ferramenta para o referencial do desenho. */
 function toolPt(lx: number, ly: number, fm: number): void {
   const psi = fm * (A.ga + Math.PI / 2);
   const cs = Math.cos(psi);
@@ -414,37 +559,40 @@ function toolPt(lx: number, ly: number, fm: number): void {
   PY = lx * sn + ly * cs;
 }
 
-/** Rastro branco translúcido do arco da lâmina durante o corte. */
+/** Rastro da ponta da ferramenta durante a fase rápida do golpe. */
 function drawTrail(c: Ctx, kf: readonly number[], sx: number, sy: number, mir: boolean, fm: number): void {
   const s = A.sw;
   const b = s < 0.5 ? s : 0.5;
   const a = Math.max(0.28, b - 0.2);
   const fade = s < 0.5 ? 1 : 1 - (s - 0.5) / 0.14;
   if (fade <= 0 || b - a < 0.01) return;
+  const pickaxe = activeTool === 'pickaxe';
   for (let i = 0; i <= TRAIL_N; i++) {
     solveSwing(kf, a + ((b - a) * i) / TRAIL_N, mir);
     const hx = sx + ARM_L * Math.cos(A.th);
     const hy = sy + ARM_L * Math.sin(A.th);
-    toolPt(19.6 * A.bs, -12.4, fm);
+    const headScale = toolHeadScale();
+    toolPt((pickaxe ? 14 : 13.7) * headScale, pickaxe ? -8.8 : -15.4, fm);
     trTx[i] = hx + PX;
     trTy[i] = hy + PY;
-    toolPt(10.0 * A.bs, -15.2, fm);
+    toolPt(7.2 * headScale, -15.3, fm);
     trMx[i] = hx + PX;
     trMy[i] = hy + PY;
   }
   solveSwing(kf, s, mir); // restaura o estado atual
 
   c.save();
-  c.globalAlpha = 0.42 * fade;
-  c.fillStyle = "#ffffff";
+  const opacity = c.globalAlpha;
+  c.globalAlpha = opacity * .22 * fade;
+  c.fillStyle = "#fff0d5";
   c.beginPath();
   c.moveTo(trTx[0], trTy[0]);
   for (let i = 1; i <= TRAIL_N; i++) c.lineTo(trTx[i], trTy[i]);
   for (let i = TRAIL_N; i >= 0; i--) c.lineTo(trMx[i], trMy[i]);
   c.closePath();
   c.fill();
-  c.globalAlpha = 0.85 * fade;
-  c.strokeStyle = "#ffffff";
+  c.globalAlpha = opacity * .58 * fade;
+  c.strokeStyle = "#fff0d5";
   c.lineWidth = 1.1;
   c.beginPath();
   c.moveTo(trTx[0], trTy[0]);
@@ -453,7 +601,7 @@ function drawTrail(c: Ctx, kf: readonly number[], sx: number, sy: number, mir: b
   c.restore();
 }
 
-/** Braço que segura a foice + foice + rastro. Já dentro do translate do tronco. */
+/** Braço que segura a ferramenta, com o rastro do golpe. */
 function toolArm(c: Ctx, kf: readonly number[], sx: number, sy: number, mir: boolean, fm: number, handDy: number): void {
   const s = A.sw;
   solveSwing(kf, s, mir);
@@ -518,26 +666,15 @@ function mouth(c: Ctx, x: number, y: number, w: number): void {
 }
 
 function headFront(c: Ctx): void {
-  paintEllipse(c, HAIR, 0, -27.6, 7.5, 7.0); // cabelo atrás
+  c.save();
+  c.scale(faceWidth, 1);
+  paintEllipse(c, hair, 0, -28.5, 7.2, 6.2); // cabelo atrás
   paintEllipse(c, SKIN, -6.5, -25.6, 1.4, 1.8, 0.8); // orelhas
   paintEllipse(c, SKIN, 6.5, -25.6, 1.4, 1.8, 0.8);
   paintEllipse(c, SKIN, 0, -26.4, 6.3, 5.9); // rosto
-  // sombra da aba na testa
-  c.save();
-  c.beginPath();
-  c.ellipse(0, -26.4, 6.3, 5.9, 0, 0, TAU);
-  c.clip();
-  c.fillStyle = "rgba(80,40,16,0.30)";
-  c.beginPath();
-  c.ellipse(0, -28.6, 9, 3.1, 0, 0, TAU);
-  c.fill();
-  c.restore();
-  // costeletas / mechas balançando
-  const hs = A.hair * 0.35;
-  paintEllipse(c, HAIR, -5.9 + hs, -24.9, 1.3, 2.6, 0.7);
-  paintEllipse(c, HAIR, 5.9 + hs, -24.9, 1.3, 2.6, 0.7);
+  paintPath(c, fringePath, hair, -6.7, -34, 13.5, 7, .7);
   // sobrancelhas
-  c.strokeStyle = HAIR.dark;
+  c.strokeStyle = hair.dark;
   c.lineWidth = 0.75;
   c.beginPath();
   if (A.effort) {
@@ -562,53 +699,58 @@ function headFront(c: Ctx): void {
   c.beginPath();
   c.ellipse(-0.25, -23.6, 0.4, 0.3, 0, 0, TAU);
   c.fill();
-  // bochechas
-  c.fillStyle = "rgba(236,112,100,0.38)";
+  // Bochechas e sardas.
+  c.fillStyle = "rgba(213,111,91,0.35)";
   c.beginPath();
   c.ellipse(-3.9, -22.9, 1.25, 0.8, 0, 0, TAU);
   c.fill();
   c.beginPath();
   c.ellipse(3.9, -22.9, 1.25, 0.8, 0, 0, TAU);
   c.fill();
+  c.fillStyle = "rgba(143,75,52,0.65)";
+  for (const side of [-1, 1]) {
+    c.fillRect(side * 2.5 - .3, -23.6, .6, .55);
+    c.fillRect(side * 3.6 - .3, -23.25, .6, .55);
+    c.fillRect(side * 4.55 - .3, -23.55, .6, .55);
+  }
   mouth(c, 0, -21.7, 2.6);
+  c.restore();
 }
 
 function headBack(c: Ctx): void {
   paintEllipse(c, SKIN, -6.8, -25.6, 1.3, 1.7, 0.8); // orelhas espiando
   paintEllipse(c, SKIN, 6.8, -25.6, 1.3, 1.7, 0.8);
-  paintEllipse(c, HAIR, 0, -27.3, 7.3, 6.8); // cabelo por trás
+  paintEllipse(c, hair, 0, -27.3, 7.3, 6.8); // cabelo por trás
   // mecha da nuca balançando
-  paintEllipse(c, HAIR, A.hair * 0.4, -21.6, 5.2, 1.9, 0.8);
-  // redemoinho
-  c.strokeStyle = HAIR.dark;
-  c.lineWidth = 0.6;
+  paintEllipse(c, hair, A.hair * 0.4, -21.6, 5.2, 1.9, 0.8);
+  c.strokeStyle = hair.light;
+  c.lineWidth = 0.7;
   c.beginPath();
-  c.arc(1.2, -25.2, 1.7, 0.4, 4.6);
+  c.moveTo(-4.7, -27.5);
+  c.quadraticCurveTo(-2.6, -29, -.8, -23.7);
+  c.moveTo(-2.3, -28.3);
+  c.quadraticCurveTo(2.2, -30.2, 4.2, -24.4);
   c.stroke();
 }
 
 function headSide(c: Ctx): void {
+  c.save();
+  c.scale(faceWidth, 1);
   paintEllipse(c, SKIN, 1.2, -26.3, 5.9, 5.8); // rosto
   paintEllipse(c, SKIN, 6.7, -25.0, 1.5, 1.3, 0.8); // nariz de perfil
-  // sombra da aba
+  paintEllipse(c, hair, -3.6, -27.6, 5.0, 6.5); // cabelo (nuca/topo)
   c.save();
-  c.beginPath();
-  c.ellipse(1.2, -26.3, 5.9, 5.8, 0, 0, TAU);
-  c.clip();
-  c.fillStyle = "rgba(80,40,16,0.30)";
-  c.beginPath();
-  c.ellipse(2.5, -28.6, 8, 3.0, 0, 0, TAU);
-  c.fill();
+  c.translate(.6, -.2);
+  paintPath(c, fringePath, hair, -6.7, -34, 13.5, 7, .7);
   c.restore();
-  paintEllipse(c, HAIR, -3.6, -27.6, 5.0, 6.5); // cabelo (nuca/topo)
-  paintEllipse(c, HAIR, 1.0 + A.hair * 0.25, -25.2, 1.1, 2.3, 0.7); // costeleta
+  paintEllipse(c, hair, 1.0 + A.hair * 0.25, -25.2, 1.1, 2.3, 0.7); // costeleta
   paintEllipse(c, SKIN, -1.2, -25.0, 1.5, 1.9, 0.8); // orelha
   c.fillStyle = SKIN.dark;
   c.beginPath();
   c.ellipse(-1.15, -24.9, 0.6, 0.95, 0, 0, TAU);
   c.fill();
   // sobrancelha, olho, bochecha, boca
-  c.strokeStyle = HAIR.dark;
+  c.strokeStyle = hair.dark;
   c.lineWidth = 0.75;
   c.beginPath();
   if (A.effort) {
@@ -625,6 +767,35 @@ function headSide(c: Ctx): void {
   c.ellipse(3.3, -23.2, 1.2, 0.8, 0, 0, TAU);
   c.fill();
   mouth(c, 4.7, -22.0, 2.2);
+  c.restore();
+}
+
+function fringePath(c: Ctx): void {
+  c.beginPath();
+  c.moveTo(-6.8, -27.7);
+  c.bezierCurveTo(-8, -31.3, -5.3, -34.5, -1.5, -34.7);
+  c.bezierCurveTo(3.7, -35, 6.3, -31.7, 6.3, -28.6);
+  c.quadraticCurveTo(3.1, -28.9, 1.3, -30.7);
+  c.quadraticCurveTo(-1, -27.8, -4.6, -28.2);
+  c.lineTo(-6.8, -27.7);
+  c.closePath();
+}
+
+function drawBraid(c: Ctx, facing: 'front' | 'back' | 'side'): void {
+  if (outfit.hair !== 'braid') return;
+
+  const x = facing === 'front' ? 5.6 : facing === 'back' ? -3.5 : -6.5;
+  const bend = facing === 'front' ? 1 : -1;
+  c.save();
+  c.translate(x, -26.5);
+  c.rotate(bend * -.16 + A.hair * .23 - A.ox * .04);
+  for (let i = 0; i < 5; i++) {
+    const offset = i % 2 === 0 ? -.65 : .65;
+    paintEllipse(c, hair, offset, 1.9 + i * 2.3, 2.3 - i * .22, 1.9 - i * .12, .7);
+  }
+  paintEllipse(c, hair, bend * .35, 12.8, 1.2, 1.65, .65);
+  paintRRect(c, scarf ?? CAP, -1.25, 10.8, 2.5, 1.35, .45, .6);
+  c.restore();
 }
 
 /** Fita amarrada no chapéu: dois segmentos por ponta para dar o balanço. */
@@ -653,12 +824,17 @@ function ribbons(c: Ctx, x: number, y: number, side: boolean): void {
 }
 
 /** face: 0 frente, 1 costas, 2 lado. */
-function drawHat(c: Ctx, face: number): void {
+function drawHeadwear(c: Ctx, face: number): void {
+  if (outfit.headwear === 'none') return;
+  if (outfit.headwear === 'trailCap') {
+    drawTrailCap(c, face);
+    return;
+  }
   const hx = face === 2 ? 0.6 : 0;
   c.save();
   c.translate(hx, 0);
   // aba larga
-  paintEllipse(c, STRAW, 0, -33.2, 15, 4.6, 1.0);
+  paintEllipse(c, STRAW, 0, -33.4, 14.2, 4.3, 1.0);
   // trama de palha na aba: raios + anel
   c.strokeStyle = "#a96f2e";
   c.lineWidth = 0.45;
@@ -668,7 +844,7 @@ function drawHat(c: Ctx, face: number): void {
     const ca = Math.cos(a);
     const sa = Math.sin(a);
     c.moveTo(ca * 7.6, -33.2 + sa * 2.5);
-    c.lineTo(ca * 14.0, -33.2 + sa * 4.2);
+    c.lineTo(ca * 13.2, -33.4 + sa * 3.8);
   }
   c.stroke();
   c.strokeStyle = "#b8803a";
@@ -696,9 +872,55 @@ function drawHat(c: Ctx, face: number): void {
   if (face === 1) ribbons(c, 0, -34.2, false);
   else if (face === 2) ribbons(c, -7.2, -34.6, true);
   else {
-    // frente: pequena fivela dourada na faixa
-    paintRRect(c, GOLD, -1.3, -35.4, 2.6, 2.7, 0.6, 0.6);
+    paintRRect(c, TOOL_BRASS, -1.8, -35.9, 3.6, 3, .8, .65);
+    c.fillStyle = TOOL_BRASS.line;
+    c.fillRect(-.45, -35.2, .9, 1.5);
   }
+  c.restore();
+}
+
+function capPath(c: Ctx): void {
+  c.beginPath();
+  c.moveTo(-9.4, -33);
+  c.bezierCurveTo(-10.1, -36.7, -6.9, -41.1, -.25, -41.3);
+  c.bezierCurveTo(5.1, -41.5, 9.8, -38.7, 9.4, -34);
+  c.quadraticCurveTo(0, -30.9, -9.4, -33);
+  c.closePath();
+}
+
+function drawTrailCap(c: Ctx, face: number): void {
+  paintPath(c, capPath, CAP, -10, -41.5, 20, 10);
+  c.strokeStyle = CAP.light;
+  c.lineWidth = .75;
+  c.beginPath();
+  c.moveTo(-6.5, -35.2);
+  c.quadraticCurveTo(-5.4, -39.2, -.3, -40.5);
+  c.moveTo(4.9, -35.5);
+  c.quadraticCurveTo(3.8, -39.1, -.3, -40.5);
+  c.stroke();
+  paintEllipse(c, CAP, -.3, -41, 1.4, .75, .55);
+
+  if (face === 1) {
+    paintRRect(c, TOOL_BRASS, -1.9, -33.6, 3.8, 1.8, .6, .6);
+  } else {
+    const visorX = face === 2 ? 6.6 : 0;
+    c.save();
+    c.translate(visorX, -33.3);
+    c.rotate(face === 2 ? .14 : 0);
+    paintEllipse(c, OILED_WOOD, 0, 0, face === 2 ? 7 : 8.6, 1.8, .75);
+    c.restore();
+  }
+}
+
+function drawNeckwear(c: Ctx, side: boolean): void {
+  if (!scarf) return;
+  const x = side ? .25 : 0;
+  paintRRect(c, scarf, x - 4.9, -22.4, 9.8, 3.4, 1.35, .7);
+  c.save();
+  c.translate(x - 3, -20.1);
+  c.rotate(-.31 + A.rib2 * .35);
+  paintRRect(c, scarf, -.8, -.5, 2.2, 4.5, .6, .65);
+  paintEllipse(c, scarf, .5, 0, 1.3, 1.05, .65);
   c.restore();
 }
 
@@ -710,20 +932,21 @@ function legFront(c: Ctx, side: number, ph: number, back: boolean): void {
   const lift = A.moving ? Math.max(0, Math.cos(ph)) * 1.9 : 0;
   const fy = (A.moving ? (back ? -s : s) * 1.1 : 0) - lift;
   const fx = side * 3.0;
-  tube(c, side * 2.9 + A.ox, -9.4 + A.oy, fx, fy - 4.4, 4.8, PANTS);
-  paintRRect(c, BOOT, fx - 3.2, fy - 5.0, 6.4, 5.2, 2.2);
-  if (!back) {
-    c.fillStyle = BOOT.dark; // sola
-    c.fillRect(fx - 2.4, fy - 0.9, 4.8, 0.7);
-  }
+  tube(c, side * 2.9 + A.ox, -9.4 + A.oy, fx, fy - 4.4, 4.8, bottoms.near);
+  paintRRect(c, boots.near, fx - 3.2, fy - 5.0, 6.4, 5.2, 2.2);
+  c.fillStyle = boots.near.dark;
+  c.fillRect(fx - 2.4, fy - 1, 4.8, 0.8);
+  if (back) return;
+  c.fillStyle = boots.near.light;
+  c.fillRect(fx - 1.5, fy - 3.4, 2.8, .65);
 }
 
 function legSide(c: Ctx, ph: number, far: boolean): void {
   const s = Math.sin(ph);
   const fx = A.moving ? s * 4.4 : far ? -1.2 : 1.2;
   const lift = A.moving ? Math.max(0, Math.cos(ph)) * 2.6 : 0;
-  tube(c, 0.2 + A.ox, -9.4 + A.oy, fx, -4.6 - lift, 4.8, far ? PANTS_F : PANTS);
-  const bt = far ? BOOT_F : BOOT;
+  tube(c, 0.2 + A.ox, -9.4 + A.oy, fx, -4.6 - lift, 4.8, far ? bottoms.far : bottoms.near);
+  const bt = far ? boots.far : boots.near;
   paintRRect(c, bt, fx - 3.2, -4.9 - lift, 8.2, 5.0, 2.2);
   c.strokeStyle = bt.line;
   c.lineWidth = 0.8;
@@ -731,6 +954,8 @@ function legSide(c: Ctx, ph: number, far: boolean): void {
   c.moveTo(fx - 2.4, -1.0 - lift);
   c.lineTo(fx + 4.2, -1.0 - lift);
   c.stroke();
+  c.fillStyle = bt.light;
+  c.fillRect(fx + .3, -3.3 - lift, 2.4, .55);
 }
 
 // ============================================================================
@@ -740,8 +965,46 @@ let packFill = 0;
 let packOpen = 0;
 const visibleCargo: ResourceId[] = [];
 
+function drawPackAccessory(c: Ctx, x: number, y: number, side: boolean): void {
+  if (outfit.accessory === 'none') return;
+
+  c.save();
+  c.translate(x, y);
+  c.rotate(A.mug);
+  c.strokeStyle = pack.body.line;
+  c.lineWidth = .75;
+  c.beginPath();
+  c.moveTo(0, -.5);
+  c.lineTo(0, 2.2);
+  c.stroke();
+
+  if (outfit.accessory === 'brassCompass') {
+    paintEllipse(c, TOOL_BRASS, 0, 4.2, 2.85, 2.85, .7);
+    paintEllipse(c, LINEN, 0, 4.2, 1.95, 1.95, .45);
+    c.beginPath();
+    c.moveTo(.85, 2.85);
+    c.lineTo(.35, 4.75);
+    c.lineTo(-.95, 5.4);
+    c.lineTo(-.4, 3.8);
+    c.closePath();
+    c.fillStyle = BAND.dark;
+    c.fill();
+  } else {
+    const handle = side ? -1 : 1;
+    c.strokeStyle = TIN.line;
+    c.beginPath();
+    c.moveTo(handle * 1.6, 2.55);
+    c.quadraticCurveTo(handle * 4.6, 3.3, handle * 1.6, 5.25);
+    c.stroke();
+    paintRRect(c, TIN, -1.95, 1.65, 3.9, 4.2, .85, .7);
+    c.fillStyle = TIN.light;
+    c.fillRect(-1.4, 2, 2.8, .7);
+  }
+  c.restore();
+}
+
 function packCompartment(c: Ctx, x: number, y: number, width: number, height: number): void {
-  paintRRect(c, PACK, x, y, width, height, 4.2);
+  paintRRect(c, pack.body, x, y, width, height, 4.2);
   const opening = 7 * packOpen;
   if (opening > 0.25) {
     const innerX = x + 1;
@@ -762,12 +1025,19 @@ function packCompartment(c: Ctx, x: number, y: number, width: number, height: nu
       c.restore();
     }
     c.restore();
-    c.fillStyle = PACK.light;
+    c.fillStyle = pack.body.light;
     c.fillRect(innerX + 1, innerY + opening - 0.65, innerWidth - 2, 0.65);
   }
 
   const flapHeight = 6.4 - 3.5 * packOpen;
-  paintRRect(c, PACK2, x, y - 2.4 * packOpen, width, flapHeight, Math.min(3, flapHeight / 2));
+  const flapY = y - 2.4 * packOpen;
+  paintRRect(c, pack.trim, x, flapY, width, flapHeight, Math.min(3, flapHeight / 2));
+  c.strokeStyle = pack.trim.light;
+  c.lineWidth = .55;
+  c.beginPath();
+  c.moveTo(x + 2, flapY + 1.45);
+  c.lineTo(x + width - 2, flapY + 1.45);
+  c.stroke();
 }
 
 function packFront(c: Ctx): void {
@@ -777,42 +1047,36 @@ function packFront(c: Ctx): void {
   // Vista de frente: a lateral da bolsa aparece atrás do ombro livre.
   packCompartment(c, -8.8 + packFill * 5, -24.3, 17.6 + packFill * 2.6, 12.3 + packFill * 2);
   paintRRect(c, ROLL, -9.8, -12.8, 19.6, 4.8, 2.4);
-  c.fillStyle = PACK.dark;
+  c.fillStyle = pack.body.dark;
   c.fillRect(-6.8, -12.8, 1.6, 4.8);
   c.fillRect(5.2, -12.8, 1.6, 4.8);
   c.restore();
 }
 
 function torsoFront(c: Ctx): void {
-  paintRRect(c, SHIRT, -7.2, -21.6, 14.4, 12.4, 3.6);
-  // gola em V
-  c.beginPath();
-  c.moveTo(-2.8, -21.4);
-  c.lineTo(2.8, -21.4);
-  c.lineTo(0, -17.2);
-  c.closePath();
-  c.fillStyle = SKIN.base;
-  c.fill();
-  c.strokeStyle = SKIN.line;
-  c.lineWidth = 0.7;
-  c.stroke();
-  // colete de couro
-  K = 1;
-  paintPath(c, vestPath, VEST, 1.5, -21.4, 5.7, 11.6);
-  K = -1;
-  paintPath(c, vestPath, VEST, -7.2, -21.4, 5.7, 11.6);
-  c.strokeStyle = VEST.dark;
-  c.lineWidth = 0.6;
-  c.beginPath();
-  for (let i = 0; i < 3; i++) {
-    const yy = -15.6 + i * 2.5;
-    c.moveTo(-1.5, yy);
-    c.lineTo(1.5, yy + 0.5);
+  paintRRect(c, LINEN, -7.2, -21.6, 14.4, 12.4, 3.6);
+  if (outfit.top === 'fieldVest') {
+    K = 1;
+    paintPath(c, vestPath, top.fabric, 1.5, -21.4, 5.7, 11.6);
+    K = -1;
+    paintPath(c, vestPath, top.fabric, -7.2, -21.4, 5.7, 11.6);
+    paintRRect(c, top.fabric, 2.7, -16.1, 3.7, 3.6, .7, .6);
+  } else {
+    paintRRect(c, top.fabric, -7.1, -21.2, 14.2, 11.7, 3.1);
+    c.strokeStyle = top.fabric.line;
+    c.lineWidth = .8;
+    c.beginPath();
+    c.moveTo(.25, -20.7);
+    c.lineTo(.25, -11.8);
+    c.moveTo(3, -14.4);
+    c.lineTo(5.9, -15.7);
+    c.stroke();
   }
-  c.stroke();
-  // cinto + fivela
+  c.fillStyle = TOOL_BRASS.light;
+  for (let y = -17.3; y < -12.5; y += 1.9) c.fillRect(-.45, y, .9, .8);
+
   paintRRect(c, BELT, -7.4, -11.7, 14.8, 2.6, 1.0);
-  paintRRect(c, GOLD, -1.6, -12.0, 3.2, 3.2, 0.8, 0.7);
+  paintRRect(c, TOOL_BRASS, -1.6, -12.0, 3.2, 3.2, 0.8, 0.7);
   c.fillStyle = BELT.dark;
   c.fillRect(-0.6, -11.0, 1.2, 1.2);
   // bolsinho balançando
@@ -841,13 +1105,15 @@ function drawFront(c: Ctx): void {
   c.save();
   c.translate(A.ox, A.oy);
   torsoFront(c);
+  drawNeckwear(c, false);
   // braço livre (lado direito da tela)
   const fdy = A.moving ? 1.5 * Math.sin(A.p) : 0;
   armTubes(c, 7.0, -19.2, 8.4, -10.9 + fdy, false);
   glove(c, 8.4, -10.9 + fdy, false);
   headFront(c);
-  drawHat(c, 0);
-  // braço da foice (lado esquerdo da tela)
+  drawBraid(c, 'front');
+  drawHeadwear(c, 0);
+  // Braço que segura a ferramenta.
   toolArm(c, KF_FRONT, -7.0, -19.2, false, -1, A.moving ? 1.5 * Math.sin(A.p + Math.PI) : 0);
   c.restore();
 }
@@ -862,38 +1128,20 @@ function packBack(c: Ctx): void {
   const bulk = packFill * 4.4;
   packCompartment(c, -7.9 - bulk / 2, -22.6 - packFill * 0.4, 15.8 + bulk, 10.8 + packFill * 2.8);
   // tiras com fivela
-  c.fillStyle = PACK.line;
+  c.fillStyle = pack.body.line;
   const strapY = -20.6 + packOpen * 3.7;
   c.fillRect(-3.9, strapY, 1.9, 7.8 - packOpen * 3.7);
   c.fillRect(2.0, strapY, 1.9, 7.8 - packOpen * 3.7);
-  paintRRect(c, GOLD, -4.1, strapY + 1.8, 2.3, 1.9, 0.5, 0.6);
-  paintRRect(c, GOLD, 1.8, strapY + 1.8, 2.3, 1.9, 0.5, 0.6);
+  paintRRect(c, TOOL_BRASS, -4.1, strapY + 1.8, 2.3, 1.9, 0.5, 0.6);
+  paintRRect(c, TOOL_BRASS, 1.8, strapY + 1.8, 2.3, 1.9, 0.5, 0.6);
   // rolo de dormir na base da mochila
   paintRRect(c, ROLL, -9.6, -12.6, 19.2, 4.8, 2.4);
   c.fillStyle = TEAL.base;
   c.fillRect(-7.6, -10.9, 15.2, 1.3);
-  c.fillStyle = PACK.dark;
+  c.fillStyle = pack.body.dark;
   c.fillRect(-6.2, -12.6, 1.7, 4.8);
   c.fillRect(4.5, -12.6, 1.7, 4.8);
-  // caneca de lata pendurada
-  c.save();
-  c.translate(-5.0, -19.0);
-  c.rotate(A.mug);
-  c.strokeStyle = PACK.line;
-  c.lineWidth = 0.7;
-  c.beginPath();
-  c.moveTo(0, 0);
-  c.lineTo(0, 1.6);
-  c.stroke();
-  paintRRect(c, TIN, -1.9, 1.4, 3.8, 4.4, 0.9, 0.8);
-  c.strokeStyle = TIN.line;
-  c.lineWidth = 0.8;
-  c.beginPath();
-  c.arc(1.9, 3.6, 1.4, -1.2, 1.2);
-  c.stroke();
-  c.fillStyle = TIN.light;
-  c.fillRect(-1.5, 1.7, 3.0, 0.7);
-  c.restore();
+  drawPackAccessory(c, -8 - bulk / 2, -18.8, false);
   c.restore();
 }
 
@@ -906,9 +1154,11 @@ function drawBack(c: Ctx): void {
   const fdy = A.moving ? -1.5 * Math.sin(A.p + Math.PI) : 0;
   armTubes(c, -7.6, -19.2, -9.0, -10.9 + fdy, false);
   glove(c, -9.0, -10.9 + fdy, false);
+  drawNeckwear(c, false);
   headBack(c);
   packBack(c);
-  drawHat(c, 1);
+  drawBraid(c, 'back');
+  drawHeadwear(c, 1);
   toolArm(c, KF_FRONT, 7.6, -19.2, true, 1, A.moving ? -1.5 * Math.sin(A.p) : 0);
   c.restore();
 }
@@ -921,26 +1171,13 @@ function packSide(c: Ctx): void {
   c.translate(-8.3, -24.5); // pivô no topo da mochila
   c.rotate(A.pack);
   c.translate(8.3, 24.5);
-  // caneca pendurada atrás
-  c.save();
-  c.translate(-13.2 - 5 * packFill, -18.0);
-  c.rotate(A.mug);
-  c.strokeStyle = PACK.line;
-  c.lineWidth = 0.7;
-  c.beginPath();
-  c.moveTo(0, 0);
-  c.lineTo(-0.2, 1.6);
-  c.stroke();
-  paintRRect(c, TIN, -3.6, 1.3, 3.8, 4.4, 0.9, 0.8);
-  c.fillStyle = TIN.light;
-  c.fillRect(-3.2, 1.6, 3.0, 0.7);
-  c.restore();
+  drawPackAccessory(c, -14.4 - 5 * packFill, -18, true);
   // corpo da mochila
   packCompartment(c, -13 - 5 * packFill, -25.6, 9.6 + 5 * packFill, 14 + 2.4 * packFill);
-  paintRRect(c, PACK2, -11.6, -17.4, 6.4, 4.6, 1.6, 0.8); // bolso lateral
-  c.fillStyle = PACK.line;
+  paintRRect(c, pack.trim, -11.6, -17.4, 6.4, 4.6, 1.6, 0.8); // bolso lateral
+  c.fillStyle = pack.body.line;
   c.fillRect(-9.2, -19.4, 1.7, 4.0);
-  paintRRect(c, GOLD, -9.4, -17.4, 2.1, 1.7, 0.5, 0.6);
+  paintRRect(c, TOOL_BRASS, -9.4, -17.4, 2.1, 1.7, 0.5, 0.6);
   // rolo de dormir (visto de topo: um círculo com espiral)
   paintEllipse(c, ROLL, -8.2, -10.6, 3.6, 3.6, 0.9);
   c.strokeStyle = ROLL.line;
@@ -960,14 +1197,15 @@ function packSide(c: Ctx): void {
 }
 
 function torsoSide(c: Ctx): void {
-  paintRRect(c, SHIRT, -4.8, -21.6, 9.6, 12.4, 3.4);
-  paintRRect(c, VEST, -4.9, -21.4, 8.4, 11.6, 3.2);
+  paintRRect(c, LINEN, -4.8, -21.6, 9.6, 12.4, 3.4);
+  paintRRect(c, top.fabric, -4.9, -21.4, 8.4, 11.6, 3.2);
   // alça da mochila sobre o ombro
-  tube(c, -3.0, -22.2, 0.8, -21.6, 2.0, PACK2);
-  tube(c, 0.8, -21.6, 1.6, -16.2, 2.0, PACK2);
+  tube(c, -3.0, -22.2, 0.8, -21.6, 2.0, pack.trim);
+  tube(c, 0.8, -21.6, 1.6, -16.2, 2.0, pack.trim);
+  paintRRect(c, TOOL_BRASS, .4, -19.2, 2.4, 1.8, .45, .55);
   // cinto, fivela, bolsinho
   paintRRect(c, BELT, -5.0, -11.7, 10.0, 2.6, 1.0);
-  paintRRect(c, GOLD, 3.2, -12.0, 2.2, 3.2, 0.6, 0.7);
+  paintRRect(c, TOOL_BRASS, 3.2, -12.0, 2.2, 3.2, 0.6, 0.7);
   c.save();
   c.translate(-0.6, -11.2);
   c.rotate(A.pouch);
@@ -997,8 +1235,10 @@ function drawSide(c: Ctx): void {
   c.save();
   c.translate(A.ox, A.oy);
   torsoSide(c);
+  drawNeckwear(c, true);
   headSide(c);
-  drawHat(c, 2);
+  drawBraid(c, 'side');
+  drawHeadwear(c, 2);
   toolArm(c, KF_SIDE, 0.5, -19.2, false, 1, 0);
   c.restore();
 }
@@ -1022,8 +1262,9 @@ function drawShadow(c: Ctx, f: Facing): void {
 export function drawPlayer(ctx: Ctx, x: number, y: number, pose: PlayerPose, opts?: DrawOptions): void {
   const scale = opts !== undefined && opts.scale !== undefined ? opts.scale : 1;
   const shadow = opts !== undefined && opts.shadow !== undefined ? opts.shadow : true;
+  setAppearance(pose.appearance);
   activeTool = pose.tool;
-  bladeColor = pose.bladeColor;
+  toolLevel = Math.min(TOOL_HEADS.length - 1, Math.max(0, Math.floor(pose.toolLevel || 0)));
   packFill = pose.packFill ?? 0;
   packOpen = pose.packOpen ?? 0;
   visibleCargo.length = 0;

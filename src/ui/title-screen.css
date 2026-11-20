@@ -32,6 +32,8 @@
   text-shadow: 0 2px 12px #111e25b3;
 }
 
+.title-actions { display: grid; justify-items: center; gap: 10px; }
+
 .title-start {
   display: grid;
   min-height: 3.35rem;

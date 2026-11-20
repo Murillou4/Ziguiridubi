@@ -85,8 +85,8 @@ export class BuildingSystem {
     const cy = bp.y + bp.h / 2;
 
     if (depositedAny) {
+      this.eventBus.emit('building:deposited', bpId);
       this.eventBus.emit('sound:hammer');
-      this.eventBus.emit('fx:shake', { magnitude: 4 });
       this.eventBus.emit('fx:burst', { x: cx, y: cy, color: '#fde047', count: 16 });
       this.eventBus.emit('fx:floatingText', {
         x: cx,
@@ -104,7 +104,6 @@ export class BuildingSystem {
     if (allComplete) {
       buildState.built = true;
       this.eventBus.emit('sound:upgrade');
-      this.eventBus.emit('fx:shake', { magnitude: 8 });
       this.eventBus.emit('fx:burst', { x: cx, y: cy, color: '#4ade80', count: 28 });
 
       if (bp.advanceToPhase && bp.advanceToPhase > state.phase) {

@@ -9,9 +9,10 @@ export interface MachineRecipe {
   floatText: string;
   floatColor: string;
   burstColor: string;
+  burstCount: number;
 }
 
-export const MACHINE_RECIPES: Record<string, MachineRecipe> = {
+export const MACHINE_RECIPES = {
   sawmill: {
     id: 'sawmill',
     name: 'Serraria Manual',
@@ -20,7 +21,8 @@ export const MACHINE_RECIPES: Record<string, MachineRecipe> = {
     baseRate: 0.55,
     floatText: 'Tábua',
     floatColor: '#fcd34d',
-    burstColor: '#dca058'
+    burstColor: '#dca058',
+    burstCount: 8
   },
   furnace: {
     id: 'furnace',
@@ -30,7 +32,8 @@ export const MACHINE_RECIPES: Record<string, MachineRecipe> = {
     baseRate: 0.45,
     floatText: 'Lingote',
     floatColor: '#e2e8f0',
-    burstColor: '#f97316'
+    burstColor: '#f97316',
+    burstCount: 9
   },
   gearWorkshop: {
     id: 'gearWorkshop',
@@ -40,6 +43,9 @@ export const MACHINE_RECIPES: Record<string, MachineRecipe> = {
     baseRate: 0.38,
     floatText: 'Engrenagem',
     floatColor: '#fbbf24',
-    burstColor: '#f59e0b'
+    burstColor: '#f59e0b',
+    burstCount: 10
   }
-};
+} as const satisfies Record<string, MachineRecipe>;
+
+export type MachineId = keyof typeof MACHINE_RECIPES;

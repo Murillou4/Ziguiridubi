@@ -51,6 +51,7 @@ export function createGame(canvasId: string = 'gameCanvas'): GameApp {
     economySystem,
     contractSystem,
     upgradeSystem,
+    machineSystem,
     progressionSystem,
     airshipSystem,
     audio,

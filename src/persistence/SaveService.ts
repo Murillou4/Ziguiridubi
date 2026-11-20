@@ -2,14 +2,21 @@ import { GameState, PlayerState, AudioSettings, SavePayload } from '../domain/ty
 import { SaveRepository } from './SaveRepository.ts';
 import { SaveMigrator } from './SaveMigrator.ts';
 import { EventBus } from '../core/EventBus.ts';
+import type { CloudSaveSync } from './CloudSaveSync.ts';
 
 export class SaveService {
   private repository: SaveRepository;
   private migrator: SaveMigrator;
+  private cloud: CloudSaveSync | null = null;
 
   constructor(private eventBus?: EventBus) {
     this.repository = new SaveRepository();
     this.migrator = new SaveMigrator();
+  }
+
+  useCloud(session: CloudSaveSync | null): void {
+    if (this.cloud !== session) this.cloud?.close();
+    this.cloud = session;
   }
 
   buildSavePayload(
@@ -42,8 +49,7 @@ export class SaveService {
     silent: boolean = false
   ): boolean {
     const payload = this.buildSavePayload(state, player, audioSettings);
-    const jsonStr = JSON.stringify(payload);
-    const success = this.repository.saveRaw(jsonStr);
+    const success = this.cloud ? this.cloud.checkpoint(payload) : this.repository.saveRaw(JSON.stringify(payload));
 
     if (success && !silent && this.eventBus) {
       this.eventBus.emit('save:indicator');
@@ -97,12 +103,15 @@ export class SaveService {
     player: PlayerState,
     audioSettings: AudioSettings
   ): void {
-    const payload = this.buildSavePayload(state, player, audioSettings);
+    this.downloadPayload(this.buildSavePayload(state, player, audioSettings));
+  }
+
+  downloadPayload(payload: SavePayload, filename = 'oficina-do-vale-save.json'): void {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'oficina-do-vale-save.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -110,6 +119,6 @@ export class SaveService {
   }
 
   clear(): boolean {
-    return this.repository.clear();
+    return this.cloud ? true : this.repository.clear();
   }
 }

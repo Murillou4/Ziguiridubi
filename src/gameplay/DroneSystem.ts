@@ -1,6 +1,8 @@
 import { DerivedStats, DroneEntity, DroneKind, GameState, IslandDef, ResourceNode } from '../domain/types.ts';
 import { EventBus } from '../core/EventBus.ts';
 import { RESOURCES } from '../config/resources.ts';
+import { DRONE_KINDS, DRONE_MODELS } from '../config/drones.ts';
+import { WAREHOUSE_POSITION } from '../config/buildings.ts';
 
 export class DroneSystem {
   public drones: DroneEntity[] = [];
@@ -8,31 +10,23 @@ export class DroneSystem {
   constructor(private eventBus: EventBus) {}
 
   syncDrones(state: GameState): void {
-    const desiredCounts: Record<DroneKind, number> = {
-      lumber: this.normalizeDroneCount(state.upgrades.lumberDrone),
-      miner: this.normalizeDroneCount(state.upgrades.minerDrone)
-    };
-    const currentCounts: Record<DroneKind, number> = {
-      lumber: 0,
-      miner: 0
-    };
+    const desiredCounts = new Map(DRONE_KINDS.map(kind =>
+      [kind, this.normalizeDroneCount(state.upgrades[DRONE_MODELS[kind].upgrade])] as const
+    ));
+    const currentCounts = new Map<DroneKind, number>();
 
     // Preserve drones already in operation, but discard any above the purchased levels.
     this.drones = this.drones.filter(drone => {
-      if (currentCounts[drone.kind] >= desiredCounts[drone.kind]) {
-        return false;
-      }
-
-      currentCounts[drone.kind]++;
+      const count = currentCounts.get(drone.kind) ?? 0;
+      if (count >= (desiredCounts.get(drone.kind) ?? 0)) return false;
+      currentCounts.set(drone.kind, count + 1);
       return true;
     });
 
-    for (let i = currentCounts.lumber; i < desiredCounts.lumber; i++) {
-      this.drones.push(this.createDrone('lumber', i));
-    }
-
-    for (let i = currentCounts.miner; i < desiredCounts.miner; i++) {
-      this.drones.push(this.createDrone('miner', i));
+    for (const [kind, count] of desiredCounts) {
+      for (let i = currentCounts.get(kind) ?? 0; i < count; i++) {
+        this.drones.push(this.createDrone(kind, i));
+      }
     }
   }
 
@@ -41,10 +35,11 @@ export class DroneSystem {
   }
 
   private createDrone(kind: DroneKind, index: number): DroneEntity {
+    const model = DRONE_MODELS[kind];
     return {
       kind,
-      x: (kind === 'lumber' ? 220 : 250) + index * 25,
-      y: -110,
+      x: model.spawnX + index * 25,
+      y: model.spawnY,
       state: 'seek',
       targetNode: null,
       cargo: [],
@@ -60,32 +55,28 @@ export class DroneSystem {
     islands: IslandDef[],
     dt: number
   ): void {
-    const homeX = 95;
-    const homeY = -25;
+    const { x: homeX, y: homeY } = WAREHOUSE_POSITION;
 
     this.drones.forEach(drone => {
       drone.bobPhase += dt * 4.5;
       const spd = 165 * stats.droneSpeedMult;
 
       if (drone.state === 'seek') {
-        const types = drone.kind === 'lumber' ? ['tree'] : ['rock', 'iron', 'ether'];
-        const cands = nodes.filter(n => {
-          if (n.depleted || !types.includes(n.type)) return false;
-          const isl = islands.find(i => i.id === n.islandId);
-          return !isl || isl.unlocked(state);
-        });
-
-        if (cands.length > 0) {
-          cands.sort(
-            (a, b) =>
-              Math.hypot(a.x - drone.x, a.y - drone.y) - Math.hypot(b.x - drone.x, b.y - drone.y)
-          );
-          drone.targetNode = cands[0];
-          drone.state = 'move';
+        let nearest: ResourceNode | null = null;
+        let bestDistance = Infinity;
+        for (const node of nodes) {
+          if (!this.canHarvest(state, drone.kind, node, islands)) continue;
+          const distance = (node.x - drone.x) ** 2 + (node.y - 16 - drone.y) ** 2;
+          if (distance >= bestDistance) continue;
+          nearest = node;
+          bestDistance = distance;
         }
+        drone.targetNode = nearest;
+        if (nearest) drone.state = 'move';
       } else if (drone.state === 'move') {
         const n = drone.targetNode;
-        if (!n || n.depleted) {
+        if (!n || !this.canHarvest(state, drone.kind, n, islands)) {
+          drone.targetNode = null;
           drone.state = 'seek';
           return;
         }
@@ -103,7 +94,8 @@ export class DroneSystem {
         }
       } else if (drone.state === 'harvest') {
         const n = drone.targetNode;
-        if (!n || n.depleted) {
+        if (!n || !this.canHarvest(state, drone.kind, n, islands)) {
+          drone.targetNode = null;
           drone.state = drone.cargo.length > 0 ? 'return' : 'seek';
           return;
         }
@@ -153,6 +145,7 @@ export class DroneSystem {
           }
 
           drone.cargo = [];
+          drone.targetNode = null;
           drone.state = 'seek';
         } else {
           drone.x += (dx / dist) * spd * 1.15 * dt;
@@ -160,5 +153,10 @@ export class DroneSystem {
         }
       }
     });
+  }
+
+  private canHarvest(state: GameState, kind: DroneKind, node: ResourceNode, islands: IslandDef[]): boolean {
+    if (node.depleted || node.type !== DRONE_MODELS[kind].target) return false;
+    return islands.find(island => island.id === node.islandId)?.unlocked(state) ?? true;
   }
 }

@@ -17,7 +17,7 @@ export class GatheringSystem {
   ): { hit: boolean; isCrit: boolean; depleted: boolean } {
     // 1. Verifica se a ferramenta possui poder suficiente
     if (stats.toolPower < node.reqPower) {
-      this.eventBus.emit('sound:hit', { mat: 'stone', isCrit: false });
+      this.eventBus.emit('sound:hit', { mat: node.mat, blocked: true });
       this.eventBus.emit('fx:floatingText', {
         x: node.x,
         y: node.y - 26,
@@ -64,7 +64,6 @@ export class GatheringSystem {
 
     if (isCrit) {
       this.eventBus.emit('game:hitstop', { duration: 0.032 });
-      this.eventBus.emit('fx:shake', { magnitude: 5.5 });
       state.stats.criticalHits++;
       this.eventBus.emit('fx:floatingText', {
         x: node.x,
@@ -118,6 +117,7 @@ export class GatheringSystem {
       });
     }
 
+    if (wasDepleted) this.eventBus.emit('gathering:depleted', node.type);
     return wasDepleted;
   }
 

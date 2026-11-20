@@ -1,10 +1,15 @@
 import { GameState, PlayerState, ResourceId, SpecializationId } from '../domain/types.ts';
 import { UPGRADE_CATEGORIES, UPGRADES_DEF } from '../config/upgrades.ts';
 import { SPECIALIZATIONS } from '../config/specializations.ts';
+import { MACHINE_RECIPES } from '../config/machines.ts';
+import { BLUEPRINTS_DEF } from '../config/buildings.ts';
 import { resourceIcon } from './resource-icon.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
 import { UpgradeSystem } from '../gameplay/UpgradeSystem.ts';
 import { ProgressionSystem } from '../gameplay/ProgressionSystem.ts';
+import { MachineSystem } from '../gameplay/MachineSystem.ts';
+
+const machineRecipes = Object.values(MACHINE_RECIPES);
 
 export class WorkshopModal {
   public activeUpgradeTab: string = 'tools';
@@ -12,7 +17,8 @@ export class WorkshopModal {
   constructor(
     private inventorySystem: InventorySystem,
     private upgradeSystem: UpgradeSystem,
-    private progressionSystem: ProgressionSystem
+    private progressionSystem: ProgressionSystem,
+    private machineSystem: MachineSystem
   ) {}
 
   render(state: GameState, player: PlayerState): void {
@@ -90,17 +96,19 @@ export class WorkshopModal {
     }
 
     const filtered = UPGRADES_DEF.filter(u => u.category === this.activeUpgradeTab);
+    const canControlMachines = this.machineSystem.hasProductionControls(state);
     listEl.innerHTML = filtered.map(u => {
       const cur = state.upgrades[u.id] || 0;
       const isMax = cur >= u.maxLevel;
-      const reqLocked = u.requiresBuild && !state.builds[u.requiresBuild]?.built;
+      const reqLocked = this.upgradeSystem.missingBuild(state, u);
+      const requiredName = BLUEPRINTS_DEF.find(bp => bp.id === reqLocked)?.name.split(':')[0];
       const cost = isMax ? null : u.costs[cur];
       const affordable = !reqLocked && cost && this.inventorySystem.canAfford(state, player, cost);
 
       const costHtml = isMax
         ? '<span class="ui-ink-moss font-semibold text-xs">Nível Máximo ✓</span>'
         : reqLocked
-        ? '<span class="ui-ink-honey text-xs">Construa a Estação de Drones primeiro</span>'
+        ? `<span class="ui-ink-honey text-xs">Requer: ${requiredName ?? 'construção concluída'}</span>`
         : cost
         ? Object.entries(cost).map(([resKey, amt]) => {
             const res = resKey as ResourceId;
@@ -124,6 +132,7 @@ export class WorkshopModal {
             <p class="text-xs ui-ink-muted mt-1 leading-relaxed">${u.desc}</p>
             ${!isMax ? `<div class="mt-2 text-[11px] font-semibold ui-ink-sky">${u.effectText(cur)}</div>` : ''}
           </div>
+          ${u.id === 'autoMachines' && canControlMachines ? this.renderMachineControls(state) : ''}
           <div class="pt-2 border-t ui-edge flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap gap-1.5">${costHtml}</div>
             ${
@@ -149,6 +158,42 @@ export class WorkshopModal {
         this.render(state, player);
       });
     });
+
+    for (const { id } of machineRecipes) {
+      const button = listEl.querySelector<HTMLButtonElement>(`[data-machine-switch="${id}"]`);
+      button?.addEventListener('click', () => {
+        const paused = state.machines[id]?.paused !== true;
+        if (!this.machineSystem.setPaused(state, id, paused)) return;
+
+        button.setAttribute('aria-checked', String(!paused));
+        const status = button.querySelector('[data-machine-status]');
+        if (status) status.textContent = paused ? 'Pausada' : 'Ligada';
+      });
+    }
+  }
+
+  private renderMachineControls(state: GameState): string {
+    return `
+      <div class="machine-controls" role="group" aria-labelledby="machineControlsTitle">
+        <h4 id="machineControlsTitle">Produção por máquina</h4>
+        <p>Pausar conserva os materiais e guarda o progresso da receita.</p>
+        ${machineRecipes.map(({ id, name }) => {
+          const built = state.builds[id]?.built && state.machines[id];
+          const enabled = Boolean(built && state.machines[id].paused !== true);
+          const status = !built ? 'Por construir' : enabled ? 'Ligada' : 'Pausada';
+          return `
+            <button type="button" role="switch" aria-labelledby="machine-name-${id}" aria-checked="${enabled}"
+              data-machine-switch="${id}" class="machine-switch" ${built ? '' : 'disabled'}>
+              <span class="machine-switch-info">
+                <span id="machine-name-${id}">${name}</span>
+                <small data-machine-status>${status}</small>
+              </span>
+              <span class="machine-switch-track" aria-hidden="true"></span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    `;
   }
 
   /**

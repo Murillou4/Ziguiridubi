@@ -2,6 +2,9 @@
  * TIPOS E INTERFACES DE DOMÍNIO — OFICINA DO VALE
  */
 
+import type { PlayerAppearance } from './PlayerAppearance.ts';
+import type { TutorialStep } from './Tutorial.ts';
+
 export type ResourceId =
   | 'wood'
   | 'stone'
@@ -41,7 +44,7 @@ export interface UpgradeDef {
   desc: string;
   maxLevel: number;
   costs: CostMap[];
-  requiresBuild?: string;
+  requiresBuild?: string | readonly string[];
   effectText: (lvl: number) => string;
 }
 
@@ -131,7 +134,7 @@ export interface DropItem {
   age: number;
 }
 
-export type DroneKind = 'lumber' | 'miner';
+export type DroneKind = 'lumber' | 'miner' | 'iron' | 'crystal';
 export type DroneState = 'seek' | 'move' | 'harvest' | 'return';
 
 export interface DroneEntity {
@@ -155,6 +158,7 @@ export interface Contract {
 
 export interface MachineState {
   progress: number;
+  paused?: boolean;
 }
 
 export interface BuildProgress {
@@ -177,6 +181,7 @@ export interface GameStats {
 
 export interface GameState {
   phase: number;
+  tutorialStep?: TutorialStep;
   storage: Record<ResourceId, number>;
   upgrades: Record<string, number>;
   specialization: SpecializationId | null;
@@ -208,6 +213,7 @@ export interface PlayerState {
   dashDirY: number;
   invulnTimer: number;
   backpack: ResourceId[];
+  appearance?: PlayerAppearance;
   moveTarget: { x: number; y: number; autoHitNode?: ResourceNode } | null;
   /** Recurso atingido no golpe atual; usado somente pelo indicador visual. */
   attackTarget?: ResourceNode | null;

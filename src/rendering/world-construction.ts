@@ -407,19 +407,44 @@ function drawSiteFoundation(ctx: CanvasRenderingContext2D): void {
   ellipse(ctx, 6, 13, 33, 9, 'rgba(42, 33, 22, .24)');
 }
 
+const SIGN_SCALE = 4;
+const SIGN_FONT = 'bold 9px Georgia, serif';
+const siteSigns = new Map<string, { image: HTMLCanvasElement; x: number; y: number }>();
+
 function drawSiteSign(ctx: CanvasRenderingContext2D, name: string): void {
-  ctx.font = 'bold 9px Georgia, serif';
+  let sign = siteSigns.get(name);
+  if (!sign) {
+    const image = document.createElement('canvas');
+    const paint = image.getContext('2d')!;
+    paint.font = SIGN_FONT;
+    const split = name.lastIndexOf(' ');
+    const lines = paint.measureText(name).width > 64 && split > 0
+      ? [name.slice(0, split), name.slice(split + 1)]
+      : [name];
+    const width = Math.max(44, Math.ceil(Math.max(...lines.map(line => paint.measureText(line).width))) + 16);
+    const top = -11 - 10 * lines.length;
+    const x = -width / 2 - 2;
+    const y = top - 2;
+
+    image.width = (width + 4) * SIGN_SCALE;
+    image.height = (21 - y) * SIGN_SCALE;
+    paint.setTransform(SIGN_SCALE, 0, 0, SIGN_SCALE, -x * SIGN_SCALE, -y * SIGN_SCALE);
+    paintSiteSign(paint, lines, width, top);
+    sign = { image, x, y };
+    siteSigns.set(name, sign);
+  }
+
+  // A placa e as letras se movem juntas com a mesma interpolação.
+  ctx.drawImage(sign.image, sign.x, sign.y, sign.image.width / SIGN_SCALE, sign.image.height / SIGN_SCALE);
+}
+
+function paintSiteSign(ctx: CanvasRenderingContext2D, lines: string[], width: number, top: number): void {
+  ctx.font = SIGN_FONT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const split = name.lastIndexOf(' ');
-  const lines = ctx.measureText(name).width > 64 && split > 0
-    ? [name.slice(0, split), name.slice(split + 1)]
-    : [name];
-  const width = Math.max(44, Math.ceil(Math.max(...lines.map(line => ctx.measureText(line).width))) + 16);
   const left = -width / 2;
   const right = width / 2;
   const bottom = -2;
-  const top = bottom - 9 - 10 * lines.length;
   const post = width / 5;
 
   ellipse(ctx, -post + 2, 16, 6, 2.5, 'rgba(48, 32, 19, .36)');

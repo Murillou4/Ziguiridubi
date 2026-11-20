@@ -1,6 +1,7 @@
 import { AudioSettings, GameState, SavePayload } from '../domain/types.ts';
 import { createDefaultState } from '../domain/GameState.ts';
 import { createDefaultAudioSettings } from '../audio/AudioSettings.ts';
+import { TUTORIAL_STEPS } from '../domain/Tutorial.ts';
 
 export class SaveMigrator {
   /**
@@ -23,6 +24,7 @@ export class SaveMigrator {
     const normalizedState: GameState = {
       ...defaultState,
       ...stateObj,
+      tutorialStep: TUTORIAL_STEPS.includes(stateObj.tutorialStep) ? stateObj.tutorialStep : 'done',
       storage: {
         ...defaultState.storage,
         ...(stateObj.storage || {})

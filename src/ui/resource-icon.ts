@@ -11,8 +11,10 @@ export function getResourceIconUrl(resource: ResourceId): string {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 48;
   const ctx = canvas.getContext('2d')!;
-  ctx.translate(24, 24);
-  ctx.scale(2.35, 2.35);
+  const isIronOre = resource === 'ironOre';
+  const scale = isIronOre ? 2 : 2.35;
+  ctx.translate(isIronOre ? 21 : 24, 24);
+  ctx.scale(scale, scale);
   drawResourceIcon(ctx, resource);
   const url = canvas.toDataURL();
   iconUrls[resource] = url;

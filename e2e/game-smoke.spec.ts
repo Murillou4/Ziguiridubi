@@ -62,6 +62,39 @@ test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse
   expect(pageErrors).toEqual([]);
 });
 
+test('troca de painel pela barra de atalhos com outro painel aberto', async ({ page, isMobile }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.locator('#btnStartGame').click();
+  await expect(page.locator('#titleScreen')).toBeHidden();
+
+  const dock = page.locator('#hudDock');
+  const dockBefore = await dock.boundingBox();
+  expect(dockBefore).not.toBeNull();
+
+  for (const modalId of ['modalMerchant', 'modalWorkshop', 'modalProjects', 'modalTransfer', 'modalMerchant']) {
+    const button = dock.locator(`[aria-controls="${modalId}"]`);
+    if (isMobile) await button.tap();
+    else await button.click();
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+    await expect(dock.locator('[aria-expanded="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-modal-backdrop]:visible')).toHaveCount(1);
+    const panel = page.locator(`#${modalId} > .vale-panel`);
+    await expect(panel).toBeVisible();
+    const panelBounds = await panel.boundingBox();
+    expect(panelBounds!.y + panelBounds!.height).toBeLessThan(dockBefore!.y);
+    expect(await dock.boundingBox()).toEqual(dockBefore);
+  }
+
+  const merchant = dock.locator('#btnOpenMerchant');
+  await expect(page.locator('#modalMerchant [data-close-modal]')).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dock.locator('#btnOpenTransfer')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#modalMerchant')).toBeHidden();
+  await expect(merchant).toBeFocused();
+  await expect(merchant).toHaveAttribute('aria-expanded', 'false');
+});
+
 test('exibe os controles touch e processa toque em golpear, dash e joystick', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Fluxo de controles touch/mobile.');
 

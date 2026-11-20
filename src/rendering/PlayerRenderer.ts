@@ -16,32 +16,23 @@ export class PlayerRenderer {
     ctx.save();
     ctx.translate(player.x, player.y);
 
-    // Rastro do golpe: latão translúcido com contorno escuro, no mesmo acabamento do alvo.
+    // Um traço curto acompanha a ferramenta durante o golpe.
     if (player.swingTimer > 0) {
       const progress = 1 - player.swingTimer / player.swingDuration;
-      const sweepEnd = player.swingAngleStart + (player.swingAngleEnd - player.swingAngleStart) * progress;
-      const sweepRadius = stats.reachRadius * 0.85;
+      const tipAngle = player.swingAngleStart + (player.swingAngleEnd - player.swingAngleStart) * progress;
+      const tailAngle = Math.max(player.swingAngleStart, tipAngle - .85);
+      const radius = Math.min(33, stats.reachRadius * .72);
       ctx.save();
-      ctx.lineJoin = 'round';
+      ctx.globalAlpha *= Math.sin(progress * Math.PI) * .82;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, sweepRadius, player.swingAngleStart, sweepEnd);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(204, 158, 91, 0.15)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(69, 50, 34, 0.52)';
-      ctx.lineWidth = 4.6;
+      ctx.arc(0, -9, radius, tailAngle, tipAngle);
+      ctx.strokeStyle = '#684832';
+      ctx.lineWidth = 4;
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(247, 222, 180, 0.9)';
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#f4d6a1';
+      ctx.lineWidth = 2;
       ctx.stroke();
-
-      // Ponto de luz marca a extremidade atual do movimento da ferramenta.
-      ctx.beginPath();
-      ctx.arc(Math.cos(sweepEnd) * sweepRadius, Math.sin(sweepEnd) * sweepRadius, 2.3, 0, Math.PI * 2);
-      ctx.fillStyle = '#f2d49a';
-      ctx.fill();
       ctx.restore();
     }
 
@@ -60,18 +51,17 @@ export class PlayerRenderer {
     const facing = Math.abs(horizontal) > Math.abs(vertical)
       ? horizontal > 0 ? 'right' : 'left'
       : vertical > 0 ? 'down' : 'up';
-    const tierColors = ['#cbd5e1', '#f59e0b', '#818cf8', '#38bdf8', '#fde047'];
-
     drawPlayer(ctx, 0, 14, {
       facing,
       time: worldTime,
       moving: Math.hypot(player.vx, player.vy) > 1 || player.dashTimer > 0,
       swing: player.swingTimer > 0 ? Math.max(0.001, 1 - player.swingTimer / player.swingDuration) : 0,
       tool: player.heldTool,
+      appearance: player.appearance,
       packFill: this.packFill,
       packOpen: this.packOpen,
       cargo: player.backpack,
-      bladeColor: tierColors[Math.min(4, state.upgrades.toolPower ?? 0)]
+      toolLevel: state.upgrades.toolPower
     });
 
     ctx.restore();

@@ -11,7 +11,9 @@ import { DroneRenderer } from './DroneRenderer.ts';
 import { EffectsRenderer } from './EffectsRenderer.ts';
 import { WorldSystem } from '../gameplay/WorldSystem.ts';
 import { BuildingSystem } from '../gameplay/BuildingSystem.ts';
-import { getBlueprintDistance, getNearbyStation } from '../config/buildings.ts';
+import { getBlueprintDistance, getNearbyStation, WAREHOUSE_POSITION } from '../config/buildings.ts';
+import type { TutorialCue } from '../domain/Tutorial.ts';
+import { drawWorldTutorial } from './world-tutorial.ts';
 
 const INTERACTION_PROMPT_RANGE = 58;
 const INTERACTION_PROMPT_DELAY = 0.22;
@@ -27,6 +29,7 @@ export class CanvasRenderer {
   private lastFaunaTime?: number;
   private interactionPromptLabel: string | null = null;
   private interactionPromptSince = 0;
+  private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private readonly view: ViewRect = { x0: 0, y0: 0, x1: 0, y1: 0 };
   public worldRenderer: WorldRenderer;
   public resourceRenderer: ResourceRenderer;
@@ -72,7 +75,8 @@ export class CanvasRenderer {
     activeModal: string | null = null,
     showGuides = true,
     realTime?: RealTimeSnapshot,
-    isInspecting = false
+    isInspecting = false,
+    tutorial: TutorialCue | null = null
   ): void {
     const ctx = this.ctx;
     const w = this.width;
@@ -84,8 +88,8 @@ export class CanvasRenderer {
     if (weather) this.worldRenderer.renderLightning(ctx, w, h, weather);
 
     ctx.save();
-    const camX = w / 2 - this.camera.x * this.camera.zoom + this.camera.shakeX;
-    const camY = h / 2 - this.camera.y * this.camera.zoom + this.camera.shakeY;
+    const camX = w / 2 - this.camera.x * this.camera.zoom;
+    const camY = h / 2 - this.camera.y * this.camera.zoom;
     ctx.translate(camX, camY);
     ctx.scale(this.camera.zoom, this.camera.zoom);
 
@@ -136,10 +140,10 @@ export class CanvasRenderer {
       near: Math.max(0, 1 - Math.hypot(player.x + 95, player.y + 25) / 95),
       active: activeModal === 'modalMerchant' ? 1 : 0
     });
-    this.buildingRenderer.renderWorkbenchAndWarehouse(ctx, 95, -25, {
+    this.buildingRenderer.renderWorkbenchAndWarehouse(ctx, WAREHOUSE_POSITION.x, WAREHOUSE_POSITION.y, {
       time: worldTime,
-      near: Math.max(0, 1 - Math.hypot(player.x - 95, player.y + 25) / 95),
-      active: activeModal === 'modalWorkshop' ? 1 : 0
+      near: Math.max(0, 1 - Math.hypot(player.x - WAREHOUSE_POSITION.x, player.y - WAREHOUSE_POSITION.y) / 95),
+      active: activeModal === 'modalWorkshop' ? 1 : this.effectsRenderer.warehouseOpening
     });
 
     // 6. Nós de Recursos + Anel Rítmico Sweet Spot
@@ -159,14 +163,14 @@ export class CanvasRenderer {
     // 8. Orbes de Recursos no Chão
     this.effectsRenderer.renderDrops(ctx, drops, worldTime, view);
 
-    // 8b. Prévia direcional do golpe sobre o recurso selecionado
-    this.effectsRenderer.renderAttackTarget(ctx, player, stats, worldTime);
+    // 8b. Marcação no chão do recurso selecionado
+    this.effectsRenderer.renderAttackTarget(ctx, player, stats);
 
     // 9. Personagem + Mochila Física Empilhada
     this.playerRenderer.renderPlayer(ctx, player, state, stats, worldTime);
 
     // 10. Seta Guia para Projeto Rastreado
-    if (showGuides) this.effectsRenderer.renderProjectTrackerArrow(ctx, player, state);
+    if (showGuides && !tutorial) this.effectsRenderer.renderProjectTrackerArrow(ctx, player, state);
 
     // 11. Drones Autônomos
     this.droneRenderer.renderDrones(ctx, drones, worldTime);
@@ -175,15 +179,19 @@ export class CanvasRenderer {
     this.worldRenderer.renderAmbient(ctx, worldSystem.islands, state, worldTime, view, realTime?.lighting);
 
     // 12. Partículas & Textos Flutuantes
+    this.effectsRenderer.renderWarehouseTransfers(ctx);
     this.effectsRenderer.renderParticles(ctx);
     this.effectsRenderer.renderFloatingTexts(ctx);
 
     ctx.restore();
     if (weather) this.worldRenderer.renderRain(ctx, w, h, worldTime, weather);
+    if (tutorial && tutorial.action !== 'deposit') {
+      drawWorldTutorial(ctx, tutorial, this.camera, player, w, h, this.reducedMotion.matches ? 0 : worldTime);
+    }
 
     // A dica espera o jogador desacelerar perto do alvo acionado por [E].
     let label: string | null = null;
-    if (showGuides && !activeModal && !isInspecting && Math.hypot(player.vx, player.vy) <= stats.moveSpeed * 0.2) {
+    if (showGuides && !activeModal && !isInspecting && !tutorial && Math.hypot(player.vx, player.vy) <= stats.moveSpeed * 0.2) {
       if (nearbyBlueprint) {
         if (getBlueprintDistance(nearbyBlueprint, player.x, player.y) < INTERACTION_PROMPT_RANGE) {
           label = nearbyBlueprint.name.split(':')[0];

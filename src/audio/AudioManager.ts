@@ -1,9 +1,11 @@
-import { AudioSettings } from '../domain/types.ts';
+import { AudioSettings, ResourceNode } from '../domain/types.ts';
 import { createDefaultAudioSettings } from './AudioSettings.ts';
 import { LofiMusic } from './LofiMusic.ts';
 import { SoundEffects } from './SoundEffects.ts';
 import { EventBus } from '../core/EventBus.ts';
+import type { RealTimeSnapshot } from '../core/GameClock.ts';
 import type { WeatherSnapshot } from '../core/RainCycle.ts';
+import { AmbientAudio } from './AmbientAudio.ts';
 import { WeatherAudio } from './WeatherAudio.ts';
 
 export class AudioManager {
@@ -17,14 +19,15 @@ export class AudioManager {
   public lofiMusic = new LofiMusic();
   public sfx = new SoundEffects();
   private readonly weatherAudio = new WeatherAudio();
+  private readonly ambientAudio = new AmbientAudio();
 
   constructor(private eventBus: EventBus) {
     this.bindEvents();
   }
 
   private bindEvents(): void {
-    this.eventBus.on('sound:hit', (data: { mat?: string; isCrit?: boolean }) => {
-      this.playHit(data?.mat || 'wood', data?.isCrit || false);
+    this.eventBus.on('sound:hit', (data: { mat?: ResourceNode['mat']; isCrit?: boolean; blocked?: boolean }) => {
+      this.playHit(data?.mat, data?.isCrit, data?.blocked);
     });
 
     this.eventBus.on('sound:swing', () => this.playSwing());
@@ -61,6 +64,7 @@ export class AudioManager {
     this.isInitialized = true;
 
     this.weatherAudio.prepare(this.ctx);
+    this.ambientAudio.start(this.ctx, this.sfxGain);
     this.lofiMusic.startVinylTexture(this.ctx, this.musicGain);
     this.lofiMusic.startLoop(this.ctx, this.musicGain, this.settings);
   }
@@ -81,10 +85,11 @@ export class AudioManager {
     );
   }
 
-  update(dt: number, weather: WeatherSnapshot, isCatchingUp: boolean = false): void {
+  update(dt: number, environment: RealTimeSnapshot, isCatchingUp: boolean = false): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
     if (this.sfxGain) {
-      this.weatherAudio.update(this.ctx, this.sfxGain, weather);
+      this.weatherAudio.update(this.ctx, this.sfxGain, environment.weather);
+      this.ambientAudio.update(this.ctx, environment);
     }
     if (this.musicGain) {
       this.lofiMusic.update(dt, this.settings, isCatchingUp);
@@ -107,9 +112,9 @@ export class AudioManager {
     this.sfx.playSwing(this.ctx, this.sfxGain);
   }
 
-  playHit(mat: string = 'wood', isCrit: boolean = false): void {
+  playHit(mat: ResourceNode['mat'] = 'wood', isCrit = false, blocked = false): void {
     if (!this.ctx || !this.sfxGain) return;
-    this.sfx.playHit(this.ctx, this.sfxGain, mat, isCrit);
+    this.sfx.playHit(this.ctx, this.sfxGain, mat, isCrit, blocked);
   }
 
   playPickup(): void {

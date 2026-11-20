@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /saves/{uid} {
+      function ownsSave() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+      function validSave() {
+        let save = request.resource.data;
+        return save.keys().hasAll(['revision', 'payloadJson', 'updatedAt', 'writeId']) &&
+          save.keys().hasOnly(['revision', 'payloadJson', 'updatedAt', 'writeId']) &&
+          save.revision is int && save.revision > 0 &&
+          save.payloadJson is string && save.payloadJson.size() <= 131072 && save.payloadJson.size() > 0 &&
+          save.writeId is string && save.writeId.size() == 36 &&
+          save.updatedAt == request.time;
+      }
+      allow get: if ownsSave();
+      allow create: if ownsSave() && validSave() && request.resource.data.revision == 1;
+      allow update: if ownsSave() && validSave() && request.resource.data.revision == resource.data.revision + 1;
+    }
+  }
+}

@@ -5,8 +5,60 @@ import { AIRSHIP_ROUTES } from '../config/airshipRoutes.ts';
 import { BLUEPRINTS_DEF } from '../config/buildings.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
 import { getResourceIconUrl } from './resource-icon.ts';
+import type { TutorialAction, TutorialCue } from '../domain/Tutorial.ts';
+import type { InputMode } from '../input/InputManager.ts';
+import { drawTutorialIcon, TUTORIAL_ICONS, type TutorialIcon } from '../rendering/tutorial-icons.ts';
+
+const TUTORIAL_TITLES: Record<TutorialAction, string> = {
+  walk: 'Dê os primeiros passos',
+  chop: 'Corte uma árvore',
+  mine: 'Quebre uma pedra',
+  pickup: 'Recolha os recursos',
+  unload: 'Esvazie a mochila no armazém',
+  approach: 'Vá até a serraria',
+  inspect: 'Abra a obra da serraria',
+  deposit: 'Deposite madeira'
+};
+
+function tutorialControl(action: TutorialAction, mode: InputMode): { text: string; icon?: TutorialIcon; key?: string } {
+  const swing = action === 'chop' || action === 'mine';
+  const build = action === 'inspect' || action === 'deposit';
+  if (mode === 'mouse') {
+    const text = action === 'chop' ? 'Clique na árvore'
+      : action === 'mine' ? 'Clique na pedra'
+      : action === 'deposit' ? 'Clique em Depositar'
+      : action === 'inspect' || action === 'approach' ? 'Clique na serraria'
+      : action === 'walk' ? 'Clique no chão'
+      : 'Clique perto da marca';
+    return { icon: 'mouse', text };
+  }
+  if (mode === 'touch') {
+    if (swing) return { icon: 'mallet', text: 'Chegue perto e toque no martelo' };
+    if (build) return { key: 'E', text: 'Toque no botão E' };
+    return { icon: 'joystick', text: action === 'pickup' ? 'Use o joystick para chegar perto' : 'Arraste o joystick' };
+  }
+  if (swing) return { key: 'Espaço', text: 'Chegue perto e vire para o alvo' };
+  if (build) return { key: 'E', text: action === 'inspect' ? 'Inspecione a obra' : 'Entregue os materiais' };
+  return { key: 'WASD', text: action === 'pickup' ? 'Chegue perto para recolher' : 'ou use as setas' };
+}
+
+function paintTutorialIcon(canvas: HTMLCanvasElement, icon: TutorialIcon): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.scale(canvas.width / 25, canvas.height / 25);
+  drawTutorialIcon(ctx, icon);
+  ctx.restore();
+}
 
 export class HUDView {
+  private resourceState?: GameState;
+  private tutorialAction?: TutorialAction;
+  private tutorialKey = '';
+  private tutorialAnimation?: Animation;
+
   constructor(private inventorySystem: InventorySystem) {}
 
   update(state: GameState, player: PlayerState, stats: DerivedStats): void {
@@ -14,6 +66,48 @@ export class HUDView {
     this.updateBackpackAndDash(player, stats);
     this.updateAirshipFlightBanner(state);
     this.updateObjectiveCard(state);
+  }
+
+  updateTutorial(cue: TutorialCue | null, mode: InputMode): void {
+    const action = cue?.action;
+    const key = action ? `${action}:${mode}` : '';
+    if (this.tutorialKey === key) return;
+    const hint = document.getElementById('tutorialHint');
+    if (!hint) return;
+
+    this.tutorialKey = key;
+    const changedAction = this.tutorialAction !== action;
+    this.tutorialAction = action;
+    hint.hidden = !action;
+    const hud = document.getElementById('hudLayer');
+    hud?.toggleAttribute('data-tutorial-active', Boolean(action));
+    hud?.removeAttribute('data-tutorial-control');
+    if (!action) return;
+
+    const control = tutorialControl(action, mode);
+    hint.dataset.action = action;
+    hint.dataset.input = mode;
+    const title = document.getElementById('tutorialTitle')!;
+    const instruction = document.getElementById('tutorialInstruction')!;
+    const keycap = document.getElementById('tutorialKey')!;
+    const controlIcon = document.getElementById('tutorialControlIcon') as HTMLCanvasElement;
+    title.textContent = TUTORIAL_TITLES[action];
+    instruction.textContent = control.text;
+    keycap.hidden = !control.key;
+    keycap.textContent = control.key ?? '';
+    controlIcon.hidden = !control.icon;
+    if (control.icon) paintTutorialIcon(controlIcon, control.icon);
+    if (mode === 'touch' && hud) hud.dataset.tutorialControl = control.icon ?? 'interact';
+
+    if (!changedAction) return;
+    paintTutorialIcon(document.getElementById('tutorialActionIcon') as HTMLCanvasElement, TUTORIAL_ICONS[action]);
+    this.tutorialAnimation?.cancel();
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.tutorialAnimation = hint.animate([
+        { opacity: 0, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'translateY(0)' }
+      ], { duration: 210, easing: 'ease-out' });
+    }
   }
 
   updateResourceBar(state: GameState, player: PlayerState): void {
@@ -53,16 +147,81 @@ export class HUDView {
       keys.push('relic');
     }
 
-    resBar.innerHTML = keys.map(k => {
+    const animateGains = this.resourceState === state;
+    if (!animateGains) {
+      resBar.replaceChildren();
+      this.resourceState = state;
+    }
+    for (const child of Array.from(resBar.children) as HTMLElement[]) {
+      if (!keys.includes(child.dataset.resource as ResourceId)) child.remove();
+    }
+
+    for (const [index, k] of keys.entries()) {
       const def = RESOURCES[k];
       const val = this.inventorySystem.getTotalResource(state, player, k);
-      return `
-        <div class="hud-resource" data-resource="${k}" title="${def.name}" aria-label="${def.name}: ${val}">
-          <img src="${getResourceIconUrl(k)}" alt="" width="24" height="24">
-          <span>${val}</span>
-        </div>
-      `;
-    }).join('');
+      let chip = resBar.querySelector<HTMLElement>(`[data-resource="${k}"]`);
+      if (!chip) {
+        chip = document.createElement('div');
+        chip.className = 'hud-resource';
+        chip.dataset.resource = k;
+        chip.title = def.name;
+        const iconUrl = getResourceIconUrl(k);
+        chip.innerHTML = `
+          <span class="hud-resource-main">
+            <img src="${iconUrl}" alt="" width="24" height="24">
+            <span class="hud-resource-value"></span>
+          </span>
+          <span class="hud-resource-gain" aria-hidden="true">
+            <img src="${iconUrl}" alt="" width="14" height="14">
+            <span></span>
+          </span>
+        `;
+      }
+      const next = resBar.children.item(index);
+      if (next !== chip) resBar.insertBefore(chip, next);
+
+      const value = chip.querySelector<HTMLElement>('.hud-resource-value')!;
+      const gain = val - Number(value.textContent);
+      if (value.textContent === String(val)) continue;
+
+      value.textContent = String(val);
+      chip.setAttribute('aria-label', `${def.name}: ${val}`);
+      if (animateGains && gain > 0 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const main = chip.querySelector<HTMLElement>('.hud-resource-main')!;
+        for (const motion of main.getAnimations()) motion.cancel();
+        main.animate([
+          { transform: 'scale(1)', color: '#fff2cb' },
+          { transform: 'scale(1.28)', color: '#ffd78a', offset: .32 },
+          { transform: 'scale(1)' }
+        ], { duration: 330, easing: 'ease-out' });
+
+        const badge = chip.querySelector<HTMLElement>('.hud-resource-gain')!;
+        const badgeValue = badge.querySelector('span')!;
+        const previousGain = badge.getAnimations()[0];
+        const displayedGain = gain + (previousGain ? Number(badgeValue.textContent) : 0);
+        previousGain?.cancel();
+        badgeValue.textContent = `+${displayedGain}`;
+        badge.animate([
+          { opacity: 0, transform: 'translateY(-3px) scale(.86)' },
+          { opacity: 1, transform: 'translateY(0) scale(1)', offset: .2 },
+          { opacity: 1, transform: 'translateY(2px)', offset: .68 },
+          { opacity: 0, transform: 'translateY(8px)' }
+        ], { duration: 660, easing: 'ease-out' });
+      }
+    }
+  }
+
+  animateWarehouseReceipt(resource: ResourceId): void {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const icon = document.querySelector<HTMLImageElement>(`#resourceBar [data-resource="${resource}"] .hud-resource-main img`);
+    if (!icon) return;
+
+    for (const motion of icon.getAnimations()) motion.cancel();
+    icon.animate([
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.15)', filter: 'brightness(1.45)', offset: .32 },
+      { transform: 'scale(1)' }
+    ], { duration: 280, easing: 'ease-out' });
   }
 
   updateBackpackAndDash(player: PlayerState, stats: DerivedStats): void {

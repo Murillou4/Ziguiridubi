@@ -1,4 +1,5 @@
 import { ResourceNode } from '../domain/types.ts';
+import type { TutorialCue } from '../domain/Tutorial.ts';
 import { getNearbyStation } from '../config/buildings.ts';
 import { GameRuntimeContext } from './GameContext.ts';
 
@@ -26,7 +27,6 @@ export class PlayerInteractionController {
     if (!dashed) return;
 
     c.audio.playDash();
-    c.renderer.camera.addShake(4);
 
     if ((state.upgrades.steamDash ?? 0) > 0) {
       c.worldSystem.nodes.forEach(node => {
@@ -66,12 +66,11 @@ export class PlayerInteractionController {
     if (!c.playerSystem.triggerSwing(player, stats)) return;
 
     c.audio.playSwing();
-    let hitAny = false;
     let bestTargetScore = Infinity;
     let bestTarget: ResourceNode | null = null;
 
     c.worldSystem.nodes.forEach(node => {
-      if (node.depleted) return;
+      if (node.depleted || (target && node.type !== target.type)) return;
       const island = c.worldSystem.islands.find(item => item.id === node.islandId);
       if (island && !island.unlocked(state)) return;
 
@@ -93,13 +92,10 @@ export class PlayerInteractionController {
           bestTarget = node;
           player.heldTool = node.type === 'tree' ? 'axe' : 'pickaxe';
         }
-        hitAny = true;
         c.gatheringSystem.handleHitNode(node, state, stats);
       }
     });
-
     player.attackTarget = bestTarget;
-    if (hitAny) c.renderer.camera.addShake(3.5);
   }
 
   triggerContextInteract(): void {
@@ -125,7 +121,7 @@ export class PlayerInteractionController {
     }
   }
 
-  handleCanvasClick(): void {
+  handleCanvasClick(tutorial: TutorialCue | null = null): void {
     const c = this.context;
     if (!c.getIsPlaying() || c.isModalOpen()) return;
 
@@ -139,14 +135,41 @@ export class PlayerInteractionController {
     const player = c.getPlayer();
     const state = c.getState();
     const mouse = c.input.mouse;
-    player.facing = Math.atan2(mouse.worldY - player.y, mouse.worldX - player.x);
+    const clickedMarker = tutorial && Math.hypot(mouse.worldX - tutorial.x, mouse.worldY - tutorial.y + tutorial.lift) < 20 / c.renderer.camera.zoom;
+    const x = clickedMarker ? tutorial.x : mouse.worldX;
+    const y = clickedMarker ? tutorial.y : mouse.worldY;
+    player.facing = Math.atan2(y - player.y, x - player.x);
+
+    const action = tutorial?.action;
+    const guidingMovement = action === 'walk' || action === 'pickup' || action === 'approach' || action === 'unload';
+    if (tutorial && guidingMovement && Math.hypot(x - tutorial.x, y - tutorial.y) < 30 &&
+        c.worldSystem.isPointWalkable(state, tutorial.x, tutorial.y)) {
+      player.moveTarget = { x: tutorial.x, y: tutorial.y };
+      return;
+    }
+    if (action === 'inspect' || action === 'deposit') {
+      const blueprint = c.buildingSystem.getNearbyBlueprint(player.x, player.y, state);
+      if (blueprint?.id === 'sawmill' && x >= blueprint.x - 8 && x <= blueprint.x + blueprint.w + 8 &&
+          y >= blueprint.y - 22 && y <= blueprint.y + blueprint.h + 8) {
+        this.triggerContextInteract();
+        return;
+      }
+    }
 
     const stats = c.getStats();
-    const clickedNode = c.worldSystem.nodes.find(
-      node =>
-        !node.depleted &&
-        Math.hypot(node.x - mouse.worldX, node.y - mouse.worldY) <= node.radius + 26
-    );
+    let clickedNode: ResourceNode | undefined;
+    let bestClickScore = Infinity;
+    for (const node of c.worldSystem.nodes) {
+      const distance = Math.hypot(node.x - x, node.y - y);
+      if (node.depleted || distance > node.radius + 26) continue;
+
+      // Clique no corpo do recurso tem prioridade sobre a margem de seleção.
+      const score = distance <= node.radius ? distance / node.radius : 1 + (distance - node.radius) / 26;
+      if (score < bestClickScore) {
+        clickedNode = node;
+        bestClickScore = score;
+      }
+    }
 
     if (clickedNode) {
       const distance = Math.hypot(clickedNode.x - player.x, clickedNode.y - player.y);
@@ -165,7 +188,7 @@ export class PlayerInteractionController {
     }
 
     if (
-      Math.hypot(mouse.worldX + 95, mouse.worldY + 25) < 58 &&
+      Math.hypot(x + 95, y + 25) < 58 &&
       Math.hypot(player.x + 95, player.y + 25) < 115
     ) {
       c.ui.openModal('modalMerchant', () => c.getState(), () => c.getPlayer(), () => c.getStats());
@@ -178,11 +201,11 @@ export class PlayerInteractionController {
         Math.hypot(node.x - player.x, node.y - player.y) <= stats.reachRadius + node.radius
     );
 
-    if (hasNodeInRange) {
+    if (hasNodeInRange && !tutorial) {
       player.moveTarget = null;
       this.triggerSwing();
-    } else if (c.worldSystem.isPointWalkable(state, mouse.worldX, mouse.worldY)) {
-      player.moveTarget = { x: mouse.worldX, y: mouse.worldY };
+    } else if (c.worldSystem.isPointWalkable(state, x, y)) {
+      player.moveTarget = { x, y };
     } else {
       this.triggerSwing();
     }

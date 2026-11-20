@@ -3,6 +3,7 @@ import { GameState } from './types.ts';
 export function createDefaultState(): GameState {
   return {
     phase: 1,
+    tutorialStep: 'walk',
     storage: {
       wood: 0,
       stone: 0,
@@ -29,6 +30,8 @@ export function createDefaultState(): GameState {
       autoMachines: 0,
       lumberDrone: 0,
       minerDrone: 0,
+      ironDrone: 0,
+      crystalDrone: 0,
       steamDash: 0,
       magnetCoil: 0,
       relicCelestialCore: 0

@@ -11,12 +11,17 @@ export class UpgradeSystem {
     private eventBus: EventBus
   ) {}
 
+  missingBuild(state: GameState, def: UpgradeDef): string | undefined {
+    const required = typeof def.requiresBuild === 'string' ? [def.requiresBuild] : def.requiresBuild;
+    return required?.find(id => !state.builds[id]?.built);
+  }
+
   canBuy(state: GameState, player: PlayerState, upgradeId: string): boolean {
     const def = this.upgrades.find(u => u.id === upgradeId);
     if (!def) return false;
     const cur = state.upgrades[upgradeId] || 0;
     if (cur >= def.maxLevel) return false;
-    if (def.requiresBuild && !state.builds[def.requiresBuild]?.built) return false;
+    if (this.missingBuild(state, def)) return false;
 
     const cost = def.costs[cur];
     return this.inventorySystem.canAfford(state, player, cost);
@@ -28,7 +33,7 @@ export class UpgradeSystem {
 
     const cur = state.upgrades[upgradeId] || 0;
     if (cur >= def.maxLevel) return false;
-    if (def.requiresBuild && !state.builds[def.requiresBuild]?.built) return false;
+    if (this.missingBuild(state, def)) return false;
 
     const cost = def.costs[cur];
     if (!this.inventorySystem.canAfford(state, player, cost)) return false;

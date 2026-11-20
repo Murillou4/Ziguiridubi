@@ -1,10 +1,11 @@
 import { CostMap, GameState } from '../domain/types.ts';
 
 const AIRSHIP_DOCK_BOUNDS = { x: 45, y: 340, w: 140, h: 98 };
+export const WAREHOUSE_POSITION = { x: 95, y: -25 };
 
 const STATIONS = [
   { x: -95, y: -25, range: 95, label: 'Mercador', modal: 'modalMerchant' },
-  { x: 95, y: -25, range: 95, label: 'Armazém', modal: 'modalWorkshop' },
+  { ...WAREHOUSE_POSITION, range: 95, label: 'Armazém', modal: 'modalWorkshop' },
   {
     x: AIRSHIP_DOCK_BOUNDS.x + AIRSHIP_DOCK_BOUNDS.w / 2,
     y: AIRSHIP_DOCK_BOUNDS.y + AIRSHIP_DOCK_BOUNDS.h / 2,

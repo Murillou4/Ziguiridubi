@@ -6,6 +6,7 @@ import { drawConstructionSite } from './world-construction.ts';
 
 const TAU = Math.PI * 2;
 const BUILD_TRANSITION_SECONDS = 0.7;
+const BRIDGE_ROPE_HEIGHT = 26;
 
 const WOOD = {
   base: '#8f5a2c',
@@ -22,6 +23,17 @@ const WOOD = {
 
 function clamp(v: number, min: number, max: number): number {
   return v < min ? min : v > max ? max : v;
+}
+
+function bridgeGust(time: number, seed: number): number {
+  const interval = Math.floor(time);
+  const fraction = time - interval;
+  const blend = fraction * fraction * (3 - 2 * fraction);
+  const sample = (index: number) => {
+    const value = Math.sin(index * 27.17 + seed) * 43758.5453;
+    return 2 * (value - Math.floor(value)) - 1;
+  };
+  return sample(interval) * (1 - blend) + sample(interval + 1) * blend;
 }
 
 interface BridgeGuideOptions {
@@ -58,7 +70,7 @@ export class BuildingRenderer {
     if (!built && !showGuides) return;
 
     if (bp.isBridge) {
-      this.drawBridge(ctx, bp, progress, options, showGuides);
+      this.drawBridge(ctx, bp, progress, options, showGuides, !!built);
       return;
     }
 
@@ -127,13 +139,15 @@ export class BuildingRenderer {
     bp: BlueprintConfig,
     progress: number,
     options: BridgeGuideOptions,
-    showGuides: boolean
+    showGuides: boolean,
+    built: boolean
   ): void {
     const layout = resolveBridgeLayout(bp);
-    // As cordas e estacas de obra cedem lugar ao tabuleiro no acabamento.
+    const finish = built ? clamp((progress - .84) / .16, 0, 1) : 0;
+    // As guias de obra cedem lugar às cordas presas às margens.
     const guideOpacity = showGuides ? clamp((1 - progress) / .16, 0, 1) : 0;
     if (guideOpacity === 0) {
-      this.drawBridgeDeck(ctx, bp, layout, progress);
+      this.drawBridgeSpan(ctx, bp, layout, progress, finish, options.worldTime);
       return;
     }
     const isNear = options.nearbyBlueprintId === bp.id;
@@ -194,7 +208,7 @@ export class BuildingRenderer {
     }
 
     ctx.globalAlpha = opacity;
-    this.drawBridgeDeck(ctx, bp, layout, progress);
+    this.drawBridgeSpan(ctx, bp, layout, progress, finish, t);
     ctx.globalAlpha = opacity * guideOpacity;
 
     // 6. Estacas frontais
@@ -312,10 +326,12 @@ export class BuildingRenderer {
       emphasized: boolean;
       time: number;
       phase: number;
+      knotHeight?: number;
     }
   ): void {
-    const h = opts.major ? 22 : 16;
-    const w = opts.major ? 6 : 4.5;
+    const knotHeight = opts.knotHeight ?? (opts.major ? 18 : 13);
+    const h = knotHeight + (opts.major ? 4 : 3);
+    const w = opts.knotHeight !== undefined ? 7.5 : opts.major ? 6 : 4.5;
 
     ctx.save();
     ctx.translate(x, y);
@@ -341,7 +357,7 @@ export class BuildingRenderer {
     ctx.fillRect(w / 2 - Math.max(1, w * 0.28) - 0.6, -h + 1.5, Math.max(1, w * 0.28), h - 3);
 
     // Nó de corda no topo
-    const knotY = opts.major ? -18 : -13;
+    const knotY = -knotHeight;
     ctx.fillStyle = WOOD.ropeBase;
     ctx.strokeStyle = WOOD.ropeDark;
     ctx.lineWidth = 0.8;
@@ -368,28 +384,98 @@ export class BuildingRenderer {
     ctx.restore();
   }
 
-  private drawBridgeDeck(
+  private drawBridgeSpan(
     ctx: CanvasRenderingContext2D,
     bp: BlueprintConfig,
     layout: BridgeLayout,
-    progress: number
+    progress: number,
+    finish: number,
+    time: number
   ): void {
-    const span = layout.isHorizontal ? bp.w : bp.h;
+    if (progress <= 0) return;
+    const { isHorizontal, entrance } = layout;
+    const span = isHorizontal ? bp.w : bp.h;
+    const width = isHorizontal ? bp.h : bp.w;
     const count = Math.ceil(span / 16);
     const step = span / count;
     const visible = progress * count;
-    const fromStart = layout.entrance === 'left' || layout.entrance === 'top';
+    const fromStart = entrance === 'left' || entrance === 'top';
     const plankSize = step - 1.5;
+    const seed = bp.x * .17 + bp.y * .31;
+    const gust = bridgeGust(time * .53, seed);
+    const phase = time * 1.7 + seed + gust;
+    const amplitude = 3.3 + bridgeGust(time * .38, seed + 43) * 1.2;
+
+    // A mesma deformação move as tábuas e as cordas. Ela zera nos dois apoios.
+    const point = (u: number, across: number) => {
+      const envelope = Math.sin(Math.PI * u) ** 2 * finish;
+      const sway = (Math.sin(phase - u * 2.2) * amplitude + gust * 1.8) * envelope;
+      return isHorizontal
+        ? { x: bp.x + span * u, y: bp.y + across + sway + 3 * envelope }
+        : { x: bp.x + across + sway, y: bp.y + span * u + (2 + sway * .25) * envelope };
+    };
 
     ctx.save();
     const opacity = ctx.globalAlpha;
+    const drawSide = (front: boolean) => {
+      const inset = front ? width - 3 : 3;
+      const deckEdge = (u: number) => point(u, inset);
+      const handrail = (u: number) => {
+        const bow = Math.sin(Math.PI * u);
+        const outward = isHorizontal ? 0 : bow * (front ? 5 : -5);
+        const p = point(u, inset + outward);
+        p.y += -BRIDGE_ROPE_HEIGHT + bow * (10 + gust * 1.8);
+        return p;
+      };
+
+      ctx.save();
+      ctx.globalAlpha = opacity * finish;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      for (const rope of [handrail, deckEdge]) {
+        const anchor = rope(0);
+        ctx.moveTo(anchor.x, anchor.y);
+        for (let i = 1; i <= count * 2; i++) {
+          const p = rope(i / (count * 2));
+          ctx.lineTo(p.x, p.y);
+        }
+      }
+      for (let i = 1; i < count; i += 2) {
+        const u = (i + .5) / count;
+        const top = handrail(u);
+        const bottom = deckEdge(u);
+        ctx.moveTo(top.x, top.y);
+        ctx.quadraticCurveTo(top.x + (bottom.x - top.x) * .5 + gust * 2,
+          (top.y + bottom.y) * .5, bottom.x, bottom.y);
+      }
+      ctx.strokeStyle = WOOD.ropeDark;
+      ctx.lineWidth = front ? 3.6 : 3;
+      ctx.stroke();
+      ctx.strokeStyle = front ? WOOD.ropeLight : WOOD.ropeBase;
+      ctx.lineWidth = front ? 1.7 : 1.3;
+      ctx.stroke();
+
+      for (const u of [0, 1]) {
+        const anchor = deckEdge(u);
+        this.drawStake(ctx, anchor.x, anchor.y, {
+          major: true, withPennant: false, emphasized: false, time, phase,
+          knotHeight: BRIDGE_ROPE_HEIGHT
+        });
+      }
+      ctx.restore();
+    };
+
+    if (finish > 0) drawSide(false);
     for (let i = 0; i < Math.ceil(visible); i++) {
       const amount = Math.min(1, visible - i);
-      const offset = (fromStart ? i : count - 1 - i) * step + .75;
-      const x = layout.isHorizontal ? bp.x + offset : bp.x;
-      const y = (layout.isHorizontal ? bp.y : bp.y + offset) - 5 * (1 - amount);
-      const w = layout.isHorizontal ? plankSize : bp.w;
-      const h = layout.isHorizontal ? bp.h : plankSize;
+      const index = fromStart ? i : count - 1 - i;
+      const center = point((index + .5) / count, width / 2);
+      const w = isHorizontal ? plankSize : width;
+      const h = isHorizontal ? width : plankSize;
+      const x = center.x - w / 2;
+      const y = center.y - h / 2 - 5 * (1 - amount);
 
       ctx.globalAlpha = opacity * amount;
       ctx.fillStyle = WOOD.dark;
@@ -399,15 +485,16 @@ export class BuildingRenderer {
       roundRect(ctx, x, y, w, h, 2);
       ctx.fill();
       ctx.fillStyle = WOOD.highlight;
-      if (layout.isHorizontal) {
+      if (isHorizontal) {
         ctx.fillRect(x + 2, y + 4, 1, h - 8);
       } else {
         ctx.fillRect(x + 4, y + 2, w - 8, 1);
       }
       ctx.fillStyle = WOOD.outline;
-      ctx.fillRect(x + (layout.isHorizontal ? w / 2 : 6), y + (layout.isHorizontal ? 6 : h / 2), 2, 2);
-      ctx.fillRect(x + (layout.isHorizontal ? w / 2 : w - 8), y + (layout.isHorizontal ? h - 8 : h / 2), 2, 2);
+      ctx.fillRect(x + (isHorizontal ? w / 2 : 6), y + (isHorizontal ? 6 : h / 2), 2, 2);
+      ctx.fillRect(x + (isHorizontal ? w / 2 : w - 8), y + (isHorizontal ? h - 8 : h / 2), 2, 2);
     }
+    if (finish > 0) drawSide(true);
     ctx.restore();
   }
 

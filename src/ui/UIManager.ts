@@ -4,6 +4,7 @@ import { BuildingSystem } from '../gameplay/BuildingSystem.ts';
 import { EconomySystem } from '../gameplay/EconomySystem.ts';
 import { ContractSystem } from '../gameplay/ContractSystem.ts';
 import { UpgradeSystem } from '../gameplay/UpgradeSystem.ts';
+import { MachineSystem } from '../gameplay/MachineSystem.ts';
 import { ProgressionSystem } from '../gameplay/ProgressionSystem.ts';
 import { AirshipSystem } from '../gameplay/AirshipSystem.ts';
 import { AudioManager } from '../audio/AudioManager.ts';
@@ -40,6 +41,7 @@ export class UIManager {
     private economySystem: EconomySystem,
     private contractSystem: ContractSystem,
     private upgradeSystem: UpgradeSystem,
+    machineSystem: MachineSystem,
     private progressionSystem: ProgressionSystem,
     private airshipSystem: AirshipSystem,
     private audioManager: AudioManager,
@@ -48,7 +50,7 @@ export class UIManager {
   ) {
     this.hudView = new HUDView(this.inventorySystem);
     this.merchantModal = new MerchantModal(this.inventorySystem, this.economySystem, this.contractSystem);
-    this.workshopModal = new WorkshopModal(this.inventorySystem, this.upgradeSystem, this.progressionSystem);
+    this.workshopModal = new WorkshopModal(this.inventorySystem, this.upgradeSystem, this.progressionSystem, machineSystem);
     this.projectsModal = new ProjectsModal(this.inventorySystem, this.eventBus);
     this.airshipModal = new AirshipModal(this.inventorySystem, this.airshipSystem);
     this.transferModal = new TransferModal(this.saveService, this.eventBus);
@@ -76,7 +78,7 @@ export class UIManager {
           title.inert = true;
           title.style.opacity = '0';
           setTimeout(() => {
-            title.style.display = 'none';
+            if (title.inert) title.style.display = 'none';
           }, 450);
         }
         const hud = document.getElementById('hudLayer');
@@ -88,11 +90,27 @@ export class UIManager {
     }
 
     // 2. Botões do Dock Inferior e HUD
-    document.getElementById('btnOpenMerchant')?.addEventListener('click', () => this.toggleModal('modalMerchant', getState, getPlayer, getStats));
-    document.getElementById('btnOpenWorkshop')?.addEventListener('click', () => this.toggleModal('modalWorkshop', getState, getPlayer, getStats));
-    document.getElementById('btnOpenProjects')?.addEventListener('click', () => this.toggleModal('modalProjects', getState, getPlayer, getStats));
-    document.getElementById('btnOpenAirship')?.addEventListener('click', () => this.toggleModal('modalAirship', getState, getPlayer, getStats));
-    document.getElementById('btnOpenTransfer')?.addEventListener('click', () => this.toggleModal('modalTransfer', getState, getPlayer, getStats));
+    const hud = document.getElementById('hudLayer');
+    const dock = document.getElementById('hudDock');
+    if (hud && dock) {
+      dock.querySelectorAll<HTMLButtonElement>('button[aria-controls]').forEach(button => {
+        button.addEventListener('click', () => {
+          const modalId = button.getAttribute('aria-controls');
+          if (modalId) this.toggleModal(modalId, getState, getPlayer, getStats, button);
+        });
+      });
+
+      const updateDockClearance = () => {
+        const bounds = dock.getBoundingClientRect();
+        if (bounds.height === 0) return;
+        const clearance = Math.ceil(hud.getBoundingClientRect().bottom - bounds.top) + 10;
+        hud.style.setProperty('--modal-dock-clearance', `${clearance}px`);
+      };
+      const dockObserver = new ResizeObserver(updateDockClearance);
+      dockObserver.observe(dock);
+      window.addEventListener('resize', updateDockClearance);
+      hud.addEventListener('keydown', event => this.wrapMenuFocus(event, dock));
+    }
     document.getElementById('btnOpenSettings')?.addEventListener('click', () => this.toggleModal('modalSettings', getState, getPlayer, getStats));
     document.getElementById('btnHowToPlay')?.addEventListener('click', () => this.toggleModal('modalHowToPlay', getState, getPlayer, getStats));
     document.getElementById('btnOpenTransferFromSettings')?.addEventListener('click', () => this.openModal('modalTransfer', getState, getPlayer, getStats));
@@ -118,20 +136,6 @@ export class UIManager {
       backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) this.closeAllModals();
       });
-      backdrop.addEventListener('keydown', event => {
-        const keyEvent = event as KeyboardEvent;
-        if (keyEvent.key !== 'Tab') return;
-
-        const controls = [...backdrop.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href]')]
-          .filter(control => control.tabIndex >= 0 && control.getClientRects().length > 0);
-        const first = controls[0];
-        const last = controls[controls.length - 1];
-        const boundary = keyEvent.shiftKey ? first : last;
-        if (boundary && document.activeElement === boundary) {
-          keyEvent.preventDefault();
-          (keyEvent.shiftKey ? last : first).focus();
-        }
-      });
     });
 
     // 6. Inicializa Modais Especializados
@@ -151,7 +155,9 @@ export class UIManager {
       this.refreshAll(getState, getPlayer, getStats);
     });
 
-    this.eventBus.on('ui:closeModals', () => this.closeAllModals());
+    this.eventBus.on<string | undefined>('ui:closeModals', modalId => {
+      if (!modalId || modalId === this.activeModal) this.closeAllModals();
+    });
 
     this.eventBus.on('input:escape', () => {
       if (this.activeModal) this.closeAllModals();
@@ -177,16 +183,29 @@ export class UIManager {
     });
   }
 
+  showTitle(): void {
+    const title = document.getElementById('titleScreen');
+    if (title) {
+      title.inert = false;
+      title.style.display = '';
+      title.style.opacity = '1';
+    }
+    const hud = document.getElementById('hudLayer');
+    hud?.classList.remove('flex');
+    hud?.classList.add('hidden');
+  }
+
   toggleModal(
     modalId: string,
     getState: () => GameState,
     getPlayer: () => PlayerState,
-    getStats: () => DerivedStats
+    getStats: () => DerivedStats,
+    trigger?: HTMLElement
   ): void {
     if (this.activeModal === modalId) {
       this.closeAllModals();
     } else {
-      this.openModal(modalId, getState, getPlayer, getStats);
+      this.openModal(modalId, getState, getPlayer, getStats, trigger);
     }
   }
 
@@ -194,19 +213,20 @@ export class UIManager {
     modalId: string,
     getState: () => GameState,
     getPlayer: () => PlayerState,
-    getStats: () => DerivedStats
+    getStats: () => DerivedStats,
+    trigger?: HTMLElement
   ): void {
-    const focused = document.activeElement;
-    const trigger = this.activeModal ? this.modalTrigger : focused instanceof HTMLElement ? focused : null;
-    this.closeAllModals();
     const el = document.getElementById(modalId);
     if (!el) return;
 
+    const focused = document.activeElement;
+    const returnFocus = this.activeModal ? this.modalTrigger : focused instanceof HTMLElement ? focused : null;
+    if (this.activeModal !== modalId) this.hideActiveModal();
     el.classList.remove('hidden');
     el.classList.add('flex');
     this.activeModal = modalId;
-    this.modalTrigger = trigger;
-    el.querySelector<HTMLElement>('[data-close-modal]')?.focus({ preventScroll: true });
+    this.modalTrigger = trigger ?? returnFocus;
+    this.syncMenuState();
     getPlayer().moveTarget = null;
 
     if (modalId === 'modalMerchant') {
@@ -222,16 +242,46 @@ export class UIManager {
     } else if (modalId === 'modalSettings') {
       this.settingsModal.syncSliders();
     }
+    el.querySelector<HTMLElement>('[data-close-modal]')?.focus({ preventScroll: true });
   }
 
   closeAllModals(): void {
-    document.querySelectorAll('[id^="modal"]').forEach(m => {
-      m.classList.add('hidden');
-      m.classList.remove('flex');
-    });
+    this.hideActiveModal();
     this.activeModal = null;
+    this.syncMenuState();
     this.modalTrigger?.focus({ preventScroll: true });
     this.modalTrigger = null;
+  }
+
+  private hideActiveModal(): void {
+    if (!this.activeModal) return;
+    const modal = document.getElementById(this.activeModal);
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+  }
+
+  private syncMenuState(): void {
+    const open = this.activeModal !== null;
+    document.getElementById('hudLayer')?.toggleAttribute('data-menu-open', open);
+    document.querySelectorAll<HTMLElement>('.hud-top, #airshipFlightBanner, #touchControls, #worldInspectionCard')
+      .forEach(element => { element.inert = open; });
+    document.querySelectorAll('#hudDock button[aria-controls]').forEach(button => {
+      button.setAttribute('aria-expanded', String(button.getAttribute('aria-controls') === this.activeModal));
+    });
+  }
+
+  private wrapMenuFocus(event: KeyboardEvent, dock: HTMLElement): void {
+    if (event.key !== 'Tab' || !this.activeModal) return;
+    const panel = document.getElementById(this.activeModal);
+    if (!panel) return;
+    const selector = 'button, input, textarea, select, a[href], [tabindex]';
+    const controls = [...dock.querySelectorAll<HTMLElement>(selector), ...panel.querySelectorAll<HTMLElement>(selector)]
+      .filter(control => control.tabIndex >= 0 && !control.matches(':disabled') && control.getClientRects().length > 0);
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (!first || document.activeElement !== (event.shiftKey ? first : last)) return;
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
   }
 
   refreshActiveModalResources(state: GameState, player: PlayerState, stats: DerivedStats): void {

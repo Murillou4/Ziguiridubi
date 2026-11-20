@@ -43,20 +43,21 @@
       display: block;
       width: 100%;
       height: 100%;
-      cursor: crosshair;
       touch-action: none;
     }
 
     @keyframes modalPop {
-      from { transform: translateY(6px); }
-      to { transform: translateY(0); }
+      from { opacity: .68; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .modal-enter {
-      animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: modalPop 160ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
     }
   
   /* Keep every modal usable inside short viewports and mobile safe areas. */
-  [data-modal-backdrop] {
+  #hudLayer [data-modal-backdrop] {
+    --modal-edge: clamp(10px, 2vw, 28px);
+    padding: var(--modal-edge) var(--modal-edge) var(--modal-dock-clearance, var(--modal-edge));
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -65,8 +66,8 @@
   [data-modal-backdrop] > .vale-panel {
     min-width: 0;
     min-height: 0;
-    max-height: min(88vh, calc(100vh - 24px));
-    max-height: min(88vh, calc(100dvh - 24px));
+    max-height: min(88vh, calc(100vh - var(--modal-edge) - var(--modal-dock-clearance, var(--modal-edge))));
+    max-height: min(88vh, calc(100dvh - var(--modal-edge) - var(--modal-dock-clearance, var(--modal-edge))));
   }
   [data-modal-backdrop] > .vale-panel > * { min-width: 0; flex-shrink: 0; }
   [data-modal-backdrop] > .vale-panel > .overflow-y-auto,
@@ -82,11 +83,9 @@
   #upgradeList > * { min-width: 0; }
 
   @media (max-width: 640px) {
-    [data-modal-backdrop] {
-      padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
-    }
-    [data-modal-backdrop] > .vale-panel {
-      max-height: calc(100dvh - max(20px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+    #hudLayer [data-modal-backdrop] {
+      --modal-edge: max(10px, env(safe-area-inset-top));
+      padding-inline: 10px;
     }
     #upgradeTabs { padding-inline: 12px; gap: 6px; }
     #upgradeTabs button { min-height: 40px; }
@@ -100,10 +99,6 @@
 
   @media (max-height: 560px) {
     [data-modal-backdrop] { align-items: flex-start; }
-    [data-modal-backdrop] > .vale-panel {
-      max-height: calc(100dvh - 16px);
-      margin-block: 8px;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
@@ -118,9 +113,12 @@
   <section id="titleScreen" class="title-screen" aria-labelledby="gameTitle">
     <div class="title-layout">
       <h1 id="gameTitle" class="font-display">Oficina do Vale</h1>
-      <button id="btnStartGame" type="button" class="title-start">
-        <span id="btnStartLabel">Iniciar jornada</span>
-      </button>
+      <div class="title-actions">
+        <button id="btnStartGame" type="button" class="title-start">
+          <span id="btnStartLabel">Iniciar jornada</span>
+        </button>
+        <div data-account-panel class="account-panel title-account" hidden></div>
+      </div>
     </div>
   </section>
 
@@ -149,6 +147,7 @@
           </div>
           <div id="objectiveTitle">Serraria Manual</div>
           <div id="objectiveDesc">Siga a seta dourada e aperte [E].</div>
+          <div id="cloudSaveStatus" class="cloud-save-status" hidden></div>
         </div>
         <div class="hud-tools">
           <button id="btnHowToPlay" type="button" class="hud-tool" title="Como jogar" aria-label="Como jogar">?</button>
@@ -168,20 +167,20 @@
         <button id="btnCollectAirshipHud" type="button" class="hidden rounded-lg px-3 py-2 ui-fill-moss font-bold text-xs">Coletar</button>
       </div>
 
-      <nav class="hud-dock pointer-events-auto" aria-label="Atalhos da oficina">
-        <button id="btnOpenMerchant" type="button" class="hud-dock-button" title="Banca do Mercador e contratos [1]">
+      <nav id="hudDock" class="hud-dock pointer-events-auto" aria-label="Atalhos da oficina">
+        <button id="btnOpenMerchant" type="button" class="hud-dock-button" aria-controls="modalMerchant" aria-expanded="false" title="Banca do Mercador e contratos [1]">
           <img data-hud-resource-icon="coins" alt="" width="20" height="20"><span>Mercador</span>
         </button>
-        <button id="btnOpenWorkshop" type="button" class="hud-dock-button" title="Bancada de melhorias [2 / Tab]">
+        <button id="btnOpenWorkshop" type="button" class="hud-dock-button" aria-controls="modalWorkshop" aria-expanded="false" title="Bancada de melhorias [2 / Tab]">
           <img data-hud-resource-icon="gears" alt="" width="20" height="20"><span>Melhorias</span>
         </button>
-        <button id="btnOpenProjects" type="button" class="hud-dock-button" title="Projetos e mapa [3 / M]">
+        <button id="btnOpenProjects" type="button" class="hud-dock-button" aria-controls="modalProjects" aria-expanded="false" title="Projetos e mapa [3 / M]">
           <img data-hud-resource-icon="blueprints" alt="" width="20" height="20"><span>Projetos</span>
         </button>
-        <button id="btnOpenAirship" type="button" class="hud-dock-button hidden" title="Expedições do Cais do Dirigível [4]">
+        <button id="btnOpenAirship" type="button" class="hud-dock-button hidden" aria-controls="modalAirship" aria-expanded="false" title="Expedições do Cais do Dirigível [4]">
           <img data-hud-resource-icon="steamCore" alt="" width="20" height="20"><span>Dirigível</span>
         </button>
-        <button id="btnOpenTransfer" type="button" class="hud-dock-button" title="Salvar ou transferir partida">
+        <button id="btnOpenTransfer" type="button" class="hud-dock-button" aria-controls="modalTransfer" aria-expanded="false" title="Salvar ou transferir partida">
           <span class="hud-save-icon" aria-hidden="true"></span><span>Salvar</span>
         </button>
       </nav>
@@ -197,7 +196,17 @@
         </div>
       </div>
     </div>
-  </div>
+    <aside id="tutorialHint" class="tutorial-hint" role="status" aria-live="polite" hidden>
+      <canvas id="tutorialActionIcon" class="tutorial-action-icon" width="76" height="76" aria-hidden="true"></canvas>
+      <div>
+        <strong id="tutorialTitle"></strong>
+        <div class="tutorial-control">
+          <kbd id="tutorialKey" hidden></kbd>
+          <canvas id="tutorialControlIcon" width="38" height="38" aria-hidden="true" hidden></canvas>
+          <span id="tutorialInstruction"></span>
+        </div>
+      </div>
+    </aside>
 
   <!-- CARTÃO FLUTUANTE NO MUNDO PARA ZONAS AMARELAS E ESTAÇÕES -->
   <div id="worldInspectionCard" class="fixed z-[25] hidden pointer-events-auto vale-panel rounded-2xl p-3.5 w-72 border-2 ui-edge-honey shadow-2xl transition-opacity duration-150">
@@ -216,10 +225,11 @@
 
   <!-- NOTIFICAÇÕES TOAST -->
   <div id="toastContainer" class="fixed bottom-4 left-4 z-30 flex flex-col gap-2 pointer-events-none max-w-xs sm:max-w-sm"></div>
+  <div class="hud-menu-shade" aria-hidden="true"></div>
 
   <!-- MODAL 1: BANCA DO MERCADOR & CONTRATOS DO VALE -->
-  <div id="modalMerchant" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6">
-    <div class="vale-panel merchant-panel flex flex-col overflow-hidden modal-enter" role="dialog" aria-modal="true" aria-labelledby="merchantTitle">
+  <div id="modalMerchant" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center">
+    <div class="vale-panel merchant-panel flex flex-col overflow-hidden modal-enter" role="dialog" aria-labelledby="merchantTitle">
       <div class="merchant-header">
         <h2 id="merchantTitle" class="font-display">Banca do Mercador</h2>
         <div id="merchantWallet" class="merchant-wallet">
@@ -257,11 +267,11 @@
   </div>
 
   <!-- MODAL 2: BANCADA DE UPGRADES & ESPECIALIZAÇÃO -->
-  <div id="modalWorkshop" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6">
-    <div class="vale-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter">
+  <div id="modalWorkshop" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center">
+    <div class="vale-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter" role="dialog" aria-labelledby="workshopTitle">
       <div class="px-5 py-4 border-b ui-edge flex items-center justify-between gap-3">
         <div>
-          <h2 class="font-display text-xl sm:text-2xl font-bold ui-ink-sky flex items-center gap-2">
+          <h2 id="workshopTitle" class="font-display text-xl sm:text-2xl font-bold ui-ink-sky flex items-center gap-2">
              Bancada de Upgrades
           </h2>
           <p class="text-xs ui-ink-muted">Evolua ferramentas, mochila, máquinas, drones e sua especialização.</p>
@@ -275,11 +285,11 @@
   </div>
 
   <!-- MODAL 3: PROJETOS AMARELOS & MAPA DO ARQUIPÉLAGO -->
-  <div id="modalProjects" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6">
-    <div class="vale-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter">
+  <div id="modalProjects" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center">
+    <div class="vale-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter" role="dialog" aria-labelledby="projectsTitle">
       <div class="px-5 py-4 border-b ui-edge flex items-center justify-between gap-3">
         <div>
-          <h2 class="font-display text-xl sm:text-2xl font-bold ui-ink-honey flex items-center gap-2">
+          <h2 id="projectsTitle" class="font-display text-xl sm:text-2xl font-bold ui-ink-honey flex items-center gap-2">
              Projetos Amarelos & Fases da Jornada
           </h2>
           <p class="text-xs ui-ink-muted">Clique em "Rastrear Projeto" para ativar uma seta guia dourada ao redor do seu personagem.</p>
@@ -302,11 +312,11 @@
   </div>
 
   <!-- MODAL 4: PAINEL DO CAIS DO DIRIGÍVEL -->
-  <div id="modalAirship" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6">
-    <div class="vale-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter border ui-edge-moss">
+  <div id="modalAirship" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center">
+    <div class="vale-panel w-full max-w-4xl max-h-[88vh] rounded-3xl flex flex-col overflow-hidden modal-enter border ui-edge-moss" role="dialog" aria-labelledby="airshipTitle">
       <div class="px-5 py-4 border-b ui-edge flex items-center justify-between gap-3 ui-fill-moss">
         <div>
-          <h2 class="font-display text-xl sm:text-2xl font-bold ui-ink-moss flex items-center gap-2">
+          <h2 id="airshipTitle" class="font-display text-xl sm:text-2xl font-bold ui-ink-moss flex items-center gap-2">
              Cais do Dirigível — Expedições Aéreas
           </h2>
           <p class="text-xs ui-ink mt-0.5">
@@ -324,11 +334,11 @@
   </div>
 
   <!-- MODAL 5: SALVAR / TRANSFERIR PROGRESSO ENTRE NAVEGADORES -->
-  <div id="modalTransfer" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6">
-    <div class="vale-panel w-full max-w-2xl max-h-[90vh] rounded-3xl flex flex-col overflow-hidden modal-enter border ui-edge-moss">
+  <div id="modalTransfer" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center">
+    <div class="vale-panel w-full max-w-2xl max-h-[90vh] rounded-3xl flex flex-col overflow-hidden modal-enter border ui-edge-moss" role="dialog" aria-labelledby="transferTitle">
       <div class="px-5 py-4 border-b ui-edge flex items-center justify-between">
         <div>
-          <h2 class="font-display text-xl font-bold ui-ink-moss flex items-center gap-2">
+          <h2 id="transferTitle" class="font-display text-xl font-bold ui-ink-moss flex items-center gap-2">
              Salvar & Transferir Progresso
           </h2>
           <p class="text-xs ui-ink-muted">Leve sua oficina para outro navegador ou computador via Código ou Arquivo JSON.</p>
@@ -337,6 +347,7 @@
       </div>
 
       <div class="p-5 overflow-y-auto custom-scroll space-y-5">
+        <div data-account-panel class="account-panel" hidden></div>
         <div class="rounded-2xl p-4 ui-fill-light border ui-edge space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="text-xs font-bold uppercase tracking-wider ui-ink-honey">Exportar Progresso Atual</h3>
@@ -377,10 +388,10 @@
   </div>
 
   <!-- MODAL 6: [?] COMO JOGAR -->
-  <div id="modalHowToPlay" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center p-3 sm:p-6">
-    <div class="vale-panel w-full max-w-2xl rounded-3xl flex flex-col overflow-hidden modal-enter border ui-edge-honey">
+  <div id="modalHowToPlay" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center">
+    <div class="vale-panel w-full max-w-2xl rounded-3xl flex flex-col overflow-hidden modal-enter border ui-edge-honey" role="dialog" aria-labelledby="helpTitle">
       <div class="px-5 py-4 border-b ui-edge flex items-center justify-between">
-        <h2 class="font-display text-xl font-bold ui-ink-honey flex items-center gap-2">
+        <h2 id="helpTitle" class="font-display text-xl font-bold ui-ink-honey flex items-center gap-2">
            Como Jogar — Guia Rápido do Vale
         </h2>
         <button type="button" data-close-modal aria-label="Fechar" class="w-9 h-9 rounded-xl ui-fill-light ui-hover-light ui-ink flex items-center justify-center cursor-pointer transition">✕</button>
@@ -429,7 +440,7 @@
 
   <!-- MODAL 7: ÁUDIO & OPÇÕES -->
   <div id="modalSettings" data-modal-backdrop class="fixed inset-0 z-30 pointer-events-auto hidden items-center justify-center">
-    <div class="vale-panel settings-panel flex flex-col overflow-hidden modal-enter" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="vale-panel settings-panel flex flex-col overflow-hidden modal-enter" role="dialog" aria-labelledby="settingsTitle">
       <div class="settings-header">
         <h2 id="settingsTitle" class="font-display">Áudio e opções</h2>
         <button type="button" data-close-modal class="vale-close" aria-label="Fechar opções">×</button>
@@ -481,6 +492,8 @@
         </div>
       </div>
     </div>
+  </div>
+
   </div>
 
   <!-- PONTO DE ENTRADA ES MODULES / TYPESCRIPT / VITE -->

@@ -151,12 +151,12 @@ export const UPGRADES_DEF: UpgradeDef[] = [
     id: 'autoMachines',
     category: 'automation',
     name: 'Alimentador Automático de Máquinas',
-    desc: 'Serraria, Fornalha e Oficina de Engrenagens passam a produzir continuamente usando seu estoque, mesmo à distância.',
+    desc: 'Produz usando seu estoque mesmo à distância. Você pode pausar cada máquina para guardar os materiais.',
     maxLevel: 1,
     costs: [
       { ironIngot: 10, planks: 14, coins: 140 }
     ],
-    effectText: () => 'Máquinas 100% Autônomas'
+    effectText: () => 'Produção à distância com controle por máquina'
   },
   {
     id: 'lumberDrone',
@@ -175,8 +175,8 @@ export const UPGRADES_DEF: UpgradeDef[] = [
   {
     id: 'minerDrone',
     category: 'automation',
-    name: 'Drone Minerador a Vapor',
-    desc: 'Libera um drone autônomo que extrai Pedra, Ferro e Cristal Etéreo automaticamente. (Requer Estação de Drones)',
+    name: 'Drone Extrator de Pedra',
+    desc: 'Quebra rochas e leva Pedra ao armazém.',
     maxLevel: 3,
     requiresBuild: 'droneStation',
     costs: [
@@ -184,7 +184,35 @@ export const UPGRADES_DEF: UpgradeDef[] = [
       { gears: 8, steamCore: 2, coins: 440 },
       { gears: 12, etherCryst: 3, coins: 780 }
     ],
-    effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drone(s) Minerador`
+    effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drones de Pedra`
+  },
+  {
+    id: 'ironDrone',
+    category: 'automation',
+    name: 'Drone Mineiro de Ferro',
+    desc: 'Trabalha na Colina de Ferro e entrega Minério de Ferro no armazém.',
+    maxLevel: 3,
+    requiresBuild: ['droneStation', 'eastBridge'],
+    costs: [
+      { gears: 6, planks: 12, coins: 300 },
+      { gears: 10, ironIngot: 12, coins: 550 },
+      { gears: 14, steamCore: 2, coins: 900 }
+    ],
+    effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drones de Ferro`
+  },
+  {
+    id: 'crystalDrone',
+    category: 'automation',
+    name: 'Drone Extrator Etéreo',
+    desc: 'Trabalha na Ilha de Cristal e entrega Cristal Etéreo no armazém.',
+    maxLevel: 3,
+    requiresBuild: ['droneStation', 'westBridge'],
+    costs: [
+      { gears: 12, ironIngot: 16, coins: 650 },
+      { gears: 16, steamCore: 2, coins: 950 },
+      { gears: 22, etherCryst: 6, coins: 1400 }
+    ],
+    effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drones de Cristal`
   },
 
   // --- ESPECIAIS & ESPECIALIZAÇÃO ---

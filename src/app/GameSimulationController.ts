@@ -1,5 +1,6 @@
 import { GameRuntimeContext } from './GameContext.ts';
 import { PlayerInteractionController } from './PlayerInteractionController.ts';
+import { WAREHOUSE_POSITION } from '../config/buildings.ts';
 
 /** Atualiza os sistemas de simulação na ordem de execução do jogo. */
 export class GameSimulationController {
@@ -25,7 +26,7 @@ export class GameSimulationController {
     }
 
     if (c.audio?.update) {
-      c.audio.update(dt, c.clock.realTime.weather, isCatchingUp);
+      c.audio.update(dt, c.clock.realTime, isCatchingUp);
     } else {
       c.audio?.updateWeather?.(c.clock.realTime.weather);
     }
@@ -53,15 +54,15 @@ export class GameSimulationController {
     // 2. Descarregamento automático perto do armazém.
     if (
       player.backpack.length > 0 &&
-      Math.hypot(player.x - 95, player.y + 25) < 82
+      Math.hypot(player.x - WAREHOUSE_POSITION.x, player.y - WAREHOUSE_POSITION.y) < 82
     ) {
       this.unloadTimer -= dt;
       if (this.unloadTimer <= 0) {
         this.unloadTimer = 0.06;
         const resource = c.inventorySystem.unloadOneToStorage(state, player);
-        if (resource) {
-          if (!isCatchingUp) c.audio.playPickup();
-          if (!isCatchingUp) c.ui.hudView.update(state, player, stats);
+        if (resource && !isCatchingUp) {
+          c.renderer.effectsRenderer.addWarehouseTransfer(resource, player);
+          c.ui.hudView.update(state, player, stats);
         }
       }
     }
@@ -75,7 +76,8 @@ export class GameSimulationController {
 
     // 4. Drops físicos e coleta magnética.
     c.gatheringSystem.updateDrops(player, stats, dt, (x, y) => c.worldSystem.isPointWalkable(state, x, y), drop => {
-      c.inventorySystem.addToBackpack(player, drop.resource, stats.maxBackpack);
+      if (!c.inventorySystem.addToBackpack(player, drop.resource, stats.maxBackpack)) return;
+      c.eventBus.emit('gathering:pickedUp', drop);
       if (!isCatchingUp) c.audio.playPickup();
       if (!isCatchingUp) c.ui.hudView.update(state, player, stats);
     });
@@ -87,7 +89,10 @@ export class GameSimulationController {
 
     // 6. Efeitos e câmera.
     if (!isCatchingUp) {
-      c.renderer.effectsRenderer.update(dt);
+      c.renderer.effectsRenderer.update(dt, resource => {
+        c.audio.playPickup();
+        c.ui.hudView.animateWarehouseReceipt(resource);
+      });
       c.renderer.camera.update(player.x, player.y, dt);
     }
 
@@ -106,7 +111,8 @@ export class GameSimulationController {
         c.renderer.camera,
         c.renderer.width,
         c.renderer.height,
-        c.isModalOpen()
+        c.isModalOpen(),
+        c.input.mode
       );
     }
 
@@ -126,5 +132,6 @@ export class GameSimulationController {
 
   resetTimers(): void {
     this.unloadTimer = 0;
+    this.context.renderer?.effectsRenderer.clearWarehouseTransfers();
   }
 }

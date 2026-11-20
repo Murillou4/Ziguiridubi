@@ -32,7 +32,7 @@ describe('DroneSystem', () => {
     expect(system.drones[0].targetNode?.type).toBe('tree');
   });
 
-  it('envia drones mineradores para rochas, ferro ou cristais, nunca para árvores', () => {
+  it('envia o extrator de pedra somente para rochas', () => {
     const state = createDefaultState();
     const system = new DroneSystem(new EventBus());
     const world = new WorldSystem();
@@ -42,7 +42,34 @@ describe('DroneSystem', () => {
     system.update(state, getDerivedStats(state), world.nodes, world.islands, 0.016);
 
     expect(system.drones[0].targetNode).not.toBeNull();
-    expect(['rock', 'iron', 'ether']).toContain(system.drones[0].targetNode?.type);
+    expect(system.drones[0].targetNode?.type).toBe('rock');
+  });
+
+  it('faz cada drone buscar seu próprio recurso e entregar no armazém após liberar as ilhas', () => {
+    const state = createDefaultState();
+    Object.assign(state.upgrades, { lumberDrone: 1, minerDrone: 1, ironDrone: 1, crystalDrone: 1 });
+    const system = new DroneSystem(new EventBus());
+    const world = new WorldSystem();
+    world.nodes = [];
+    world.spawnNode('tree', 210, -90, 'hub');
+    world.spawnNode('rock', 245, -90, 'hub');
+    world.spawnNode('iron', 810, -25, 'east_hill');
+    world.spawnNode('ether', -810, -25, 'west_crystal');
+    system.syncDrones(state);
+    const stats = getDerivedStats(state);
+    system.update(state, stats, world.nodes, world.islands, .05);
+
+    expect(system.drones.map(drone => drone.targetNode?.type)).toEqual(['tree', 'rock', undefined, undefined]);
+    state.builds.eastBridge.built = true;
+    state.builds.westBridge.built = true;
+    system.update(state, stats, world.nodes, world.islands, .05);
+    expect(system.drones.map(drone => drone.targetNode?.type)).toEqual(['tree', 'rock', 'iron', 'ether']);
+
+    for (let i = 0; i < 340; i++) system.update(state, stats, world.nodes, world.islands, .05);
+    expect(state.storage.wood).toBeGreaterThan(0);
+    expect(state.storage.stone).toBeGreaterThan(0);
+    expect(state.storage.ironOre).toBeGreaterThan(0);
+    expect(state.storage.etherCryst).toBeGreaterThan(0);
   });
 
   it('faz um drone retornar a carga ao armazém e contabiliza a coleta', () => {

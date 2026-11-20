@@ -3,6 +3,8 @@ import { SaveService } from '../persistence/SaveService.ts';
 import { EventBus } from '../core/EventBus.ts';
 
 export class TransferModal {
+  private openVersion = 0;
+
   constructor(
     private saveService: SaveService,
     private eventBus: EventBus
@@ -18,10 +20,12 @@ export class TransferModal {
     const btnSaveNow = document.getElementById('btnSaveNowTransfer');
     if (btnSaveNow) {
       btnSaveNow.addEventListener('click', () => {
-        this.saveService.save(getState(), getPlayer(), getAudio(), false);
+        const saved = this.saveService.save(getState(), getPlayer(), getAudio(), false);
         const box = document.getElementById('exportCodeBox') as HTMLTextAreaElement | null;
         if (box) box.value = this.saveService.generateExportCode(getState(), getPlayer(), getAudio());
-        this.eventBus.emit('ui:toast', { message: ' Progresso salvo no navegador!' });
+        this.eventBus.emit('ui:toast', { message: saved
+          ? 'Progresso salvo no dispositivo.'
+          : 'O navegador não conseguiu salvar. Você pode baixar um backup.' });
       });
     }
 
@@ -77,7 +81,7 @@ export class TransferModal {
           }
           this.eventBus.emit('sound:upgrade');
           this.eventBus.emit('ui:toast', { message: ' Progresso importado e restaurado!' });
-          setTimeout(() => this.eventBus.emit('ui:closeModals'), 900);
+          this.closeAfterImport(this.openVersion);
         } catch (err: any) {
           if (fb) {
             fb.textContent = ' Código inválido: ' + (err?.message || 'Formato desconhecido');
@@ -97,6 +101,7 @@ export class TransferModal {
         if (!file) return;
         const fb = document.getElementById('importFeedbackMsg');
         const reader = new FileReader();
+        const openVersion = this.openVersion;
 
         reader.onload = (ev: ProgressEvent<FileReader>) => {
           try {
@@ -110,7 +115,7 @@ export class TransferModal {
             }
             this.eventBus.emit('sound:upgrade');
             this.eventBus.emit('ui:toast', { message: ' Backup JSON restaurado com sucesso!' });
-            setTimeout(() => this.eventBus.emit('ui:closeModals'), 900);
+            this.closeAfterImport(openVersion);
           } catch {
             if (fb) {
               fb.textContent = ' Arquivo JSON inválido.';
@@ -125,11 +130,18 @@ export class TransferModal {
   }
 
   refreshCode(state: GameState, player: PlayerState, audioSettings: AudioSettings): void {
+    this.openVersion++;
     const box = document.getElementById('exportCodeBox') as HTMLTextAreaElement | null;
     if (box) {
       box.value = this.saveService.generateExportCode(state, player, audioSettings);
     }
     const fb = document.getElementById('importFeedbackMsg');
     if (fb) fb.classList.add('hidden');
+  }
+
+  private closeAfterImport(openVersion: number): void {
+    setTimeout(() => {
+      if (this.openVersion === openVersion) this.eventBus.emit('ui:closeModals', 'modalTransfer');
+    }, 900);
   }
 }

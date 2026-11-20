@@ -1,7 +1,7 @@
-import { DerivedStats, DropItem, GameState, PlayerState } from '../domain/types.ts';
-import { drawDropItem, isDropVisible, nextDropSeed } from './world-drops.ts';
+import { DerivedStats, DropItem, GameState, PlayerState, ResourceId } from '../domain/types.ts';
+import { drawDropItem, drawResourceIcon, isDropVisible, nextDropSeed } from './world-drops.ts';
 import type { ViewRect } from './world-terrain.ts';
-import { BLUEPRINTS_DEF } from '../config/buildings.ts';
+import { BLUEPRINTS_DEF, WAREHOUSE_POSITION } from '../config/buildings.ts';
 
 export interface Particle {
   x: number;
@@ -22,12 +22,47 @@ export interface FloatingText {
   life: number;
 }
 
-const ATTACK_GUIDE_DASH = [3, 6];
-const ATTACK_RING_DASH = [4, 6];
+const WAREHOUSE_MOUTH_Y = WAREHOUSE_POSITION.y - 4;
+
+interface WarehouseTransfer {
+  resource: ResourceId;
+  x: number;
+  y: number;
+  age: number;
+  duration: number;
+  arcHeight: number;
+}
 
 export class EffectsRenderer {
   public particles: Particle[] = [];
   public floatingTexts: FloatingText[] = [];
+  private readonly warehouseTransfers: WarehouseTransfer[] = [];
+  private warehouseLid = 0;
+  private warehouseReceiptTime = 0;
+
+  get warehouseOpening(): number {
+    return this.warehouseLid;
+  }
+
+  addWarehouseTransfer(resource: ResourceId, player: PlayerState): void {
+    const x = player.x - Math.cos(player.facing) * 8;
+    const y = player.y - 12;
+    const distance = Math.hypot(WAREHOUSE_POSITION.x - x, WAREHOUSE_MOUTH_Y - y);
+    this.warehouseTransfers.push({
+      resource,
+      x,
+      y,
+      age: 0,
+      duration: .3 + distance * .003,
+      arcHeight: 24 + distance * .18 + Math.random() * 7
+    });
+  }
+
+  clearWarehouseTransfers(): void {
+    this.warehouseTransfers.length = 0;
+    this.warehouseLid = 0;
+    this.warehouseReceiptTime = 0;
+  }
 
   addBurst(x: number, y: number, color: string, count: number = 10): void {
     for (let i = 0; i < count; i++) {
@@ -56,7 +91,7 @@ export class EffectsRenderer {
     });
   }
 
-  update(dt: number): void {
+  update(dt: number, onWarehouseArrival: (resource: ResourceId) => void): void {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx * dt;
@@ -70,6 +105,55 @@ export class EffectsRenderer {
       ft.y -= 34 * dt;
       ft.life -= dt;
       if (ft.life <= 0) this.floatingTexts.splice(i, 1);
+    }
+
+    this.warehouseReceiptTime -= dt;
+    for (let i = this.warehouseTransfers.length - 1; i >= 0; i--) {
+      const transfer = this.warehouseTransfers[i];
+      transfer.age += dt;
+      if (transfer.age < transfer.duration) continue;
+      this.warehouseTransfers.splice(i, 1);
+      this.warehouseReceiptTime = .18;
+      this.addBurst(WAREHOUSE_POSITION.x, WAREHOUSE_MOUTH_Y, '#f6cf87', 3);
+      onWarehouseArrival(transfer.resource);
+    }
+
+    const lidTarget = this.warehouseTransfers.length || this.warehouseReceiptTime > 0 ? 1 : 0;
+    this.warehouseLid += (lidTarget - this.warehouseLid) * (1 - Math.exp(-dt * 15));
+  }
+
+  renderWarehouseTransfers(ctx: CanvasRenderingContext2D): void {
+    for (const transfer of this.warehouseTransfers) {
+      const progress = transfer.age / transfer.duration;
+      const travel = (t: number) => {
+        const eased = t * t * (3 - 2 * t);
+        return {
+          x: transfer.x + (WAREHOUSE_POSITION.x - transfer.x) * eased,
+          y: transfer.y + (WAREHOUSE_MOUTH_Y - transfer.y) * eased - 4 * t * (1 - t) * transfer.arcHeight
+        };
+      };
+      const position = travel(progress);
+
+      ctx.save();
+      ctx.fillStyle = '#f8d99b';
+      for (let i = 1; i <= 4; i++) {
+        const t = progress - .055 * i;
+        if (t <= 0) break;
+        const trail = travel(t);
+        ctx.globalAlpha = .48 - i * .08;
+        ctx.beginPath();
+        ctx.arc(trail.x, trail.y, 2.6 - i * .42, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const arrival = Math.min(1, (1 - progress) / .22);
+      const scale = (.7 + .28 * Math.sin(progress * Math.PI)) * (.45 + .55 * arrival);
+      ctx.globalAlpha = arrival;
+      ctx.translate(position.x, position.y);
+      ctx.rotate(.45 * Math.sin(progress * Math.PI) * Math.sign(WAREHOUSE_POSITION.x - transfer.x));
+      ctx.scale(scale, scale);
+      drawResourceIcon(ctx, transfer.resource);
+      ctx.restore();
     }
   }
 
@@ -101,132 +185,29 @@ export class EffectsRenderer {
     ctx.restore();
   }
 
-  /** Prévia visual do golpe enquanto o jogador se aproxima de um recurso selecionado. */
-  renderAttackTarget(
-    ctx: CanvasRenderingContext2D,
-    player: PlayerState,
-    stats: DerivedStats,
-    worldTime: number
-  ): void {
+  renderAttackTarget(ctx: CanvasRenderingContext2D, player: PlayerState, stats: DerivedStats): void {
     const node = player.attackTarget ?? player.moveTarget?.autoHitNode;
-    if (!node || (node.depleted && node !== player.attackTarget)) return;
+    if (!node || node.depleted) return;
 
-    const dx = node.x - player.x;
-    const dy = node.y - player.y;
-    const distance = Math.hypot(dx, dy);
-    if (distance < 1) return;
-
-    const angle = Math.atan2(dy, dx);
-    const halfArc = stats.swingArc * 0.72;
-    const startAngle = angle - halfArc;
-    const endAngle = angle + halfArc;
-    const sectorRadius = Math.min(
-      stats.reachRadius + node.radius,
-      distance + node.radius * 0.4
-    );
-    const ringRadius = Math.max(34, node.radius + 18);
-    const pulse = 0.5 + 0.5 * Math.sin(worldTime * 4.2);
+    const attacking = player.attackTarget === node && player.swingTimer > 0;
+    const inReach = Math.hypot(node.x - player.x, node.y - player.y) <= stats.reachRadius + node.radius;
+    const width = Math.min(24, Math.max(13, node.radius * .7));
+    const height = width * .38;
+    const y = node.y + 13;
 
     ctx.save();
-
-    // Leque de alcance: usa o mesmo arco e raio considerados pelo acerto do golpe.
+    ctx.globalAlpha *= attacking ? .5 + .5 * (player.swingTimer / player.swingDuration) : inReach ? .9 : .6;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(player.x, player.y);
-    ctx.arc(player.x, player.y, sectorRadius, startAngle, endAngle);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(204, 158, 91, 0.13)';
-    ctx.fill();
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(69, 50, 34, 0.38)';
-    ctx.lineWidth = 4.2;
+    ctx.ellipse(node.x, y, width, height, 0, -.62, .62);
+    ctx.moveTo(node.x - width * Math.cos(.62), y + height * Math.sin(.62));
+    ctx.ellipse(node.x, y, width, height, 0, Math.PI - .62, Math.PI + .62);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#54402b';
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(224, 181, 116, 0.78)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Linha central discreta para deixar a direção do ataque inequívoca.
-    ctx.beginPath();
-    ctx.moveTo(player.x, player.y);
-    ctx.lineTo(node.x, node.y);
-    ctx.setLineDash(ATTACK_GUIDE_DASH);
-    ctx.lineDashOffset = -worldTime * 7;
-    ctx.strokeStyle = 'rgba(249, 229, 194, 0.62)';
-    ctx.lineWidth = 1.25;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Halo e anel marfim enquadram o recurso sem esconder sua silhueta.
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, ringRadius + 4, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(214, 174, 116, ${0.035 + pulse * 0.025})`;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, ringRadius + 4, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(71, 53, 37, 0.42)';
-    ctx.lineWidth = 4.5;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, ringRadius + 4, 0, Math.PI * 2);
-    ctx.setLineDash(ATTACK_RING_DASH);
-    ctx.lineDashOffset = -worldTime * 3.2;
-    ctx.strokeStyle = `rgba(207, 164, 105, ${0.55 + pulse * 0.16})`;
-    ctx.lineWidth = 1.15;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(65, 51, 37, 0.68)';
-    ctx.lineWidth = 5;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(248, 242, 226, ${0.88 + pulse * 0.1})`;
-    ctx.lineWidth = 2.6;
-    ctx.stroke();
-
-    // Pequenas marcas de latão dão acabamento de peça artesanal ao círculo.
-    ctx.beginPath();
-    for (let i = 0; i < 4; i++) {
-      const tickAngle = i * Math.PI * 0.5;
-      const inner = ringRadius - 3;
-      const outer = ringRadius + 2;
-      ctx.moveTo(node.x + Math.cos(tickAngle) * inner, node.y + Math.sin(tickAngle) * inner);
-      ctx.lineTo(node.x + Math.cos(tickAngle) * outer, node.y + Math.sin(tickAngle) * outer);
-    }
-    ctx.strokeStyle = 'rgba(213, 169, 105, 0.8)';
     ctx.lineWidth = 1.4;
+    ctx.strokeStyle = inReach ? '#f4d49b' : '#e5d7bb';
     ctx.stroke();
-
-    // Seta presa à borda próxima do jogador e apontada para o centro do alvo.
-    const arrowX = node.x - Math.cos(angle) * (ringRadius + 5);
-    const arrowY = node.y - Math.sin(angle) * (ringRadius + 5);
-    ctx.save();
-    ctx.translate(arrowX, arrowY);
-    ctx.rotate(angle);
-    ctx.beginPath();
-    ctx.moveTo(10, 0);
-    ctx.lineTo(-6, -6.2);
-    ctx.lineTo(-3.2, 0);
-    ctx.lineTo(-6, 6.2);
-    ctx.closePath();
-    ctx.fillStyle = '#d7a75f';
-    ctx.strokeStyle = '#503927';
-    ctx.lineWidth = 2.1;
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(-2.5, 0);
-    ctx.lineTo(5.7, 0);
-    ctx.strokeStyle = 'rgba(255, 239, 204, 0.9)';
-    ctx.lineWidth = 1.15;
-    ctx.stroke();
-    ctx.restore();
-
     ctx.restore();
   }
 

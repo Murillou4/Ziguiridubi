@@ -1,13 +1,17 @@
-import { DerivedStats, GameState, PlayerState, SavePayload } from '../domain/types.ts';
+import { DerivedStats, DropItem, GameState, NodeType, PlayerState, SavePayload } from '../domain/types.ts';
 import { createDefaultState } from '../domain/GameState.ts';
 import { createDefaultPlayer } from '../domain/PlayerState.ts';
 import { getDerivedStats } from '../domain/Stats.ts';
 import { GameClock } from '../core/GameClock.ts';
 import { GameLoop } from '../core/GameLoop.ts';
 import { BlueprintConfig } from '../config/buildings.ts';
+import { DRONE_KINDS, DRONE_MODELS } from '../config/drones.ts';
 import { GameAppServices, GameRuntimeContext } from './GameContext.ts';
 import { GameSimulationController } from './GameSimulationController.ts';
 import { PlayerInteractionController } from './PlayerInteractionController.ts';
+import { TutorialController } from './TutorialController.ts';
+import { AccountFlow } from './AccountFlow.ts';
+import { createDefaultAudioSettings } from '../audio/AudioSettings.ts';
 
 /**
  * Composição e ciclo de vida da partida.
@@ -24,12 +28,14 @@ export class GameApp {
   public readonly services: GameAppServices;
   public readonly simulation: GameSimulationController;
   public readonly interactions: PlayerInteractionController;
+  private readonly tutorial: TutorialController;
 
   constructor(services: GameAppServices) {
     this.services = services;
     this.state = createDefaultState();
     this.player = createDefaultPlayer();
     this.clock = new GameClock();
+    this.tutorial = new TutorialController(services.inventorySystem, services.buildingSystem);
 
     const context: GameRuntimeContext = {
       ...services,
@@ -50,7 +56,16 @@ export class GameApp {
     this.simulation = new GameSimulationController(context, this.interactions);
 
     this.loop = new GameLoop(
-      (dt, isCatchingUp) => this.simulation.update(dt, isCatchingUp),
+      (dt, isCatchingUp) => {
+        const { x, y } = this.player;
+        this.simulation.update(dt, isCatchingUp);
+        if (!this.isPlaying) return;
+
+        if (this.tutorial.recordMovement(this.state, Math.hypot(this.player.x - x, this.player.y - y)) ||
+            this.tutorial.finishPickup(this.state, this.clock.worldTime)) {
+          this.services.eventBus.emit('save:request');
+        }
+      },
       () => this.render()
     );
 
@@ -76,8 +91,8 @@ export class GameApp {
       if (!canControlCamera()) return;
       renderer.camera.changeZoom(
         factor,
-        x - renderer.width / 2 - renderer.camera.shakeX,
-        y - renderer.height / 2 - renderer.camera.shakeY
+        x - renderer.width / 2,
+        y - renderer.height / 2
       );
     });
     eventBus.on('input:cameraRecenter', () => {
@@ -93,16 +108,20 @@ export class GameApp {
       this.interactions.updateHoveredBlueprint();
     });
 
-    eventBus.on('input:canvasClick', () => this.interactions.handleCanvasClick());
+    eventBus.on('input:canvasClick', () => this.interactions.handleCanvasClick(this.getTutorialCue()));
+
+    eventBus.on('gathering:depleted', (type: NodeType) => {
+      if (this.tutorial.recordDepletion(this.state, type)) eventBus.emit('save:request');
+    });
+    eventBus.on('gathering:pickedUp', (drop: DropItem) => {
+      this.tutorial.recordPickup(this.state, drop, this.clock.worldTime);
+    });
+    eventBus.on('building:deposited', (id: string) => this.tutorial.recordDeposit(this.state, id));
 
     eventBus.on('upgrade:purchased', (data: { id?: string }) => {
-      if (data?.id === 'lumberDrone' || data?.id === 'minerDrone') {
+      if (DRONE_KINDS.some(kind => DRONE_MODELS[kind].upgrade === data?.id)) {
         droneSystem.syncDrones(this.state);
       }
-    });
-
-    eventBus.on('fx:shake', (data: { magnitude?: number }) => {
-      renderer.camera.addShake(data?.magnitude || 4);
     });
 
     eventBus.on('fx:burst', (data: { x: number; y: number; color: string; count?: number }) => {
@@ -136,7 +155,9 @@ export class GameApp {
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
+        if (document.hidden) {
+          if (this.isPlaying) saveService.save(this.state, this.player, audio.settings);
+        } else {
           this.clock.syncRealTime(new Date(), true);
           audio.resumeIfNeeded?.();
           this.services.ui?.refreshAll?.(
@@ -167,7 +188,7 @@ export class GameApp {
 
     const saved = saveService.load();
     if (saved) {
-      this.applySavePayload(saved);
+      this.applySavePayload(saved, false);
       const startLabel = document.getElementById('btnStartLabel');
       if (startLabel) startLabel.textContent = 'Continuar jornada';
     }
@@ -192,10 +213,32 @@ export class GameApp {
     );
 
     ui.refreshAll(() => this.state, () => this.player, () => this.getStats());
+    new AccountFlow(saveService, {
+      checkpoint: () => {
+        if (this.isPlaying) saveService.save(this.state, this.player, audio.settings);
+      },
+      leaveGame: () => {
+        if (this.isPlaying) saveService.save(this.state, this.player, audio.settings);
+        this.isPlaying = false;
+        input.resetInputs();
+        ui.closeAllModals();
+        ui.inspectionCard.hide();
+        ui.showTitle();
+      },
+      load: payload => {
+        this.player = createDefaultPlayer();
+        this.services.worldSystem.initNodes();
+        const newState = createDefaultState();
+        if (!payload) newState.contracts = contractSystem.generateContracts(newState.phase);
+        this.applySavePayload(payload ?? saveService.buildSavePayload(newState, this.player, createDefaultAudioSettings()), false);
+        const label = document.getElementById('btnStartLabel');
+        if (label) label.textContent = payload ? 'Continuar jornada' : 'Iniciar jornada';
+      }
+    }).init();
     this.loop.start();
   }
 
-  applySavePayload(payload: SavePayload): void {
+  applySavePayload(payload: SavePayload, persist = true): void {
     const { audio, droneSystem, saveService, ui, gatheringSystem } = this.services;
 
     this.state = payload.state;
@@ -208,6 +251,7 @@ export class GameApp {
     }
     this.player.backpack = [];
     gatheringSystem.drops = [];
+    this.simulation.resetTimers();
 
     Object.assign(audio.settings, payload.audio);
     audio.applyVolumes();
@@ -216,7 +260,7 @@ export class GameApp {
     // Recreate them from the imported upgrade levels instead of retaining old jobs/cargo.
     droneSystem.drones = [];
     droneSystem.syncDrones(this.state);
-    saveService.save(this.state, this.player, audio.settings, false);
+    if (persist) saveService.save(this.state, this.player, audio.settings, false);
     ui.refreshAll(() => this.state, () => this.player, () => this.getStats());
   }
 
@@ -248,21 +292,34 @@ export class GameApp {
     eventBus.emit('ui:toast', { message: 'Nova jornada iniciada na Clareira do Vale!' });
   }
 
+  private getTutorialCue(stats = this.getStats()) {
+    const { ui, worldSystem, gatheringSystem } = this.services;
+    if (!this.isPlaying || ui.activeModal || !this.state.tutorialStep || this.state.tutorialStep === 'done') return null;
+    return this.tutorial.getCue(
+      this.state, this.player, worldSystem.nodes, gatheringSystem.drops, stats.maxBackpack,
+      ui.inspectionCard.activeInspectedZone?.id
+    );
+  }
+
   render(): void {
-    const { renderer, worldSystem, buildingSystem, droneSystem, gatheringSystem } = this.services;
+    const { renderer, worldSystem, buildingSystem, droneSystem, gatheringSystem, ui, input } = this.services;
+    const stats = this.getStats();
+    const tutorialCue = this.getTutorialCue(stats);
+    ui.hudView.updateTutorial(tutorialCue, input.mode);
     renderer.render(
       this.state,
       this.player,
-      this.getStats(),
+      stats,
       worldSystem,
       buildingSystem,
       droneSystem.drones,
       gatheringSystem.drops,
       this.clock.worldTime,
-      this.services.ui.activeModal,
+      ui.activeModal,
       this.isPlaying,
       this.clock.realTime,
-      Boolean(this.services.ui.inspectionCard.activeInspectedZone)
+      Boolean(ui.inspectionCard.activeInspectedZone),
+      tutorialCue
     );
   }
 }

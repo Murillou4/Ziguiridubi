@@ -1,3 +1,4 @@
+import { drawIronOreDrop, drawIronOrePile } from './world-iron-ore.ts';
 /**
  * world-drops.ts — Visual dos drops de recurso (itens soltos no chão)
  *
@@ -81,7 +82,6 @@ const BRASS = '#e8c27a';
 const GOLD = '#f5d27a';
 const WARM_BAND = '#f1c98b';
 const NAIL = '#eef1f5';
-const FLECK = '#7cc4ff';
 const WHITE = '#ffffff';
 const VAPOR = '#eef7ff';
 const VAPOR_EDGE = 'rgba(52,72,104,0.22)';
@@ -129,13 +129,6 @@ const STAR = (() => {
 // 3 posições possíveis da estrelinha (coordenadas locais do sprite)
 const SPARK_X = new Float32Array([-4.6, 4.4, 0.6]);
 const SPARK_Y = new Float32Array([-3.8, -1.6, -6]);
-
-// Minério de ferro
-const ORE_PTS = new Float32Array([-7.5, 2, -5.8, -3.6, -1.5, -6.2, 3.8, -5.4, 7.6, -0.8, 6.2, 4.6, -1, 6.2, -5.6, 5.2]);
-const ORE_FACET = new Float32Array([-5.8, -3.6, -1.5, -6.2, 3.8, -5.4, 1, -1.5, -4, -0.5]);
-const ORE_FX = new Float32Array([-3.5, 2.8, 3.6, -0.6, -5]);
-const ORE_FY = new Float32Array([1.5, -2.4, 3, -3.6, -0.2]);
-const ORE_FR = new Float32Array([1.2, 1, 1.15, 0.8, 0.8]);
 
 // Lingote
 const INGOT_BODY = new Float32Array([-5.5, -4, 5.5, -4, 8, 5.5, -8, 5.5]);
@@ -389,33 +382,6 @@ function drawStone(ctx: Ctx, p: Palette): void {
   strokeA(ctx, p.dark, 0.9, 0.55);
 }
 
-/** ironOre — pedra escura com pontos metálicos azulados cintilando */
-function drawIronOre(ctx: Ctx, p: Palette, time: number, phase: number): void {
-  ctx.beginPath();
-  poly(ctx, ORE_PTS);
-  paint(ctx, p.dark, 1, false);
-
-  ctx.beginPath();
-  poly(ctx, ORE_FACET);
-  fillA(ctx, p.base, 0.75);
-
-  for (let i = 0; i < 5; i++) {
-    const a = 0.55 + 0.45 * Math.sin(time * 3.2 + phase + i * 1.9);
-    const fx = ORE_FX[i];
-    const fy = ORE_FY[i];
-    const fr = ORE_FR[i];
-    ctx.beginPath();
-    circ(ctx, fx, fy, fr * 2.4);
-    fillA(ctx, FLECK, a * 0.22);
-    ctx.beginPath();
-    circ(ctx, fx, fy, fr);
-    fillA(ctx, FLECK, a);
-    ctx.beginPath();
-    circ(ctx, fx, fy, fr * 0.45);
-    fillA(ctx, WHITE, a);
-  }
-}
-
 /** ironIngot — lingote trapezoidal com reflexo diagonal */
 function drawIronIngot(ctx: Ctx, p: Palette, time: number, phase: number): void {
   ctx.beginPath();
@@ -654,7 +620,7 @@ const SHAPES: Record<string, DropShape | undefined> = {
   wood: { draw: drawWood, bottom: 5.5 },
   planks: { draw: drawPlanks, bottom: 5.4 },
   stone: { draw: drawStone, bottom: 7.4 },
-  ironOre: { draw: drawIronOre, bottom: 6.2 },
+  ironOre: { draw: drawIronOrePile, bottom: 9 },
   ironIngot: { draw: drawIronIngot, bottom: 5.5 },
   gears: { draw: drawGears, bottom: 7.4 },
   steamCore: { draw: drawSteamCore, bottom: 7.6 },
@@ -760,6 +726,11 @@ export function drawDropItem(
   seed: number,
   vx: number = 0,
 ): void {
+  if (resource === 'ironOre') {
+    drawIronOreDrop(ctx, x, y, Math.max(0, z), age, time, seed);
+    return;
+  }
+
   const shape = SHAPES[resource];
   const def = RES[resource];
   if (shape === undefined) {

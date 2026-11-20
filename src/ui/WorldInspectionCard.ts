@@ -4,6 +4,7 @@ import { RESOURCES } from '../config/resources.ts';
 import { BuildingSystem } from '../gameplay/BuildingSystem.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
 import { resourceIcon } from './resource-icon.ts';
+import type { InputMode } from '../input/InputManager.ts';
 
 export class WorldInspectionCard {
   public activeInspectedZone: BlueprintConfig | null = null;
@@ -34,7 +35,8 @@ export class WorldInspectionCard {
     camera: { x: number; y: number },
     screenWidth: number,
     screenHeight: number,
-    isModalActive: boolean
+    isModalActive: boolean,
+    inputMode: InputMode = 'keyboard'
   ): void {
     if (!this.cardEl) this.init();
     if (!this.cardEl) return;
@@ -50,6 +52,8 @@ export class WorldInspectionCard {
       this.hide();
       return;
     }
+    const tutorialDeposit = state.tutorialStep === 'deposit' && targetBp.id === 'sawmill';
+    this.cardEl.toggleAttribute('data-tutorial-deposit', tutorialDeposit);
 
     const titleEl = document.getElementById('wicTitle');
     const descEl = document.getElementById('wicDesc');
@@ -100,7 +104,9 @@ export class WorldInspectionCard {
         btnEl.disabled = false;
         btnEl.className =
           'mt-3 w-full py-2 px-3 rounded-xl ui-fill-honey ui-hover-honey ui-ink font-bold text-xs shadow transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5';
-        btnTextEl.textContent = '[E] Construir / Depositar Recursos';
+        btnTextEl.textContent = tutorialDeposit
+          ? `${inputMode === 'mouse' ? '' : '[E] '}Depositar madeira`
+          : '[E] Construir / Depositar Recursos';
       } else {
         btnEl.disabled = true;
         btnEl.className =
