@@ -1,3 +1,8 @@
 {
-  "projects": { "default": "oficina-do-vale-beta" }
+  "projects": { "default": "oficina-do-vale-beta" },
+  "targets": {
+    "oficina-do-vale-beta": {
+      "hosting": { "game": ["ziguiridubi"] }
+    }
+  }
 }

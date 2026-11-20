@@ -18,13 +18,13 @@ O Vite inicia o jogo em `http://localhost:5173`.
 
 ## Beta e contas
 
-O beta é servido pelo Firebase Hosting em [Ziguiridubi](https://oficina-do-vale-beta.web.app/). Visitantes salvam no navegador. Contas Google têm uma partida privada por conta, com cópia local para continuar quando a nuvem estiver indisponível.
+O beta é servido pelo Firebase Hosting em [Ziguiridubi](https://ziguiridubi.web.app/). Visitantes salvam no navegador. Contas Google têm uma partida privada por conta, com cópia local para continuar quando a nuvem estiver indisponível.
 
-Um save que está no `localhost` pode ser exportado em **Salvar** e importado usando o mesmo menu no beta. Depois, entre com Google e escolha **Levar minha partida local** se a conta estiver vazia. Saves de visitante e de conta são separados.
+Um save de visitante do `localhost` ou do [endereço anterior](https://oficina-do-vale-beta.web.app/) pode ser exportado em **Salvar** e importado usando o mesmo menu no beta. Depois, entre com Google e escolha **Levar minha partida local** se a conta estiver vazia. Quem já usava o Google pode abrir o endereço novo e entrar com a mesma conta.
 
 Para rodar somente com save local, basta iniciar o Vite sem variáveis Firebase. Para testar contas localmente, configure `.env.local` a partir de `.env.example` com um projeto `demo-oficina-do-vale`, valores fictícios para a chave e o ID de app, e `VITE_FIREBASE_EMULATORS=true`. Rode `firebase emulators:start --only auth,firestore --project demo-oficina-do-vale` em outro terminal.
 
-Para publicar, obtenha a configuração pública do aplicativo Web no console do Firebase e preencha `.env.production.local` a partir de `.env.example`. Use `oficina-do-vale-beta.web.app` como domínio de autenticação neste beta. Mantenha o login Google habilitado e autorize o domínio de publicação no Firebase Authentication. Rode `npm run build` e `firebase deploy --only firestore:rules,firestore:indexes,hosting --project oficina-do-vale-beta`.
+Para publicar, obtenha a configuração pública do aplicativo Web no console do Firebase e preencha `.env.production.local` a partir de `.env.example`. Use `ziguiridubi.web.app` como domínio de autenticação neste beta. Mantenha o login Google habilitado e autorize o domínio de publicação no Firebase Authentication. Rode `npm run build` e `firebase deploy --only firestore:rules,firestore:indexes,hosting:game --project oficina-do-vale-beta`.
 
 ## Verificações
 
