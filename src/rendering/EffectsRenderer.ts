@@ -1,4 +1,4 @@
-import { DropItem, GameState, PlayerState } from '../domain/types.ts';
+import { DerivedStats, DropItem, GameState, PlayerState } from '../domain/types.ts';
 import { drawDropItem, isDropVisible, nextDropSeed } from './world-drops.ts';
 import type { ViewRect } from './world-terrain.ts';
 import { BLUEPRINTS_DEF } from '../config/buildings.ts';
@@ -21,6 +21,9 @@ export interface FloatingText {
   color: string;
   life: number;
 }
+
+const ATTACK_GUIDE_DASH = [3, 6];
+const ATTACK_RING_DASH = [4, 6];
 
 export class EffectsRenderer {
   public particles: Particle[] = [];
@@ -79,21 +82,152 @@ export class EffectsRenderer {
   }
 
   renderMoveTarget(ctx: CanvasRenderingContext2D, player: PlayerState, worldTime: number): void {
-    if (player.moveTarget) {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(253, 224, 71, 0.75)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(
-        player.moveTarget.x,
-        player.moveTarget.y,
-        10 + Math.sin(worldTime * 8) * 3,
-        0,
-        Math.PI * 2
-      );
-      ctx.stroke();
-      ctx.restore();
+    const target = player.moveTarget;
+    // Alvos de coleta usam o marcador de ataque, não o anel genérico de caminhada.
+    if (!target || target.autoHitNode) return;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(222, 187, 126, 0.82)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(
+      target.x,
+      target.y,
+      10 + Math.sin(worldTime * 7) * 2.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Prévia visual do golpe enquanto o jogador se aproxima de um recurso selecionado. */
+  renderAttackTarget(
+    ctx: CanvasRenderingContext2D,
+    player: PlayerState,
+    stats: DerivedStats,
+    worldTime: number
+  ): void {
+    const node = player.attackTarget ?? player.moveTarget?.autoHitNode;
+    if (!node || (node.depleted && node !== player.attackTarget)) return;
+
+    const dx = node.x - player.x;
+    const dy = node.y - player.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < 1) return;
+
+    const angle = Math.atan2(dy, dx);
+    const halfArc = stats.swingArc * 0.72;
+    const startAngle = angle - halfArc;
+    const endAngle = angle + halfArc;
+    const sectorRadius = Math.min(
+      stats.reachRadius + node.radius,
+      distance + node.radius * 0.4
+    );
+    const ringRadius = Math.max(34, node.radius + 18);
+    const pulse = 0.5 + 0.5 * Math.sin(worldTime * 4.2);
+
+    ctx.save();
+
+    // Leque de alcance: usa o mesmo arco e raio considerados pelo acerto do golpe.
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y);
+    ctx.arc(player.x, player.y, sectorRadius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(204, 158, 91, 0.13)';
+    ctx.fill();
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(69, 50, 34, 0.38)';
+    ctx.lineWidth = 4.2;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(224, 181, 116, 0.78)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Linha central discreta para deixar a direção do ataque inequívoca.
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y);
+    ctx.lineTo(node.x, node.y);
+    ctx.setLineDash(ATTACK_GUIDE_DASH);
+    ctx.lineDashOffset = -worldTime * 7;
+    ctx.strokeStyle = 'rgba(249, 229, 194, 0.62)';
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Halo e anel marfim enquadram o recurso sem esconder sua silhueta.
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, ringRadius + 4, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(214, 174, 116, ${0.035 + pulse * 0.025})`;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, ringRadius + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(71, 53, 37, 0.42)';
+    ctx.lineWidth = 4.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, ringRadius + 4, 0, Math.PI * 2);
+    ctx.setLineDash(ATTACK_RING_DASH);
+    ctx.lineDashOffset = -worldTime * 3.2;
+    ctx.strokeStyle = `rgba(207, 164, 105, ${0.55 + pulse * 0.16})`;
+    ctx.lineWidth = 1.15;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(65, 51, 37, 0.68)';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, ringRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(248, 242, 226, ${0.88 + pulse * 0.1})`;
+    ctx.lineWidth = 2.6;
+    ctx.stroke();
+
+    // Pequenas marcas de latão dão acabamento de peça artesanal ao círculo.
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const tickAngle = i * Math.PI * 0.5;
+      const inner = ringRadius - 3;
+      const outer = ringRadius + 2;
+      ctx.moveTo(node.x + Math.cos(tickAngle) * inner, node.y + Math.sin(tickAngle) * inner);
+      ctx.lineTo(node.x + Math.cos(tickAngle) * outer, node.y + Math.sin(tickAngle) * outer);
     }
+    ctx.strokeStyle = 'rgba(213, 169, 105, 0.8)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    // Seta presa à borda próxima do jogador e apontada para o centro do alvo.
+    const arrowX = node.x - Math.cos(angle) * (ringRadius + 5);
+    const arrowY = node.y - Math.sin(angle) * (ringRadius + 5);
+    ctx.save();
+    ctx.translate(arrowX, arrowY);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(-6, -6.2);
+    ctx.lineTo(-3.2, 0);
+    ctx.lineTo(-6, 6.2);
+    ctx.closePath();
+    ctx.fillStyle = '#d7a75f';
+    ctx.strokeStyle = '#503927';
+    ctx.lineWidth = 2.1;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-2.5, 0);
+    ctx.lineTo(5.7, 0);
+    ctx.strokeStyle = 'rgba(255, 239, 204, 0.9)';
+    ctx.lineWidth = 1.15;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.restore();
   }
 
   renderParticles(ctx: CanvasRenderingContext2D): void {

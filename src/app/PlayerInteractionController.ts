@@ -68,6 +68,7 @@ export class PlayerInteractionController {
     c.audio.playSwing();
     let hitAny = false;
     let bestTargetScore = Infinity;
+    let bestTarget: ResourceNode | null = null;
 
     c.worldSystem.nodes.forEach(node => {
       if (node.depleted) return;
@@ -89,6 +90,7 @@ export class PlayerInteractionController {
         const score = node === target ? -1 : distance + Math.abs(difference) * stats.reachRadius;
         if (score < bestTargetScore) {
           bestTargetScore = score;
+          bestTarget = node;
           player.heldTool = node.type === 'tree' ? 'axe' : 'pickaxe';
         }
         hitAny = true;
@@ -96,6 +98,7 @@ export class PlayerInteractionController {
       }
     });
 
+    player.attackTarget = bestTarget;
     if (hitAny) c.renderer.camera.addShake(3.5);
   }
 

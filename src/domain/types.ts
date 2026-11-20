@@ -209,6 +209,8 @@ export interface PlayerState {
   invulnTimer: number;
   backpack: ResourceId[];
   moveTarget: { x: number; y: number; autoHitNode?: ResourceNode } | null;
+  /** Recurso atingido no golpe atual; usado somente pelo indicador visual. */
+  attackTarget?: ResourceNode | null;
 }
 
 export interface DerivedStats {

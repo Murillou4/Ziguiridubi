@@ -159,6 +159,9 @@ export class CanvasRenderer {
     // 8. Orbes de Recursos no Chão
     this.effectsRenderer.renderDrops(ctx, drops, worldTime, view);
 
+    // 8b. Prévia direcional do golpe sobre o recurso selecionado
+    this.effectsRenderer.renderAttackTarget(ctx, player, stats, worldTime);
+
     // 9. Personagem + Mochila Física Empilhada
     this.playerRenderer.renderPlayer(ctx, player, state, stats, worldTime);
 

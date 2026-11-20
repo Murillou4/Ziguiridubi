@@ -63,7 +63,10 @@ export class PlayerSystem {
     onAutoHitNode?: (node: ResourceNode) => void
   ): void {
     // 1. Temporizadores
-    if (player.swingTimer > 0) player.swingTimer = Math.max(0, player.swingTimer - dt);
+    if (player.swingTimer > 0) {
+      player.swingTimer = Math.max(0, player.swingTimer - dt);
+      if (player.swingTimer === 0) player.attackTarget = null;
+    }
     if (player.cooldownTimer > 0) player.cooldownTimer = Math.max(0, player.cooldownTimer - dt);
     if (player.dashCooldown > 0) player.dashCooldown = Math.max(0, player.dashCooldown - dt);
 

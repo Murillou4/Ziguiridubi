@@ -21,6 +21,7 @@ export function createDefaultPlayer(): PlayerState {
     dashDirY: 0,
     invulnTimer: 0,
     backpack: [],
-    moveTarget: null
+    moveTarget: null,
+    attackTarget: null
   };
 }

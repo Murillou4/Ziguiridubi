@@ -16,25 +16,32 @@ export class PlayerRenderer {
     ctx.save();
     ctx.translate(player.x, player.y);
 
-    // Arco de golpe
+    // Rastro do golpe: latão translúcido com contorno escuro, no mesmo acabamento do alvo.
     if (player.swingTimer > 0) {
       const progress = 1 - player.swingTimer / player.swingDuration;
+      const sweepEnd = player.swingAngleStart + (player.swingAngleEnd - player.swingAngleStart) * progress;
+      const sweepRadius = stats.reachRadius * 0.85;
       ctx.save();
-      ctx.strokeStyle = 'rgba(254, 240, 138, 0.6)';
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.14)';
-      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.arc(
-        0,
-        0,
-        stats.reachRadius * 0.85,
-        player.swingAngleStart,
-        player.swingAngleStart + (player.swingAngleEnd - player.swingAngleStart) * progress
-      );
+      ctx.arc(0, 0, sweepRadius, player.swingAngleStart, sweepEnd);
       ctx.closePath();
+      ctx.fillStyle = 'rgba(204, 158, 91, 0.15)';
       ctx.fill();
+      ctx.strokeStyle = 'rgba(69, 50, 34, 0.52)';
+      ctx.lineWidth = 4.6;
       ctx.stroke();
+      ctx.strokeStyle = 'rgba(247, 222, 180, 0.9)';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // Ponto de luz marca a extremidade atual do movimento da ferramenta.
+      ctx.beginPath();
+      ctx.arc(Math.cos(sweepEnd) * sweepRadius, Math.sin(sweepEnd) * sweepRadius, 2.3, 0, Math.PI * 2);
+      ctx.fillStyle = '#f2d49a';
+      ctx.fill();
       ctx.restore();
     }
 
