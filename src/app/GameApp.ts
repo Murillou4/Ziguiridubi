@@ -46,8 +46,8 @@ export class GameApp {
       getStats: () => this.getStats()
     };
 
-    this.simulation = new GameSimulationController(context);
     this.interactions = new PlayerInteractionController(context);
+    this.simulation = new GameSimulationController(context, this.interactions);
 
     this.loop = new GameLoop(
       dt => this.simulation.update(dt),
@@ -68,10 +68,25 @@ export class GameApp {
     eventBus.on('input:swing', () => this.interactions.triggerSwing());
     eventBus.on('input:interact', () => this.interactions.triggerContextInteract());
 
+    const canControlCamera = () => this.isPlaying && !this.services.ui.activeModal;
+    eventBus.on('input:cameraPan', ({ dx, dy }: { dx: number; dy: number }) => {
+      if (canControlCamera()) renderer.camera.pan(dx, dy);
+    });
+    eventBus.on('input:cameraZoom', ({ factor, x, y }: { factor: number; x: number; y: number }) => {
+      if (!canControlCamera()) return;
+      renderer.camera.changeZoom(
+        factor,
+        x - renderer.width / 2 - renderer.camera.shakeX,
+        y - renderer.height / 2 - renderer.camera.shakeY
+      );
+    });
+    eventBus.on('input:cameraRecenter', () => {
+      if (canControlCamera()) renderer.camera.recenter(this.player.x, this.player.y);
+    });
+
     eventBus.on('input:mouseMove', () => {
       input.updateWorldMouse(
-        renderer.camera.x,
-        renderer.camera.y,
+        renderer.camera,
         renderer.width,
         renderer.height
       );
@@ -158,6 +173,11 @@ export class GameApp {
     this.state = payload.state;
     this.player.x = payload.playerPos.x;
     this.player.y = payload.playerPos.y;
+    // Older saves can point to terrain that moved when the islands expanded.
+    if (!this.services.worldSystem.isPointWalkable(this.state, this.player.x, this.player.y)) {
+      this.player.x = 0;
+      this.player.y = 0;
+    }
     this.player.backpack = [];
     gatheringSystem.drops = [];
 
@@ -210,7 +230,8 @@ export class GameApp {
       buildingSystem,
       droneSystem.drones,
       gatheringSystem.drops,
-      this.clock.worldTime
+      this.clock.worldTime,
+      this.services.ui.activeModal
     );
   }
 }

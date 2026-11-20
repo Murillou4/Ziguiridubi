@@ -1,89 +1,30 @@
 import { GameState } from '../domain/types.ts';
 import { BlueprintConfig } from '../config/buildings.ts';
 import { roundRect } from './WorldRenderer.ts';
+import { drawMerchantStall, drawWarehouse, PropState } from './world-props.ts';
 
 export class BuildingRenderer {
-  renderMerchantStall(ctx: CanvasRenderingContext2D, x: number, y: number, worldTime: number): void {
-    ctx.save();
-    ctx.translate(x, y);
-
-    // Sombra
-    ctx.fillStyle = 'rgba(0,0,0,0.26)';
-    ctx.beginPath();
-    ctx.ellipse(0, 26, 48, 22, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Balcão de Madeira
-    ctx.fillStyle = '#78350f';
-    roundRect(ctx, -38, 2, 76, 26, 6);
-    ctx.fill();
-    ctx.fillStyle = '#b45309';
-    roundRect(ctx, -38, -2, 76, 12, 5);
-    ctx.fill();
-
-    // Postes de sustentação
-    ctx.fillStyle = '#92400e';
-    ctx.fillRect(-34, -34, 5, 36);
-    ctx.fillRect(29, -34, 5, 36);
-
-    // Toldo Listrado Dourado e Creme
-    const stripes = 6;
-    const sw = 84 / stripes;
-    for (let i = 0; i < stripes; i++) {
-      ctx.fillStyle = i % 2 === 0 ? '#f59e0b' : '#fef3c7';
-      roundRect(ctx, -42 + i * sw, -42, sw + 1, 20, 4);
-      ctx.fill();
-    }
-
-    // Ícone Flutuante de Moedas acima do toldo
-    const coinBob = Math.sin(worldTime * 3.5) * 4;
-    ctx.font = '20px Inter';
-    ctx.textAlign = 'center';
-    ctx.fillText('MO', 0, -54 + coinBob);
-
-    // Placa Legível no Mundo
-    ctx.fillStyle = 'rgba(20, 29, 28, 0.88)';
-    roundRect(ctx, -108, 34, 216, 24, 8);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-
-    ctx.font = '700 10.5px Inter';
-    ctx.fillStyle = '#fde68a';
-    ctx.fillText('Banca do Mercador — Venda por Moedas [E]', 0, 49);
-
-    ctx.restore();
+  renderMerchantStall(ctx: CanvasRenderingContext2D, x: number, y: number, state: PropState): void {
+    drawMerchantStall(ctx, x, y + 24, state);
+    this.renderStationLabel(ctx, x, y + 34, 'Banca do Mercador [E]', '#fde68a');
   }
 
-  renderWorkbenchAndWarehouse(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  renderWorkbenchAndWarehouse(ctx: CanvasRenderingContext2D, x: number, y: number, state: PropState): void {
+    drawWarehouse(ctx, x, y + 24, state);
+    this.renderStationLabel(ctx, x, y + 34, 'Armazém & Upgrades [E]', '#e8e2d3');
+  }
+
+  private renderStationLabel(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, color: string): void {
     ctx.save();
-    ctx.translate(x, y);
-
-    ctx.fillStyle = 'rgba(0,0,0,0.24)';
-    ctx.beginPath();
-    ctx.ellipse(0, 24, 44, 20, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Bancada & Baú do Armazém
-    ctx.fillStyle = '#1e3a5f';
-    roundRect(ctx, -36, -18, 72, 42, 10);
-    ctx.fill();
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.font = '22px Inter';
+    ctx.font = '700 10.5px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText('UP', 0, 9);
-
-    ctx.fillStyle = 'rgba(20, 29, 28, 0.85)';
-    roundRect(ctx, -88, 30, 176, 22, 8);
+    ctx.textBaseline = 'middle';
+    const width = ctx.measureText(label).width + 20;
+    roundRect(ctx, x - width / 2, y, width, 22, 8);
+    ctx.fillStyle = 'rgba(20, 29, 28, 0.88)';
     ctx.fill();
-    ctx.font = '600 10.5px Inter';
-    ctx.fillStyle = '#bae6fd';
-    ctx.fillText('Armazém & Upgrades [E]', 0, 44);
-
+    ctx.fillStyle = color;
+    ctx.fillText(label, x, y + 11);
     ctx.restore();
   }
 

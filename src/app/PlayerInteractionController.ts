@@ -1,4 +1,4 @@
-import { BlueprintConfig } from '../config/buildings.ts';
+import { ResourceNode } from '../domain/types.ts';
 import { GameRuntimeContext } from './GameContext.ts';
 
 /**
@@ -53,7 +53,7 @@ export class PlayerInteractionController {
     }
   }
 
-  triggerSwing(): void {
+  triggerSwing(target?: ResourceNode): void {
     const c = this.context;
     if (!c.getIsPlaying() || c.isModalOpen()) return;
 
@@ -66,6 +66,7 @@ export class PlayerInteractionController {
 
     c.audio.playSwing();
     let hitAny = false;
+    let bestTargetScore = Infinity;
 
     c.worldSystem.nodes.forEach(node => {
       if (node.depleted) return;
@@ -84,6 +85,11 @@ export class PlayerInteractionController {
       while (difference < -Math.PI) difference += Math.PI * 2;
 
       if (Math.abs(difference) <= stats.swingArc * 0.72 || distance < 48) {
+        const score = node === target ? -1 : distance + Math.abs(difference) * stats.reachRadius;
+        if (score < bestTargetScore) {
+          bestTargetScore = score;
+          player.heldTool = node.type === 'tree' ? 'axe' : 'pickaxe';
+        }
         hitAny = true;
         c.gatheringSystem.handleHitNode(node, state, stats);
       }
@@ -101,7 +107,11 @@ export class PlayerInteractionController {
 
     const nearbyBlueprint = c.buildingSystem.getNearbyBlueprint(player.x, player.y, state);
     if (nearbyBlueprint) {
-      c.buildingSystem.interactWithBlueprint(nearbyBlueprint.id, state, player);
+      if (c.ui.inspectionCard.activeInspectedZone?.id === nearbyBlueprint.id) {
+        c.buildingSystem.interactWithBlueprint(nearbyBlueprint.id, state, player);
+      } else {
+        c.ui.inspectionCard.open(nearbyBlueprint);
+      }
       return;
     }
 
@@ -129,8 +139,7 @@ export class PlayerInteractionController {
 
     c.audio.init();
     c.input.updateWorldMouse(
-      c.renderer.camera.x,
-      c.renderer.camera.y,
+      c.renderer.camera,
       c.renderer.width,
       c.renderer.height
     );
@@ -151,7 +160,8 @@ export class PlayerInteractionController {
       const distance = Math.hypot(clickedNode.x - player.x, clickedNode.y - player.y);
       if (distance <= stats.reachRadius + clickedNode.radius) {
         player.moveTarget = null;
-        this.triggerSwing();
+        player.facing = Math.atan2(clickedNode.y - player.y, clickedNode.x - player.x);
+        this.triggerSwing(clickedNode);
       } else {
         player.moveTarget = {
           x: clickedNode.x,

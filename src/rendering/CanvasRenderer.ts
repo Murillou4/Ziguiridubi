@@ -57,7 +57,8 @@ export class CanvasRenderer {
     buildingSystem: BuildingSystem,
     drones: DroneEntity[],
     drops: DropItem[],
-    worldTime: number
+    worldTime: number,
+    activeModal: string | null = null
   ): void {
     const ctx = this.ctx;
     const w = this.width;
@@ -67,9 +68,10 @@ export class CanvasRenderer {
     this.worldRenderer.renderSky(ctx, w, h);
 
     ctx.save();
-    const camX = Math.round(w / 2 - this.camera.x + this.camera.shakeX);
-    const camY = Math.round(h / 2 - this.camera.y + this.camera.shakeY);
+    const camX = w / 2 - this.camera.x * this.camera.zoom + this.camera.shakeX;
+    const camY = h / 2 - this.camera.y * this.camera.zoom + this.camera.shakeY;
     ctx.translate(camX, camY);
+    ctx.scale(this.camera.zoom, this.camera.zoom);
 
     // 2. Nuvens abaixo das ilhas
     this.worldRenderer.renderClouds(ctx, worldSystem.clouds);
@@ -89,8 +91,16 @@ export class CanvasRenderer {
     });
 
     // 5. Praça Central: BANCA DO MERCADOR (-95, -25) & BANCADA / ARMAZÉM (95, -25)
-    this.buildingRenderer.renderMerchantStall(ctx, -95, -25, worldTime);
-    this.buildingRenderer.renderWorkbenchAndWarehouse(ctx, 95, -25);
+    this.buildingRenderer.renderMerchantStall(ctx, -95, -25, {
+      time: worldTime,
+      near: Math.max(0, 1 - Math.hypot(player.x + 95, player.y + 25) / 95),
+      active: activeModal === 'modalMerchant' ? 1 : 0
+    });
+    this.buildingRenderer.renderWorkbenchAndWarehouse(ctx, 95, -25, {
+      time: worldTime,
+      near: Math.max(0, 1 - Math.hypot(player.x - 95, player.y + 25) / 95),
+      active: activeModal === 'modalWorkshop' ? 1 : 0
+    });
 
     // 6. Nós de Recursos + Anel Rítmico Sweet Spot
     this.resourceRenderer.renderNodes(
@@ -99,7 +109,8 @@ export class CanvasRenderer {
       worldSystem.islands,
       state,
       stats,
-      worldTime
+      worldTime,
+      player
     );
 
     // 7. Indicador de destino ao clicar no chão
@@ -109,7 +120,7 @@ export class CanvasRenderer {
     this.effectsRenderer.renderDrops(ctx, drops, worldTime);
 
     // 9. Personagem + Mochila Física Empilhada
-    this.playerRenderer.renderPlayer(ctx, player, state, stats);
+    this.playerRenderer.renderPlayer(ctx, player, state, stats, worldTime);
 
     // 10. Seta Guia para Projeto Rastreado
     this.effectsRenderer.renderProjectTrackerArrow(ctx, player, state);

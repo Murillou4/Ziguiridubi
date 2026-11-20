@@ -10,6 +10,11 @@ export class WorldInspectionCard {
 
   init(): void {
     this.cardEl = document.getElementById('worldInspectionCard');
+    document.getElementById('wicCloseBtn')?.addEventListener('click', () => this.hide());
+  }
+
+  open(blueprint: BlueprintConfig): void {
+    this.activeInspectedZone = blueprint;
   }
 
   hide(): void {

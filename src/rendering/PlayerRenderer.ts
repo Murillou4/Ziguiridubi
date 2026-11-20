@@ -1,3 +1,4 @@
+import { drawPlayer } from './player-sprite.ts';
 import { DerivedStats, GameState, PlayerState } from '../domain/types.ts';
 import { RESOURCES } from '../config/resources.ts';
 
@@ -6,16 +7,11 @@ export class PlayerRenderer {
     ctx: CanvasRenderingContext2D,
     player: PlayerState,
     state: GameState,
-    stats: DerivedStats
+    stats: DerivedStats,
+    worldTime: number
   ): void {
     ctx.save();
     ctx.translate(player.x, player.y);
-
-    // Sombra
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-    ctx.beginPath();
-    ctx.ellipse(0, 14, 15, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
 
     // Arco de golpe
     if (player.swingTimer > 0) {
@@ -40,7 +36,7 @@ export class PlayerRenderer {
     }
 
     const bobY = Math.abs(Math.sin(player.walkCycle)) * 3;
-    ctx.rotate(player.tilt);
+
 
     // Pilha física de itens nas costas da mochila!
     if (player.backpack.length > 0) {
@@ -59,51 +55,21 @@ export class PlayerRenderer {
       }
     }
 
-    // Corpo do Artesão
-    ctx.fillStyle = '#1e293b';
-    ctx.beginPath();
-    ctx.arc(0, 2 - bobY, 13, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle =
-      state.specialization === 'airshipMagnate'
-        ? '#0284c7'
-        : state.specialization === 'automataEngineer'
-        ? '#059669'
-        : '#b45309';
-    ctx.beginPath();
-    ctx.arc(0, 1 - bobY, 11, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Cabeça & Chapéu
-    ctx.fillStyle = '#fde68a';
-    ctx.beginPath();
-    ctx.arc(0, -9 - bobY, 8.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#78350f';
-    ctx.beginPath();
-    ctx.ellipse(0, -13 - bobY, 12, 4.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Ferramenta
-    const toolAngle =
-      player.swingTimer > 0
-        ? player.swingAngleStart +
-          (player.swingAngleEnd - player.swingAngleStart) *
-            (1 - player.swingTimer / player.swingDuration)
-        : player.facing + 0.55;
-
-    ctx.save();
-    ctx.rotate(toolAngle);
-    ctx.fillStyle = '#92400e';
-    ctx.fillRect(8, -2, 20, 4);
+    const horizontal = Math.cos(player.facing);
+    const vertical = Math.sin(player.facing);
+    const facing = Math.abs(horizontal) > Math.abs(vertical)
+      ? horizontal > 0 ? 'right' : 'left'
+      : vertical > 0 ? 'down' : 'up';
     const tierColors = ['#cbd5e1', '#f59e0b', '#818cf8', '#38bdf8', '#fde047'];
-    ctx.fillStyle = tierColors[Math.min(4, state.upgrades.toolPower ?? 0)];
-    ctx.beginPath();
-    ctx.arc(26, 0, 6, -1.1, 1.1);
-    ctx.fill();
-    ctx.restore();
+
+    drawPlayer(ctx, 0, 14, {
+      facing,
+      time: worldTime,
+      moving: Math.hypot(player.vx, player.vy) > 1 || player.dashTimer > 0,
+      swing: player.swingTimer > 0 ? Math.max(0.001, 1 - player.swingTimer / player.swingDuration) : 0,
+      tool: player.heldTool,
+      bladeColor: tierColors[Math.min(4, state.upgrades.toolPower ?? 0)]
+    });
 
     ctx.restore();
   }

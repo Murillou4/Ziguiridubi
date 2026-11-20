@@ -10,6 +10,7 @@ export function createDefaultPlayer(): PlayerState {
     tilt: 0,
     walkCycle: 0,
     swingTimer: 0,
+    heldTool: 'axe',
     swingDuration: 0.23,
     swingAngleStart: 0,
     swingAngleEnd: 0,

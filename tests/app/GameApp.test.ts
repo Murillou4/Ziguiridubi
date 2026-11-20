@@ -29,6 +29,7 @@ function createTestApp() {
     audio,
     saveService,
     ui,
+    worldSystem: { isPointWalkable: () => true },
     gatheringSystem
   } as unknown as GameAppServices;
 

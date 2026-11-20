@@ -1,10 +1,14 @@
 import { GameRuntimeContext } from './GameContext.ts';
+import { PlayerInteractionController } from './PlayerInteractionController.ts';
 
 /** Atualiza os sistemas de simulação na ordem de execução do jogo. */
 export class GameSimulationController {
   private unloadTimer = 0;
 
-  constructor(private readonly context: GameRuntimeContext) {}
+  constructor(
+    private readonly context: GameRuntimeContext,
+    private readonly interactions = new PlayerInteractionController(context)
+  ) {}
 
   update(dt: number): void {
     const c = this.context;
@@ -34,7 +38,7 @@ export class GameSimulationController {
         dt,
         inputState,
         (currentState, x, y) => c.worldSystem.isPointWalkable(currentState, x, y),
-        node => c.gatheringSystem.handleHitNode(node, state, stats)
+        node => this.interactions.triggerSwing(node)
       );
     }
 
@@ -76,8 +80,9 @@ export class GameSimulationController {
     c.renderer.camera.update(player.x, player.y, dt);
 
     // 7. Cartão contextual de inspeção.
-    const targetBlueprint =
-      c.buildingSystem.getNearbyBlueprint(player.x, player.y, state);
+    const nearbyBlueprint = c.buildingSystem.getNearbyBlueprint(player.x, player.y, state);
+    const selectedBlueprint = c.ui.inspectionCard.activeInspectedZone;
+    const targetBlueprint = selectedBlueprint?.id === nearbyBlueprint?.id ? selectedBlueprint : null;
 
     c.ui.inspectionCard.update(
       targetBlueprint,

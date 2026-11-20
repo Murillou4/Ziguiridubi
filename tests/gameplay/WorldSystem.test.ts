@@ -6,6 +6,25 @@ import { createDefaultState } from '../../src/domain/GameState.ts';
 import { GameClock } from '../../src/core/GameClock.ts';
 import { WorldSystem } from '../../src/gameplay/WorldSystem.ts';
 
+describe('expanded island layout', () => {
+  it('keeps resource spawns walkable and bridges connected only when built', () => {
+    const world = new WorldSystem();
+    const state = createDefaultState();
+    const bridges = [
+      { id: 'eastBridge', points: [480, 550, 670].map(x => [x, 0]) },
+      { id: 'westBridge', points: [-480, -550, -680].map(x => [x, 0]) },
+      { id: 'northBridge', points: [-300, -350, -400].map(y => [0, y]) }
+    ];
+    for (const bridge of bridges) {
+      const [x, y] = bridge.points[1];
+      expect(world.isPointWalkable(state, x, y)).toBe(false);
+      state.builds[bridge.id].built = true;
+      for (const [px, py] of bridge.points) expect(world.isPointWalkable(state, px, py)).toBe(true);
+    }
+    for (const node of world.nodes) expect(world.isPointWalkable(state, node.x, node.y)).toBe(true);
+  });
+});
+
 describe('WorldSystem cloud updates', () => {
   it('keeps cloud movement separate from resource-node updates', () => {
     const world = new WorldSystem();

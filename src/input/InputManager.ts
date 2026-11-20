@@ -1,6 +1,7 @@
 import { VirtualJoystick } from './VirtualJoystick.ts';
 import { PlayerInput } from '../gameplay/PlayerSystem.ts';
 import { EventBus } from '../core/EventBus.ts';
+import type { Camera } from '../rendering/Camera.ts';
 
 export class InputManager {
   public keys: Record<string, boolean> = {};
@@ -34,6 +35,12 @@ export class InputManager {
 
       if (code === 'Escape') {
         this.eventBus.emit('input:escape');
+        return;
+      }
+
+      if (code === 'Home') {
+        e.preventDefault();
+        this.eventBus.emit('input:cameraRecenter');
         return;
       }
 
@@ -81,7 +88,7 @@ export class InputManager {
         this.eventBus.emit('input:dash');
       } else if (code === 'KeyE') {
         e.preventDefault();
-        this.eventBus.emit('input:interact');
+        if (!e.repeat) this.eventBus.emit('input:interact');
       }
     });
 
@@ -121,6 +128,37 @@ export class InputManager {
 
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    let panPointer: number | null = null;
+    let panX = 0;
+    let panY = 0;
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      panPointer = e.pointerId;
+      panX = e.clientX;
+      panY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== panPointer) return;
+      this.eventBus.emit('input:cameraPan', { dx: e.clientX - panX, dy: e.clientY - panY });
+      panX = e.clientX;
+      panY = e.clientY;
+    });
+    canvas.addEventListener('lostpointercapture', (e) => {
+      if (e.pointerId === panPointer) panPointer = null;
+    });
+    canvas.addEventListener('wheel', (e) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      this.eventBus.emit('input:cameraZoom', {
+        factor: e.deltaY < 0 ? 1.12 : 1 / 1.12,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }, { passive: false });
+
     // 3. Controles Touch Mobile
     this.virtualJoystick.init('touchJoystickZone', 'touchJoystickKnob');
 
@@ -149,9 +187,10 @@ export class InputManager {
     }
   }
 
-  updateWorldMouse(camX: number, camY: number, screenW: number, screenH: number): void {
-    this.mouse.worldX = this.mouse.screenX - screenW / 2 + camX;
-    this.mouse.worldY = this.mouse.screenY - screenH / 2 + camY;
+  updateWorldMouse(camera: Camera, screenW: number, screenH: number): void {
+    const point = camera.screenToWorld(this.mouse.screenX, this.mouse.screenY, screenW, screenH);
+    this.mouse.worldX = point.x;
+    this.mouse.worldY = point.y;
   }
 
   getPlayerInput(): PlayerInput {

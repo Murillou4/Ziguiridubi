@@ -1,13 +1,18 @@
+import { buildRock, drawRock } from './world-rocks.ts';
+import { drawBigTree, drawSmallTree } from './world-trees.ts';
 import { DerivedStats, GameState, IslandDef, ResourceNode } from '../domain/types.ts';
 
 export class ResourceRenderer {
+  private readonly rocks = new WeakMap<ResourceNode, ReturnType<typeof buildRock>>();
+
   renderNodes(
     ctx: CanvasRenderingContext2D,
     nodes: ResourceNode[],
     islands: IslandDef[],
     state: GameState,
     stats: DerivedStats,
-    worldTime: number
+    worldTime: number,
+    player: { x: number; y: number }
   ): void {
     nodes.forEach(n => {
       if (n.depleted) {
@@ -25,33 +30,31 @@ export class ResourceRenderer {
       const shake = n.hitAnim > 0 ? Math.sin(n.hitAnim * 28) * 4 * n.hitAnim : 0;
       ctx.translate(n.x + shake, n.y);
 
-      // Sombra
-      ctx.fillStyle = 'rgba(0,0,0,0.24)';
-      ctx.beginPath();
-      ctx.ellipse(0, 14, n.radius * 0.9, n.radius * 0.55, 0, 0, Math.PI * 2);
-      ctx.fill();
+      if (n.type !== 'tree' && n.type !== 'rock') {
+        ctx.fillStyle = 'rgba(0,0,0,0.24)';
+        ctx.beginPath();
+        ctx.ellipse(0, 14, n.radius * 0.9, n.radius * 0.55, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      // Renderização por tipo
       if (n.type === 'tree') {
-        ctx.fillStyle = '#78350f';
-        ctx.fillRect(-6, -4, 12, 18);
-        ctx.fillStyle = '#15803d';
-        ctx.beginPath();
-        ctx.arc(0, -14, 24, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#22c55e';
-        ctx.beginPath();
-        ctx.arc(-4, -18, 17, 0, Math.PI * 2);
-        ctx.fill();
+        const small = Math.abs(Math.round(n.x * 3 + n.y)) % 3 === 0;
+        const drawTree = small ? drawSmallTree : drawBigTree;
+        const distance = Math.hypot(n.x - player.x, n.y - player.y);
+        drawTree(ctx, 0, 16, {
+          time: worldTime + n.x * 0.013,
+          near: Math.max(0, 1 - distance / (stats.reachRadius + n.radius)),
+          active: n.hitAnim
+        });
       } else if (n.type === 'rock') {
-        ctx.fillStyle = '#64748b';
-        ctx.beginPath();
-        ctx.arc(0, 0, 22, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#94a3b8';
-        ctx.beginPath();
-        ctx.arc(-5, -5, 14, 0, Math.PI * 2);
-        ctx.fill();
+        let rock = this.rocks.get(n);
+        if (!rock) {
+          const seed = Math.round(n.x * 19 + n.y * 47);
+          rock = buildRock(seed, n.radius * 2);
+          this.rocks.set(n, rock);
+        }
+        const damageStage = Math.min(3, Math.floor((1 - n.hp / n.maxHp) * 4));
+        drawRock(ctx, rock, 0, 10, damageStage, n.hitAnim);
       } else if (n.type === 'iron') {
         ctx.fillStyle = '#475569';
         ctx.beginPath();

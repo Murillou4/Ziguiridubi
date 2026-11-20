@@ -79,9 +79,9 @@ export class WorldSystem {
         return true;
       }
     }
-    if (state.builds.eastBridge?.built && x >= 325 && x <= 510 && y >= -42 && y <= 42) return true;
+    if (state.builds.eastBridge?.built && x >= 325 && x <= 670 && y >= -42 && y <= 42) return true;
     if (state.builds.northBridge?.built && x >= -42 && x <= 42 && y >= -400 && y <= -245) return true;
-    if (state.builds.westBridge?.built && x >= -520 && x <= -325 && y >= -42 && y <= 42) return true;
+    if (state.builds.westBridge?.built && x >= -680 && x <= -325 && y >= -42 && y <= 42) return true;
     return false;
   }
 

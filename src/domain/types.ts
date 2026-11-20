@@ -196,6 +196,7 @@ export interface PlayerState {
   tilt: number;
   walkCycle: number;
   swingTimer: number;
+  heldTool: 'axe' | 'pickaxe';
   swingDuration: number;
   swingAngleStart: number;
   swingAngleEnd: number;

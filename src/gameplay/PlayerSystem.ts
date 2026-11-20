@@ -94,6 +94,7 @@ export class PlayerSystem {
       const stopDist = player.moveTarget.autoHitNode ? (stats.reachRadius * 0.75) : 10;
 
       if (dist <= stopDist) {
+        if (player.moveTarget.autoHitNode && !player.moveTarget.autoHitNode.depleted && player.cooldownTimer > 0) return;
         if (player.moveTarget.autoHitNode && !player.moveTarget.autoHitNode.depleted) {
           player.facing = Math.atan2(
             player.moveTarget.autoHitNode.y - player.y,

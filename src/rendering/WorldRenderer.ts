@@ -64,11 +64,35 @@ export class WorldRenderer {
       ctx.fill();
 
       if (isl.id === 'hub') {
-        // Praça Central de Pedra Clara
-        ctx.fillStyle = 'rgba(235, 218, 185, 0.34)';
+        // Praça de terra batida, com borda irregular e pedras discretas.
+        ctx.fillStyle = '#668b59';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 175, 115, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 8, 190, 130, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#b4a477';
+        ctx.beginPath();
+        ctx.ellipse(0, 4, 178, 117, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#c7b78a';
+        ctx.beginPath();
+        ctx.ellipse(0, -1, 168, 106, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Lajes e pequenas marcas criam textura sem obstruir a circulação.
+        const stones = [[-145, -34, 15, 8], [-121, 43, 18, 9], [-70, 69, 14, 7],
+          [-22, 79, 19, 9], [35, 74, 15, 7], [93, 60, 20, 9],
+          [139, 23, 14, 8], [129, -65, 16, 8], [55, -83, 17, 7],
+          [-26, -81, 14, 7], [-105, -67, 17, 8]];
+        for (const [sx, sy, rx, ry] of stones) {
+          ctx.fillStyle = 'rgba(101, 91, 67, 0.19)';
+          ctx.beginPath(); ctx.ellipse(sx + 1, sy + 2, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(237, 220, 175, 0.52)';
+          ctx.beginPath(); ctx.ellipse(sx, sy, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(102, 83, 54, 0.25)';
+        for (const [dx, dy] of [[-153, 4], [-80, -91], [8, 97], [75, -65], [150, 53], [-57, 45], [45, 39]]) {
+          ctx.beginPath(); ctx.arc(dx, dy, 2, 0, Math.PI * 2); ctx.fill();
+        }
       }
 
       if (!unlocked) {
