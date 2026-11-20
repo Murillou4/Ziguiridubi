@@ -105,7 +105,7 @@ export class GatheringSystem {
 
     for (let i = 0; i < yieldAmt; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const spd = 70 + Math.random() * 90;
+      const spd = 26 + Math.random() * 22;
       this.drops.push({
         resource: node.resource,
         x: node.x,
@@ -113,7 +113,7 @@ export class GatheringSystem {
         z: 14,
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd,
-        vz: 140 + Math.random() * 60,
+        vz: 72 + Math.random() * 33,
         age: 0
       });
     }
@@ -128,6 +128,7 @@ export class GatheringSystem {
     player: PlayerState,
     stats: DerivedStats,
     dt: number,
+    isWalkable: (x: number, y: number) => boolean,
     onPickup: (res: DropItem) => void
   ): void {
     for (let i = this.drops.length - 1; i >= 0; i--) {
@@ -136,8 +137,15 @@ export class GatheringSystem {
 
       // Física 3D parabólica simples
       if (d.z > 0 || d.vz > 0) {
-        d.x += d.vx * dt;
-        d.y += d.vy * dt;
+        const nextX = d.x + d.vx * dt;
+        const nextY = d.y + d.vy * dt;
+        if (isWalkable(nextX, nextY)) {
+          d.x = nextX;
+          d.y = nextY;
+        } else {
+          d.vx = 0;
+          d.vy = 0;
+        }
         d.z += d.vz * dt;
         d.vz -= 430 * dt;
         if (d.z <= 0) {
@@ -156,8 +164,13 @@ export class GatheringSystem {
 
         if (dist < stats.magnetRadius) {
           const pull = 360 + (1 - dist / stats.magnetRadius) * 280;
-          d.x += (dx / Math.max(1, dist)) * pull * dt;
-          d.y += (dy / Math.max(1, dist)) * pull * dt;
+          const step = Math.min(dist, pull * dt) / Math.max(1, dist);
+          const nextX = d.x + dx * step;
+          const nextY = d.y + dy * step;
+          if (isWalkable(nextX, nextY)) {
+            d.x = nextX;
+            d.y = nextY;
+          }
         }
 
         if (dist < 24) {

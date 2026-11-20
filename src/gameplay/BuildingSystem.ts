@@ -1,5 +1,5 @@
 import { GameState, PlayerState, ResourceId } from '../domain/types.ts';
-import { BLUEPRINTS_DEF, BlueprintConfig } from '../config/buildings.ts';
+import { BLUEPRINTS_DEF, BlueprintConfig, getBlueprintDistance } from '../config/buildings.ts';
 import { InventorySystem } from './InventorySystem.ts';
 import { EventBus } from '../core/EventBus.ts';
 
@@ -12,17 +12,21 @@ export class BuildingSystem {
   ) {}
 
   getBlueprintProgressPct(bp: BlueprintConfig, state: GameState): number {
+    return Math.round(this.getBlueprintProgress(bp, state) * 100);
+  }
+
+  getBlueprintProgress(bp: BlueprintConfig, state: GameState): number {
     const buildState = state.builds[bp.id];
     if (!buildState) return 0;
-    if (buildState.built) return 100;
+    if (buildState.built) return 1;
 
     let totalReq = 0;
     let totalPaid = 0;
     for (const [res, amt] of Object.entries(bp.cost) as [ResourceId, number][]) {
       totalReq += amt;
-      totalPaid += Math.min(amt, buildState.paid[res] || 0);
+      totalPaid += Math.max(0, Math.min(amt, buildState.paid?.[res] ?? 0));
     }
-    return totalReq > 0 ? Math.round((totalPaid / totalReq) * 100) : 0;
+    return totalReq > 0 ? totalPaid / totalReq : 0;
   }
 
   getNearbyBlueprint(playerX: number, playerY: number, state: GameState): BlueprintConfig | null {
@@ -31,9 +35,7 @@ export class BuildingSystem {
 
     for (const bp of this.blueprints) {
       if (state.builds[bp.id]?.built) continue;
-      const cx = bp.x + bp.w / 2;
-      const cy = bp.y + bp.h / 2;
-      const d = Math.hypot(playerX - cx, playerY - cy);
+      const d = getBlueprintDistance(bp, playerX, playerY);
       if (d < bestDist) {
         bestDist = d;
         closest = bp;
@@ -52,7 +54,7 @@ export class BuildingSystem {
     if (!bp) return { success: false, completed: false, depositedAny: false };
 
     const buildState = state.builds[bpId];
-    if (!buildState || buildState.built) {
+    if (!buildState || buildState.built || (bp.requiresBuild && !state.builds[bp.requiresBuild]?.built)) {
       return { success: false, completed: false, depositedAny: false };
     }
 

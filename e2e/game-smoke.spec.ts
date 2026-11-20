@@ -38,11 +38,21 @@ test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse
 
   const canvasBounds = await page.locator('#gameCanvas').boundingBox();
   expect(canvasBounds).not.toBeNull();
-  await page.mouse.click(
-    canvasBounds!.x + canvasBounds!.width * 0.56,
-    canvasBounds!.y + canvasBounds!.height * 0.50
-  );
-  await expect.poll(() => page.evaluate(() => window.gameApp.player.moveTarget !== null)).toBe(true);
+  const target = await page.evaluate(() => {
+    const { player, services } = window.gameApp;
+    const { camera, width, height } = services.renderer;
+    return services.worldSystem.nodes
+      .filter(node => node.islandId === 'hub' && Math.hypot(node.x - player.x, node.y - player.y) > 220)
+      .map(node => ({
+        id: node.id,
+        x: width / 2 + (node.x - camera.x) * camera.zoom,
+        y: height / 2 + (node.y - camera.y) * camera.zoom
+      }))
+      .find(point => point.x > 180 && point.x < width - 180 && point.y > 140 && point.y < height - 140);
+  });
+  expect(target).toBeDefined();
+  await page.mouse.click(canvasBounds!.x + target!.x, canvasBounds!.y + target!.y);
+  await expect.poll(() => page.evaluate(() => window.gameApp.player.moveTarget?.autoHitNode?.id)).toBe(target!.id);
 
   await page.screenshot({
     path: testInfo.outputPath('gameplay-desktop.png'),
@@ -146,7 +156,7 @@ test('exibe os controles touch e processa toque em golpear, dash e joystick', as
 
   await page.locator('#btnOpenWorkshop').tap();
   await expect(page.locator('#modalWorkshop')).toBeVisible();
-  const workshopPanel = await page.locator('#modalWorkshop > .glass-panel').boundingBox();
+  const workshopPanel = await page.locator('#modalWorkshop > .vale-panel').boundingBox();
   const viewport = await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
   expect(workshopPanel).not.toBeNull();
   expect(workshopPanel!.x).toBeGreaterThanOrEqual(0);
@@ -242,7 +252,7 @@ test('mantém a bancada utilizável em celular compacto, tablet e desktop', asyn
 
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
-    const panel = await page.locator('#modalWorkshop > .glass-panel').boundingBox();
+    const panel = await page.locator('#modalWorkshop > .vale-panel').boundingBox();
     const list = await page.locator('#upgradeList').evaluate(element => ({
       clientWidth: element.clientWidth,
       scrollWidth: element.scrollWidth,
@@ -288,14 +298,14 @@ test('mantém todos os modais dentro da viewport compacta e com conteúdo roláv
     await expect(modal).toBeVisible();
     await page.waitForTimeout(220);
 
-    const panel = await modal.locator(':scope > .glass-panel').boundingBox();
+    const panel = await modal.locator(':scope > .vale-panel').boundingBox();
     expect(panel, `${modalId}: painel ausente`).not.toBeNull();
     expect(panel!.x, `${modalId}: excedeu a margem esquerda`).toBeGreaterThanOrEqual(0);
     expect(panel!.y, `${modalId}: excedeu a margem superior`).toBeGreaterThanOrEqual(0);
     expect(panel!.x + panel!.width, `${modalId}: excedeu a margem direita`).toBeLessThanOrEqual(321);
     expect(panel!.y + panel!.height, `${modalId}: excedeu a margem inferior`).toBeLessThanOrEqual(569);
 
-    const content = await modal.locator(':scope > .glass-panel > .p-5').first().evaluate(element => ({
+    const content = await modal.locator(':scope > .vale-panel > .p-5').first().evaluate(element => ({
       clientHeight: element.clientHeight,
       overflowY: getComputedStyle(element).overflowY
     }));

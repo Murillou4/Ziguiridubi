@@ -4,6 +4,7 @@ import { PHASES_INFO } from '../config/phases.ts';
 import { AIRSHIP_ROUTES } from '../config/airshipRoutes.ts';
 import { BLUEPRINTS_DEF } from '../config/buildings.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
+import { getResourceIconUrl } from './resource-icon.ts';
 
 export class HUDView {
   constructor(private inventorySystem: InventorySystem) {}
@@ -18,6 +19,10 @@ export class HUDView {
   updateResourceBar(state: GameState, player: PlayerState): void {
     const resBar = document.getElementById('resourceBar');
     if (!resBar) return;
+
+    for (const icon of document.querySelectorAll<HTMLImageElement>('img[data-hud-resource-icon]:not([src])')) {
+      icon.src = getResourceIconUrl(icon.dataset.hudResourceIcon as ResourceId);
+    }
 
     const keys: ResourceId[] = ['coins', 'wood', 'stone', 'planks'];
 
@@ -51,15 +56,10 @@ export class HUDView {
     resBar.innerHTML = keys.map(k => {
       const def = RESOURCES[k];
       const val = this.inventorySystem.getTotalResource(state, player, k);
-      const isCoin = k === 'coins';
       return `
-        <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-lg ${
-          isCoin
-            ? 'bg-amber-400/20 border border-amber-400/35 text-amber-200'
-            : 'bg-white/5 text-stone-100'
-        }" title="${def ? def.name : k}">
-          <span>${def ? def.icon : ''}</span>
-          <span class="font-bold">${val}</span>
+        <div class="hud-resource" data-resource="${k}" title="${def.name}" aria-label="${def.name}: ${val}">
+          <img src="${getResourceIconUrl(k)}" alt="" width="24" height="24">
+          <span>${val}</span>
         </div>
       `;
     }).join('');
@@ -76,21 +76,17 @@ export class HUDView {
     if (bpFillEl) {
       const bpPct = Math.min(100, Math.round((bpCount / Math.max(1, bpMax)) * 100));
       bpFillEl.style.width = `${bpPct}%`;
-      bpFillEl.className =
-        bpCount >= bpMax
-          ? 'h-full bg-rose-400 rounded-full transition-all duration-150'
-          : 'h-full bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-150';
+      bpFillEl.toggleAttribute('data-full', bpCount >= bpMax);
     }
 
     const dashEl = document.getElementById('hudDashStatus');
     if (dashEl) {
       if (player.dashCooldown > 0) {
         dashEl.textContent = `${player.dashCooldown.toFixed(1)}s`;
-        dashEl.className = 'font-medium text-stone-400';
       } else {
         dashEl.textContent = 'Pronto';
-        dashEl.className = 'font-medium text-sky-200';
       }
+      dashEl.toggleAttribute('data-recharging', player.dashCooldown > 0);
     }
   }
 
@@ -145,8 +141,8 @@ export class HUDView {
     const descEl = document.getElementById('objectiveDesc');
 
     if (nextUnbuilt) {
-      if (titleEl) titleEl.textContent = `Construir: ${nextUnbuilt.name}`;
-      if (descEl) descEl.textContent = `${nextUnbuilt.desc} Siga a seta dourada e aperte [E].`;
+      if (titleEl) titleEl.textContent = nextUnbuilt.name;
+      if (descEl) descEl.textContent = 'Siga a seta dourada e pressione E.';
     } else if ((state.upgrades.relicCelestialCore ?? 0) === 0) {
       if (titleEl) titleEl.textContent = 'Expedição: Cidadela Celeste';
       if (descEl) descEl.textContent = 'Lance o Dirigível para obter Relíquias e forjar o Coração Celeste.';

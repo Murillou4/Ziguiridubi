@@ -22,6 +22,7 @@ import { SettingsModal } from './SettingsModal.ts';
 
 export class UIManager {
   public activeModal: string | null = null;
+  private modalTrigger: HTMLElement | null = null;
 
   public toastManager = new ToastManager();
   public inspectionCard = new WorldInspectionCard();
@@ -72,6 +73,7 @@ export class UIManager {
         onStartGame();
         const title = document.getElementById('titleScreen');
         if (title) {
+          title.inert = true;
           title.style.opacity = '0';
           setTimeout(() => {
             title.style.display = 'none';
@@ -105,10 +107,7 @@ export class UIManager {
       }
     });
 
-    // 4. Venda de Excedentes
-    document.getElementById('btnSellSurplus')?.addEventListener('click', () => {
-      this.economySystem.sellAllSurplus(getState(), getPlayer(), getStats());
-    });
+    this.merchantModal.init(getState, getPlayer, getStats);
 
     // 5. Fechamento de Modais
     document.querySelectorAll('[data-close-modal]').forEach(btn => {
@@ -118,6 +117,20 @@ export class UIManager {
     document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
       backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) this.closeAllModals();
+      });
+      backdrop.addEventListener('keydown', event => {
+        const keyEvent = event as KeyboardEvent;
+        if (keyEvent.key !== 'Tab') return;
+
+        const controls = [...backdrop.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href]')]
+          .filter(control => control.tabIndex >= 0 && control.getClientRects().length > 0);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        const boundary = keyEvent.shiftKey ? first : last;
+        if (boundary && document.activeElement === boundary) {
+          keyEvent.preventDefault();
+          (keyEvent.shiftKey ? last : first).focus();
+        }
       });
     });
 
@@ -183,6 +196,8 @@ export class UIManager {
     getPlayer: () => PlayerState,
     getStats: () => DerivedStats
   ): void {
+    const focused = document.activeElement;
+    const trigger = this.activeModal ? this.modalTrigger : focused instanceof HTMLElement ? focused : null;
     this.closeAllModals();
     const el = document.getElementById(modalId);
     if (!el) return;
@@ -190,6 +205,8 @@ export class UIManager {
     el.classList.remove('hidden');
     el.classList.add('flex');
     this.activeModal = modalId;
+    this.modalTrigger = trigger;
+    el.querySelector<HTMLElement>('[data-close-modal]')?.focus({ preventScroll: true });
     getPlayer().moveTarget = null;
 
     if (modalId === 'modalMerchant') {
@@ -213,11 +230,15 @@ export class UIManager {
       m.classList.remove('flex');
     });
     this.activeModal = null;
+    this.modalTrigger?.focus({ preventScroll: true });
+    this.modalTrigger = null;
   }
 
-  refreshActiveModalResources(state: GameState, player: PlayerState): void {
+  refreshActiveModalResources(state: GameState, player: PlayerState, stats: DerivedStats): void {
     if (this.activeModal === 'modalWorkshop') {
       this.workshopModal.refreshResources(state, player);
+    } else if (this.activeModal === 'modalMerchant') {
+      this.merchantModal.render(state, player, stats);
     }
   }
 

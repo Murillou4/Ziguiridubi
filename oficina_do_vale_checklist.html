@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#162a38">
+  <title>Oficina do Vale | Checklist de desenvolvimento</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #162a38;
+      --panel: #202e29;
+      --panel-2: #263831;
+      --line: #465346;
+      --line-soft: #36443a;
+      --text: #f4f1ea;
+      --muted: #b8bdb0;
+      --green: #f0c47e;
+      --green-dim: #41442c;
+      --orange: #e5ae75;
+      --blue: #a4cee0;
+      --purple: #c4a4ff;
+      --red: #ff7373;
+      --status-pending: #b8bdb0;
+      --radius: 13px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 80% 0%, rgba(237,190,108,.075), transparent 34rem),
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, 32px 32px, 32px 32px, auto;
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    .shell { width: min(1020px, calc(100% - 36px)); margin: 0 auto; padding: 42px 0 64px; }
+    .topline { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:34px; }
+    .brand { display:flex; align-items:center; gap:10px; color:var(--muted); font: 700 11px var(--mono); letter-spacing:.18em; text-transform:uppercase; }
+    .brand-mark { width:11px; height:11px; background:var(--green); box-shadow:0 0 18px rgba(237,190,108,.45); transform:rotate(45deg); }
+    .version { color:#687477; font: 11px var(--mono); letter-spacing:.12em; }
+    .hero { border:1px solid var(--line); background:linear-gradient(120deg, rgba(237,190,108,.07), transparent 55%), #25352c; padding:30px; border-radius:18px; position:relative; overflow:hidden; }
+    .hero:after { content:""; position:absolute; width:220px; height:220px; right:-90px; top:-125px; border:1px solid rgba(237,190,108,.18); transform:rotate(45deg); box-shadow:0 0 0 18px rgba(237,190,108,.025), 0 0 0 36px rgba(237,190,108,.02); pointer-events:none; }
+    .eyebrow { color:var(--green); font:700 11px var(--mono); letter-spacing:.2em; text-transform:uppercase; margin:0 0 10px; }
+    h1 { margin:0; font-size:clamp(27px, 5vw, 43px); line-height:1.08; letter-spacing:-.045em; text-transform:uppercase; }
+    h1 span { color:var(--green); }
+    .intro { max-width:670px; margin:13px 0 0; color:#d2d1c2; font-size:14px; }
+    .stats { display:grid; grid-template-columns: 1fr auto; align-items:end; gap:20px; margin-top:27px; }
+    .progress-copy { display:flex; justify-content:space-between; gap:12px; color:var(--muted); font:11px var(--mono); text-transform:uppercase; letter-spacing:.08em; margin-bottom:9px; }
+    .progress-copy strong { color:var(--green); font-weight:700; }
+    .progress-track { height:7px; border-radius:99px; overflow:hidden; background:#33473e; }
+    .progress-fill { width:0%; height:100%; background:var(--green); box-shadow:0 0 14px rgba(237,190,108,.4); transition:width .2s ease; }
+    .count { text-align:right; white-space:nowrap; font:700 25px var(--mono); letter-spacing:-.06em; }
+    .count small { display:block; color:var(--muted); font:10px var(--mono); letter-spacing:.12em; text-transform:uppercase; }
+    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:25px 0 30px; flex-wrap:wrap; }
+    .filters { display:flex; flex-wrap:wrap; gap:7px; }
+    .filter { appearance:none; border:1px solid var(--line); background:#202e29; color:#d2d1c2; padding:8px 12px; border-radius:7px; font:11px var(--mono); cursor:pointer; transition:.15s ease; }
+    .filter:hover { border-color:#536063; color:var(--text); }
+    .filter.active { color:var(--green); border-color:rgba(237,190,108,.5); background:rgba(237,190,108,.07); }
+    .reset { appearance:none; background:transparent; border:0; padding:8px 0; color:#758184; font:11px var(--mono); cursor:pointer; text-decoration:underline; text-decoration-color:#465154; text-underline-offset:4px; }
+    .reset:hover { color:var(--red); text-decoration-color:var(--red); }
+    .toolbar-actions { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .copy-btn { appearance:none; border:1px solid rgba(237,190,108,.42); background:rgba(237,190,108,.08); color:var(--green); padding:9px 12px; border-radius:7px; font:700 11px var(--mono); letter-spacing:.04em; cursor:pointer; transition:.15s ease; }
+    .copy-btn:hover { background:rgba(237,190,108,.15); border-color:var(--green); box-shadow:0 0 16px rgba(237,190,108,.08); }
+    .copy-btn:focus-visible { outline:2px solid var(--green); outline-offset:3px; }
+    .copy-btn:disabled { opacity:.5; cursor:default; box-shadow:none; }
+    .copy-btn.copy-selection:not(:disabled) { background:var(--green); border-color:var(--green); color:var(--bg); }
+    .copy-btn.copy-selection:not(:disabled):hover { background:#ceff83; border-color:#ceff83; }
+    .copy-status { min-width:150px; color:var(--muted); font:10px var(--mono); text-align:right; }
+    .editable { cursor:text; border-radius:4px; transition:outline-color .15s ease, background .15s ease; }
+    .editable:hover { outline:1px dashed rgba(237,190,108,.32); outline-offset:4px; }
+    .editable:focus { outline:1px solid rgba(237,190,108,.7); outline-offset:4px; background:rgba(237,190,108,.035); }
+    .editable:empty:before { content:'Clique para editar...'; color:#647174; font-style:italic; }
+    .edit-hint { color:#718084; font:10px var(--mono); margin-top:10px; letter-spacing:.04em; }
+    .section { margin-top:27px; }
+    .section-head { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .section-index { color:var(--green); font:11px var(--mono); }
+    .section-title { margin:0; color:#c8d0d0; font:700 12px var(--mono); letter-spacing:.14em; text-transform:uppercase; }
+    .section-line { flex:1; height:1px; background:var(--line); }
+    .section-count { color:#687477; font:10px var(--mono); }
+    .task[hidden] { display:none; }
+    .task-list { display:grid; gap:9px; }
+    .task {
+      display:grid; grid-template-columns:24px minmax(0,1fr) auto; gap:13px; align-items:start;
+      padding:16px 17px; border:1px solid var(--line); border-radius:var(--radius);
+      background:linear-gradient(110deg, rgba(255,255,255,.018), transparent 55%), var(--panel);
+      transition:border-color .16s ease, background .16s ease, opacity .16s ease;
+    }
+    .task:hover { border-color:#455154; background-color:#13191a; }
+    .task.done { border-color:#314326; background:linear-gradient(100deg, rgba(237,190,108,.055), transparent 65%), #101512; }
+    .task.in-progress { border-color:rgba(255,180,84,.42); background:linear-gradient(100deg, rgba(255,180,84,.055), transparent 65%), #141411; }
+    .status-mark { width:11px; height:11px; margin:6px 0 0 4px; border:1px solid #687477; border-radius:50%; background:#252d2f; box-shadow:0 0 0 3px rgba(138,150,152,.06); }
+    .task.in-progress .status-mark { border-color:var(--orange); background:var(--orange); box-shadow:0 0 12px rgba(255,180,84,.28); }
+    .task.done .status-mark { border-color:var(--green); background:var(--green); box-shadow:0 0 12px rgba(237,190,108,.25); }
+    .filter:focus-visible, .reset:focus-visible { outline:2px solid var(--green); outline-offset:3px; }
+    .task-main { min-width:0; }
+    .task-title { margin:0; color:#e6eeee; font-size:14px; font-weight:650; letter-spacing:-.01em; }
+    .task.done .task-title { color:#a8b4a0; text-decoration:line-through; text-decoration-color:#74866b; }
+    .task-desc { margin:5px 0 0; color:#93a0a2; font-size:12.5px; line-height:1.55; }
+    .task.done .task-desc { color:#69766b; }
+    .task-image { margin-top:10px; }
+    .task-image img:not([hidden]) { display:block; max-width:100%; max-height:280px; object-fit:contain; border-radius:4px; }
+    .task-image-controls { display:flex; gap:7px; flex-wrap:wrap; margin-top:7px; }
+    .task-meta { display:flex; flex-direction:column; align-items:flex-end; gap:7px; padding-top:1px; }
+    .tag { display:inline-flex; align-items:center; border:1px solid #364043; padding:4px 7px; border-radius:4px; color:#aab5b6; background:#151b1d; font:10px var(--mono); white-space:nowrap; }
+    .tag.sol { color:var(--blue); border-color:rgba(132,207,255,.25); background:rgba(132,207,255,.055); }
+    .tag.astra { color:var(--purple); border-color:rgba(196,164,255,.25); background:rgba(196,164,255,.055); }
+    .tag.gemini { color:#70d6ff; border-color:rgba(112,214,255,.28); background:rgba(112,214,255,.07); }
+    .tag.new { color:var(--orange); border-color:rgba(255,180,84,.25); background:rgba(255,180,84,.055); }
+    .task-id { color:#596568; font:10px var(--mono); }
+    .task-controls { display:flex; flex-direction:column; align-items:flex-end; gap:7px; }
+    .status-select {
+      appearance:none; max-width:132px; border:1px solid #364043; border-radius:5px;
+      background:#151b1d; color:var(--status-pending); padding:5px 22px 5px 7px;
+      font:10px var(--mono); cursor:pointer;
+      background-image:linear-gradient(45deg, transparent 50%, #b8bdb0 50%),linear-gradient(135deg, #b8bdb0 50%, transparent 50%);
+      background-position:calc(100% - 10px) 9px,calc(100% - 6px) 9px;
+      background-size:4px 4px,4px 4px; background-repeat:no-repeat;
+    }
+    .status-select[data-status="in-progress"] { color:var(--orange); border-color:rgba(255,180,84,.35); }
+    .status-select[data-status="backlog"] { color:var(--blue); border-color:rgba(164,206,224,.35); }
+    .task[data-status="backlog"] .status-mark { border-color:var(--blue); }
+    .status-select[data-status="done"] { color:var(--green); border-color:rgba(237,190,108,.35); }
+    .status-select:focus-visible { outline:2px solid var(--green); outline-offset:3px; }
+
+    .task-copy {
+      appearance:none; border:1px solid #364043; border-radius:5px; background:#101617;
+      color:#9ba8aa; padding:5px 7px; font:9px var(--mono); letter-spacing:.04em; cursor:pointer;
+      transition:.15s ease;
+    }
+    .task-copy:hover { color:var(--green); border-color:rgba(237,190,108,.5); background:rgba(237,190,108,.06); }
+    .task-copy.copied { color:var(--green); border-color:rgba(237,190,108,.5); }
+    .task-selection { display:inline-flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); font:11px var(--mono); }
+    .patch-tag:has(input:checked) { color:var(--green); border-color:rgba(237,190,108,.35); }
+    .task-selection input { margin:0; accent-color:var(--green); }
+    .task-selection input:focus-visible { outline:2px solid var(--green); outline-offset:3px; }
+    .task-dependencies { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 10px; margin-top:10px; color:var(--muted); font:11px var(--mono); }
+    .task-dependencies a { color:var(--blue); overflow-wrap:anywhere; }
+    .task:target { outline:1px solid var(--green); }
+    .task-dialog { width:min(480px, calc(100% - 40px)); max-height:85vh; box-sizing:border-box; padding:20px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:var(--radius); }
+    .task-dialog::backdrop { background:#000a; }
+    .task-dialog h2 { margin:0 0 16px; font-size:18px; }
+    .task-form { display:grid; gap:12px; }
+    .task-field { display:grid; gap:5px; font-size:13px; }
+    .task-field :is(input, textarea, select) { padding:8px; border:1px solid #364043; border-radius:5px; background:#202e29; color:var(--text); font:inherit; }
+    .task-field textarea { resize:vertical; }
+    .dialog-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+    .dependency-options { display:grid; gap:8px; }
+    .dependency-options label { display:flex; align-items:baseline; gap:7px; font-size:13px; overflow-wrap:anywhere; }
+    .dependency-options input:disabled + span { color:var(--muted); }
+    .empty { display:none; text-align:center; padding:30px; color:var(--muted); border:1px dashed var(--line); border-radius:var(--radius); font:12px var(--mono); }
+    footer { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:34px; padding-top:15px; border-top:1px solid var(--line); color:#596568; font:10px var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+    @media (max-width:650px) {
+      .shell { width:min(100% - 22px, 1020px); padding-top:22px; }
+      .hero { padding:22px 18px; }
+      .stats { grid-template-columns:1fr; gap:13px; }
+      .count { text-align:left; font-size:21px; }
+      .task { grid-template-columns:22px minmax(0,1fr); gap:10px; padding:14px 12px; }
+      .task-meta { grid-column:2; flex-direction:row; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+      .task-controls { flex-direction:row; align-items:center; flex-wrap:wrap; }
+  
+    @media print {
+      body { background:#fff; color:#111; }
+      .shell { width:100%; padding:0; }
+      .hero,.task { background:#fff; color:#111; border-color:#bbb; }
+      .task-title,.section-title { color:#111; }
+      .task-desc,.intro { color:#444; }
+      .toolbar,.reset { display:none; }
+      .check { print-color-adjust:exact; }
+    }
+
+    body { background: linear-gradient(165deg,#234554 0,#162a38 34rem); }
+    .topline { margin-bottom: 20px; }
+    .brand { color:#f3dcad; font:700 14px var(--sans); letter-spacing:.08em; }
+    .brand-mark { border-radius: 3px; background:#f0c47e; box-shadow:none; }
+    .hero { border:1px solid #786648; border-top:4px solid #d7a75e; padding:clamp(20px,5vw,38px); }
+    .hero:after { display:none; }
+    h1, .section-title { font-family:Fraunces,Georgia,serif; text-transform:none; letter-spacing:-.02em; }
+    h1 { font-size:clamp(32px,6vw,52px); }
+    .section-title { font-size:23px; }
+    .section-line { background:#6d755e; }
+    .filter, .copy-btn, .status-select { border-radius:10px; }
+    .task[data-status="done"] .status-mark { background:#8fbc83; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topline">
+      <div class="brand"><span class="brand-mark"></span> Oficina do Vale</div>
+    </div>
+
+    <header class="hero">
+      <p class="eyebrow">Caderno da oficina</p>
+      <h1>Checklist de <span>desenvolvimento</span></h1>
+      <p class="intro editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="intro" aria-label="Editar introdução do checklist">Acompanhe os ajustes de coleta, as melhorias do arquipélago e os testes da próxima versão. Clique nos textos para editar.</p>
+      <div class="stats">
+        <div>
+          <div class="progress-copy"><span>Progresso geral</span><strong id="progress-label">0% concluído</strong></div>
+          <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <div class="count"><span id="done-count">00</span><small>de <span id="total-count">11</span> tarefas</small></div>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="filters" role="group" aria-label="Filtrar tarefas">
+        <button class="filter active" data-filter="all" type="button">TODAS</button>
+        <button class="filter" data-filter="backlog" type="button">BACKLOG</button>
+        <button class="filter" data-filter="pending" type="button">PENDENTES</button>
+        <button class="filter" data-filter="in-progress" type="button">EM ANDAMENTO</button>
+        <button class="filter" data-filter="done" type="button">CONCLUÍDAS</button>
+      </div>
+      <div class="toolbar-actions">
+        <button class="copy-btn" id="new-task" type="button">+ NOVA TAREFA</button>
+        <button class="copy-btn" id="copy-checklist" type="button">Copiar tudo</button>
+        <button class="copy-btn copy-selection" id="copy-selected" type="button" disabled>Copiar tarefas</button>
+        <span class="copy-status" id="copy-status" role="status" aria-live="polite"></span>
+        <button class="reset" id="reset" type="button">Limpar progresso</button>
+      </div>
+    </div>
+
+    <section class="section" data-section="coleta">
+      <div class="section-head"><h2 class="section-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="section-coleta" aria-label="Editar seção">Coleta e controles</h2><span class="section-line"></span><span class="section-count"></span></div>
+      <div class="task-list">
+        <article class="task" data-id="01" data-default-status="done">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-01-title">Separar machado e picareta</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-01-desc">Equipar machado para madeira e picareta para pedra, ferro e cristal.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#01</span></div>
+        </article>
+        <article class="task" data-id="02" data-default-status="done">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-02-title">Abrir projetos por interação</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-02-desc">Mostrar a inspeção apenas ao interagir com um ponto de construção.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#02</span></div>
+        </article>
+        <article class="task" data-id="03" data-default-status="done">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-03-title">Câmera livre e zoom</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-03-desc">Arrastar com o botão do meio, ajustar o zoom com a rodinha e recentralizar com Home.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#03</span></div>
+        </article>
+        <article class="task" data-id="04" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-04-title">Revisar coleta com a câmera afastada</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-04-desc">Conferir cliques em árvores e rochas após mover a câmera e mudar o zoom.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#04</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" data-section="mundo">
+      <div class="section-head"><h2 class="section-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="section-mundo" aria-label="Editar seção">Ilhas e direção de arte</h2><span class="section-line"></span><span class="section-count"></span></div>
+      <div class="task-list">
+        <article class="task" data-id="05" data-default-status="done">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-05-title">Ampliar ilhas e distribuir recursos</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-05-desc">Manter caminhos livres, recursos em agrupamentos variados e pontes conectadas.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#05</span></div>
+        </article>
+        <article class="task" data-id="06" data-default-status="done">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-06-title">Integrar os novos desenhos</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-06-desc">Usar os novos desenhos do personagem, da banca, do armazém, das árvores e das pedras.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#06</span></div>
+        </article>
+        <article class="task" data-id="07" data-default-status="done">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-07-title">Decorar o terreno das ilhas</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-07-desc">Adicionar vegetação, trepadeiras e elementos animados ao cenário.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#07</span></div>
+        </article>
+        <article class="task" data-id="08" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-08-title">Revisar leitura visual do mapa</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-08-desc">Conferir se a vegetação deixa trilhas, placas e zonas de projeto fáceis de encontrar.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#08</span></div>
+        </article>
+        <article class="task" data-id="12" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-12-title">Redesenhar a tela inicial da Oficina do Vale</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-12-desc">Dar à tela inicial uma identidade própria, usando o cenário das ilhas e o estilo artesanal do jogo como parte da composição. Simplificar o selo, o texto e os blocos de atalhos para tirar a aparência de interface genérica, mantendo a ação de iniciar ou continuar a jornada em destaque.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#12</span></div>
+        </article>
+        <article class="task" data-id="14" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-14-title">Sincronizar o ciclo do dia e a fauna com a hora real</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-14-desc">Fazer amanhecer, dia, entardecer e noite acompanharem a hora local do jogador. Transicionar suavemente as cores do céu e a iluminação das ilhas, mantendo recursos e caminhos legíveis. Atualizar o período ao abrir o jogo e ao voltar para a aba, inclusive na virada da meia-noite.
+
+Definir espécies e horários por ilha em uma configuração editável. Como ponto de partida, testar borboletas e pássaros de dia na Clareira do Vale, aves planando durante o dia na Doca dos Ventos, pequenos animais no começo da manhã ou no fim da tarde na Colina de Ferro e fauna noturna na Ilha de Cristal. Definir as espécies e faixas finais durante a implementação.
+
+Animar cada animal de acordo com seu comportamento, com ciclos de repouso, caminhada ou voo conforme a espécie. Fazer os animais entrarem ou saírem de cena gradualmente nas mudanças de horário. Usar a hora real para o ambiente e manter o relógio da simulação para animações, produção e respawn.
+
+Na validação, simular os quatro períodos e a virada da meia-noite, alternar de aba e conferir em diferentes níveis de zoom se as espécies corretas aparecem na ilha e no horário previstos.
+
+Stack e arquivos: TypeScript puro, Canvas 2D e Vite. Usar src/config/world.ts para as ilhas e src/rendering/world-terrain.ts para os efeitos de ambiente. Integrar o desenho em src/rendering/CanvasRenderer.ts e src/rendering/WorldRenderer.ts. Consultar src/core/GameClock.ts para separar o relógio da simulação da hora local.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#14</span></div>
+        </article>
+        <article class="task" data-id="15" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-15-title">Redesenhar as áreas de construção das pontes</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-15-desc">Trocar o retângulo tracejado por uma sinalização que combine com o cenário, com estacas ou cordas indicando o futuro trajeto da ponte. Deixar o nome e a dica de interação [E] legíveis na entrada da ponte em diferentes níveis de zoom.
+
+Stack e arquivos: TypeScript e Canvas 2D. Revisar src/rendering/BuildingRenderer.ts e consultar src/config/buildings.ts para as dimensões dos projetos.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#15</span></div>
+        </article>
+        <article class="task" data-id="16" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-16-title">Adicionar chuva aleatória e reações da fauna</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-16-desc">Sortear quando a chuva começa, quanto dura e até onde fica forte. Criar três níveis: garoa (1), chuva moderada (2) e chuva forte (3). Toda chuva começa em 1, só chega a 2 depois de passar por 1 e só chega a 3 depois de passar por 1 e 2 em ordem. Ao enfraquecer, descer pelos níveis intermediários antes de parar.
+
+Manter um clima aconchegante, com gotas e respingos, som ambiente suave e mudanças graduais de intensidade e luminosidade. Na chuva forte, usar relâmpagos ocasionais seguidos de trovões, mantendo o cenário legível.
+
+Animar os animais procurando abrigo quando começa a chover. Na chuva forte, os bichos ainda expostos podem se assustar e correr ou voar para se esconder com raios e trovões. Quando a chuva passar, fazer voltarem aos poucos, de acordo com a ilha e o horário em que cada espécie aparece.
+
+Stack e arquivos: TypeScript, Canvas 2D e Web Audio API. Integrar o clima ao relógio em src/core/GameClock.ts, ao desenho em src/rendering/CanvasRenderer.ts e src/rendering/WorldRenderer.ts, e à fauna em src/rendering/world-terrain.ts. Consultar src/config/world.ts para os horários e as espécies.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#16</span></div>
+        </article>
+        <article class="task" data-id="17" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-17-title">Sortear a posição dos recursos nas ilhas</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-17-desc">Sortear por RNG as posições iniciais de árvores, pedras, veios de ferro e cristais, gerando coordenadas dentro de cada ilha sem usar uma lista de pontos fixos. Ao quebrar um recurso, aguardar o tempo de respawn e sortear uma posição diferente da anterior para o mesmo tipo de recurso na mesma ilha. Nos dois sorteios, usar áreas caminháveis e ao alcance da coleta, deixar livres as entradas das pontes e os acessos às construções, e variar o espaçamento entre pontos isolados e pequenos grupos para evitar fileiras, simetrias e grandes aglomerados.
+
+Stack e arquivos: TypeScript. Configurar os recursos por ilha em src/config/world.ts e implementar o sorteio inicial e o respawn em src/gameplay/WorldSystem.ts, usando os limites das áreas caminháveis.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#17</span></div>
+        </article>
+        <article class="task" data-id="18" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-18-title">Mostrar as construções ganhando forma aos poucos</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-18-desc">Fazer cada projeto mudar visualmente no mapa conforme o jogador deposita materiais, com transições suaves entre fundação, estrutura parcial e acabamento. Dar etapas próprias a cada tipo de obra: a fornalha ganha base, paredes e chaminé, enquanto a ponte recebe tábuas a partir da margem de entrada. Ao carregar a partida, mostrar a etapa correspondente ao progresso salvo e liberar a função da construção somente ao concluir a obra.
+
+Stack e arquivos: TypeScript e Canvas 2D. Usar o progresso existente em src/gameplay/BuildingSystem.ts para desenhar as etapas em src/rendering/BuildingRenderer.ts e integrá-las em src/rendering/CanvasRenderer.ts.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#18</span></div>
+        </article>
+        <article class="task" data-id="20" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-20-title">Dar a cada ilha vegetação e detalhes próprios</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-20-desc">Criar vegetação que combine com cada ilha e usar detalhes do próprio ambiente, como afloramentos de rocha ou cristais, onde plantas não fizerem sentido. Melhorar especialmente a vegetação da Clareira do Vale, com mais variedade de formas, tamanhos e agrupamentos de grama, flores e arbustos. Manter a praça, as trilhas e os recursos de coleta fáceis de identificar.
+
+Stack e arquivos: TypeScript e Canvas 2D. Revisar a decoração por ilha em src/rendering/world-terrain.ts e consultar src/config/world.ts para as áreas e os pontos de coleta.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#20</span></div>
+        </article>
+        <article class="task" data-id="21" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-21-title">Remover a linha branca no meio das pontes</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-21-desc">Remover a linha branca que percorre o centro dos trechos de ponte em construção, mantendo as cordas e as estacas laterais como sinalização.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#21</span></div>
+        </article>
+        <article class="task" data-id="22" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-22-title">Melhorar o visual das estações de construção</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-22-desc">Refinar o visual da serraria, da fornalha, da oficina de engrenagens, da estação de drones e do cais do dirigível, com formas e materiais que ajudem a reconhecer cada estrutura e combinem com o cenário. Desenhar cada estrutura em peças independentes, como base, suportes e componentes próprios, para que possam aparecer uma a uma conforme o jogador deposita materiais na futura construção progressiva de pontes e estações (tarefa #18).</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#22</span></div>
+        </article>
+        <article class="task" data-id="23" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-23-title">Animar o balanço das pontes com o vento</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-23-desc">Fazer as pontes balançarem suavemente com o vento, com variações aleatórias no movimento.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#23</span></div>
+        </article>
+        <article class="task" data-id="24" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-24-title">Corrigir e melhorar o visual das nuvens</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-24-desc">Corrigir o erro visual das nuvens, refinar sua aparência e fazer com que suas formas variem aleatoriamente.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#24</span></div>
+        </article>
+        <article class="task" data-id="13" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-13-title">Melhorar o indicador de ataque</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-13-desc">O indicador de ataque usa uma seta amarela e um círculo branco sobre o alvo. Refinar o componente para deixá-lo mais integrado à direção de arte do jogo, mantendo legíveis a direção e a área do golpe.</p>
+            <div class="task-image">
+              <img src="checklist-assets/tarefa-13-indicador-de-ataque.png" alt="Indicador de ataque com seta amarela e círculo branco sobre uma árvore">
+            </div>
+          </div>
+          <div class="task-meta"><span class="task-id">#13</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" data-section="progressao">
+      <div class="section-head"><h2 class="section-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="section-progressao" aria-label="Editar seção">Progressão e polimento</h2><span class="section-line"></span><span class="section-count"></span></div>
+      <div class="task-list">
+        <article class="task" data-id="09" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-09-title">Testar o início da jornada</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-09-desc">Coletar madeira e pedra, construir a serraria e verificar a preparação para a primeira ponte.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#09</span></div>
+        </article>
+        <article class="task" data-id="10" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-10-title">Validar partidas salvas</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-10-desc">Carregar um progresso anterior e conferir posição, construções e inventário após as mudanças no mapa.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#10</span></div>
+        </article>
+        <article class="task" data-id="11" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-11-title">Revisar controles no celular</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-11-desc">Conferir joystick, golpe e interação em tela pequena.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#11</span></div>
+        </article>
+        <article class="task" data-id="19" data-default-status="pending">
+          <span class="status-mark" aria-hidden="true"></span>
+          <div class="task-main">
+            <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-19-title">Criar um tutorial inicial visual e aconchegante</h3>
+            <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-19-desc">Ensinar o básico na primeira jornada, sem diálogos ou caixas de texto longas. Usar ícones ilustrados, animações delicadas e pequenas pistas no cenário para guiar o jogador a andar, cortar madeira, quebrar pedra, recolher os recursos e depositar materiais na primeira construção. Mostrar uma ação por vez, avançar quando o jogador a realizar e adaptar os ícones aos controles de teclado, mouse ou toque.
+
+Stack e arquivos: TypeScript, Canvas 2D e interface HTML/CSS. Usar src/app/GameApp.ts para integrar o fluxo, src/ui/HUDView.ts e src/rendering/CanvasRenderer.ts para as pistas e src/input/InputManager.ts como referência dos controles.</p>
+          </div>
+          <div class="task-meta"><span class="task-id">#19</span></div>
+        </article>
+      </div>
+    </section>
+
+    <div class="empty" id="empty">NENHUMA TAREFA NESTE FILTRO.</div>
+    <footer><span>OFICINA DO VALE</span><span>PROGRESSO SALVO LOCALMENTE</span></footer>
+
+    <template id="task-template">
+      <article class="task">
+        <span class="status-mark" aria-hidden="true"></span>
+        <div class="task-main">
+          <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true"></h3>
+          <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true"></p>
+        </div>
+        <div class="task-meta"><span class="task-id"></span></div>
+      </article>
+    </template>
+
+    <dialog class="task-dialog" id="new-task-dialog" aria-labelledby="new-task-heading">
+      <h2 id="new-task-heading">Nova tarefa</h2>
+      <form class="task-form" id="new-task-form" method="dialog">
+        <label class="task-field">Título <input name="title" required pattern=".*\S.*" autofocus></label>
+        <label class="task-field">Descrição <textarea name="description" rows="3"></textarea></label>
+        <label class="task-field"><span id="new-task-section-label">Seção</span><select name="section" aria-labelledby="new-task-section-label" required></select></label>
+        <div class="dialog-actions">
+          <button class="filter" id="cancel-new-task" type="button">Cancelar</button>
+          <button class="copy-btn" value="create">Criar tarefa</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="task-dialog" id="dependencies-dialog" aria-labelledby="dependencies-heading">
+      <h2 id="dependencies-heading">Depende de</h2>
+      <form class="task-form" id="dependencies-form" method="dialog">
+        <div class="dependency-options" id="dependency-options"></div>
+        <div class="dialog-actions">
+          <button class="filter" value="cancel">Cancelar</button>
+          <button class="copy-btn" value="save">Salvar vínculos</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="task-dialog" id="text-attachment-dialog" aria-labelledby="text-attachment-heading">
+      <h2 id="text-attachment-heading">Anexo de texto</h2>
+      <form class="task-form" id="text-attachment-form" method="dialog">
+        <label class="task-field">Nome do arquivo <input name="filename" required></label>
+        <label class="task-field">Conteúdo <textarea name="body" rows="8" required></textarea></label>
+        <label class="task-field">Caminho completo (opcional) <input name="path" placeholder="C:\pasta\arquivo.txt"></label>
+        <small>Baixe o arquivo e salve-o na pasta desejada. Cole o caminho completo para incluí-lo na cópia da tarefa. Sem ele, a cópia inclui o nome do arquivo.</small>
+        <div class="dialog-actions">
+          <button class="filter" value="cancel" formnovalidate>Cancelar</button>
+          <button class="filter" name="remove" value="remove" formnovalidate>Remover anexo</button>
+          <button class="filter" type="button" id="download-text-attachment">Baixar arquivo</button>
+          <button class="copy-btn" value="save">Salvar anexo</button>
+        </div>
+      </form>
+    </dialog>
+  </main>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'oficina-do-vale-checklist-v1';
+      const tasks = [...document.querySelectorAll('.task')];
+      const editables = [...document.querySelectorAll('[data-edit-key]')];
+      const sections = [...document.querySelectorAll('[data-section]')];
+      const taskTemplate = document.getElementById('task-template');
+      const newTaskDialog = document.getElementById('new-task-dialog');
+      const newTaskForm = document.getElementById('new-task-form');
+      const dependenciesDialog = document.getElementById('dependencies-dialog');
+      const dependencyOptions = document.getElementById('dependency-options');
+      const textAttachmentDialog = document.getElementById('text-attachment-dialog');
+      const textAttachmentForm = document.getElementById('text-attachment-form');
+      const fill = document.getElementById('progress-fill');
+      const progressLabel = document.getElementById('progress-label');
+      const doneCount = document.getElementById('done-count');
+      const totalCount = document.getElementById('total-count');
+      const empty = document.getElementById('empty');
+      const filters = [...document.querySelectorAll('[data-filter]')];
+      const copyButton = document.getElementById('copy-checklist');
+      const copySelectedButton = document.getElementById('copy-selected');
+      const copyStatus = document.getElementById('copy-status');
+      let activeFilter = 'all';
+      let dependencyTask;
+      let textAttachmentTask;
+      const state = readState();
+      const selectedTasks = new Set(state.selectedTaskIds);
+      const patchTasks = new Set(Array.isArray(state.patchTaskIds) ? state.patchTaskIds : []);
+      let imageDatabase;
+
+      function readState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const stored = JSON.parse(raw || '{}');
+          const statuses = stored.statuses || Object.fromEntries(
+            Object.entries(stored.checks || {}).map(([id, checked]) => [id.replace('task-', ''), checked ? 'done' : 'pending'])
+          );
+          return {
+            statuses,
+            content: stored.content || {},
+            customTasks: stored.customTasks || [],
+            dependencies: stored.dependencies || {},
+            textAttachments: stored.textAttachments || {},
+            statusFilter: stored.statusFilter,
+            patchTaskIds: stored.patchTaskIds,
+            selectedTaskIds: Array.isArray(stored.selectedTaskIds) ? stored.selectedTaskIds : []
+          };
+        } catch {
+          return { statuses: {}, content: {}, customTasks: [], dependencies: {}, textAttachments: {}, selectedTaskIds: [] };
+        }
+      }
+
+      function saveState() {
+        state.statuses = {};
+        tasks.forEach(task => { state.statuses[task.dataset.id] = task.dataset.status || 'pending'; });
+        editables.forEach(element => {
+          if (!element.closest('[hidden]')) {
+            state.content[element.dataset.editKey] = element.innerText.replace(/\r/g, '').trimEnd();
+          }
+        });
+        state.statusFilter = activeFilter;
+        state.selectedTaskIds = [...selectedTasks];
+        state.patchTaskIds = [...patchTasks];
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        catch { showCopyStatus('NÃO FOI POSSÍVEL SALVAR LOCALMENTE.'); }
+      }
+
+      function restoreContent() {
+        // Versões anteriores salvavam até o texto original como edição local.
+        const previousResourceTaskText = {
+          'task-17-title': 'Espalhar os recursos de forma mais natural pelas ilhas',
+          'task-17-desc': 'Redistribuir árvores, pedras, veios de ferro e cristais para aproveitar melhor o espaço de cada ilha. Variar as distâncias e combinar pontos isolados com pequenos grupos, evitando fileiras, simetrias e grandes aglomerados. Manter os recursos ao alcance da coleta e deixar livres as entradas das pontes e os acessos às construções.\n\nStack e arquivos: TypeScript. Ajustar os pontos de coleta em src/config/world.ts e conferir as áreas caminháveis em src/gameplay/WorldSystem.ts.'
+        };
+        editables.forEach(element => {
+          const key = element.dataset.editKey;
+          const value = state.content[key];
+          if (typeof value === 'string' && value.replace(/\s+/g, ' ').trim() ===
+              previousResourceTaskText[key]?.replace(/\s+/g, ' ')) {
+            state.content[key] = element.textContent.trim();
+            return;
+          }
+          if (typeof value === 'string') element.textContent = value;
+        });
+      }
+
+      function setTaskStatus(task, status) {
+        if (task.dataset.status !== status && selectedTasks.delete(task.dataset.id)) {
+          task.querySelector('.task-selection:not(.patch-tag) input').checked = false;
+        }
+        task.dataset.status = status;
+        task.classList.toggle('done', status === 'done');
+        task.classList.toggle('in-progress', status === 'in-progress');
+        const select = task.querySelector('.status-select');
+        if (select) {
+          select.value = status;
+          select.dataset.status = status;
+        }
+      }
+
+      function appendTask(id, sectionId) {
+        const section = sections.find(section => section.dataset.section === sectionId);
+        if (!section) return;
+        const task = taskTemplate.content.firstElementChild.cloneNode(true);
+        task.dataset.id = id;
+        task.querySelector('.task-id').textContent = `#${id}`;
+        const title = task.querySelector('.task-title');
+        const description = task.querySelector('.task-desc');
+        title.dataset.editKey = `task-${id}-title`;
+        description.dataset.editKey = `task-${id}-desc`;
+        title.setAttribute('aria-label', `Editar título da tarefa ${id}`);
+        description.setAttribute('aria-label', `Editar descrição da tarefa ${id}`);
+        section.querySelector('.task-list').append(task);
+        tasks.push(task);
+        editables.push(title, description);
+        return task;
+      }
+
+      function taskLabel(task) {
+        return `#${task.dataset.id} ${task.querySelector('.task-title').textContent.trim() || 'Sem título'}`;
+      }
+
+      function dependenciesOf(id) {
+        return state.dependencies[id] || [];
+      }
+
+      function dependsOn(id, targetId, visited = new Set()) {
+        if (id === targetId) return true;
+        if (visited.has(id)) return false;
+        visited.add(id);
+        return dependenciesOf(id).some(nextId => dependsOn(nextId, targetId, visited));
+      }
+
+      function editDependencies(task) {
+        dependencyTask = task;
+        document.getElementById('dependencies-heading').textContent = `Depende de · ${taskLabel(task)}`;
+        dependencyOptions.replaceChildren();
+        tasks.filter(candidate => candidate !== task).forEach(candidate => {
+          const id = candidate.dataset.id;
+          const label = document.createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.name = 'dependency';
+          input.value = id;
+          input.checked = dependenciesOf(task.dataset.id).includes(id);
+          input.disabled = !input.checked && dependsOn(id, task.dataset.id);
+          const name = document.createElement('span');
+          name.textContent = taskLabel(candidate) + (input.disabled ? ' (dependência circular)' : '');
+          label.append(input, name);
+          dependencyOptions.append(label);
+        });
+        dependenciesDialog.showModal();
+      }
+
+      function renderDependencies() {
+        tasks.forEach(task => {
+          const list = task.querySelector('.task-dependencies');
+          const prerequisites = dependenciesOf(task.dataset.id)
+            .map(id => tasks.find(candidate => candidate.dataset.id === id))
+            .filter(Boolean);
+          list.replaceChildren();
+          list.hidden = prerequisites.length === 0;
+          if (!prerequisites.length) return;
+          list.append('DEPENDE DE');
+          prerequisites.forEach(candidate => {
+            const link = document.createElement('a');
+            link.href = `#${candidate.id}`;
+            link.textContent = taskLabel(candidate);
+            link.addEventListener('click', () => {
+              if (candidate.hidden) {
+                selectFilter('all');
+                applyFilter();
+                saveState();
+              }
+            });
+            list.append(link);
+          });
+        });
+      }
+
+      async function taskImageRequest(mode, request) {
+        imageDatabase ??= new Promise((resolve, reject) => {
+          const open = indexedDB.open(`${STORAGE_KEY}-images:${location.pathname}`, 1);
+          open.onupgradeneeded = () => open.result.createObjectStore('images');
+          open.onsuccess = () => resolve(open.result);
+          open.onerror = () => reject(open.error);
+        });
+        const database = await imageDatabase;
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction('images', mode);
+          const operation = request(transaction.objectStore('images'));
+          transaction.oncomplete = () => resolve(operation.result);
+          transaction.onabort = () => reject(transaction.error);
+        });
+      }
+
+      function setupTaskImage(task) {
+        const key = task.dataset.id;
+        const attachment = document.createElement('div');
+        attachment.className = 'task-image';
+        const preview = document.createElement('img');
+        preview.hidden = true;
+        const controls = document.createElement('div');
+        controls.className = 'task-image-controls';
+        const picker = document.createElement('input');
+        picker.type = 'file';
+        picker.accept = 'image/*';
+        picker.hidden = true;
+        const attach = document.createElement('button');
+        attach.type = 'button';
+        attach.className = 'task-copy';
+        attach.textContent = 'Adicionar imagem';
+        attach.disabled = true;
+        const paste = document.createElement('button');
+        paste.type = 'button';
+        paste.className = 'task-copy';
+        paste.textContent = 'Colar imagem (Ctrl+V)';
+        paste.disabled = true;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'task-copy';
+        remove.textContent = 'Remover imagem';
+        remove.hidden = true;
+        const feedback = document.createElement('span');
+        feedback.setAttribute('role', 'status');
+        controls.append(attach, paste, remove, picker);
+        attachment.append(preview, controls, feedback);
+        task.querySelector('.task-main').append(attachment);
+
+        function showImage(file) {
+          if (preview.src) URL.revokeObjectURL(preview.src);
+          if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.alt = file.name || 'Imagem anexada à tarefa';
+          } else {
+            preview.removeAttribute('src');
+          }
+          preview.hidden = !file;
+          remove.hidden = !file;
+          attach.textContent = file ? 'Trocar imagem' : 'Adicionar imagem';
+        }
+
+        async function updateImage(file) {
+          attach.disabled = paste.disabled = remove.disabled = true;
+          feedback.textContent = '';
+          try {
+            await taskImageRequest('readwrite', store => file ? store.put(file, key) : store.delete(key));
+            showImage(file);
+          } catch {
+            feedback.textContent = 'Não foi possível salvar a alteração da imagem.';
+          } finally {
+            attach.disabled = paste.disabled = remove.disabled = false;
+          }
+        }
+
+        attach.addEventListener('click', () => picker.click());
+        picker.addEventListener('change', () => {
+          const [file] = picker.files;
+          picker.value = '';
+          if (!file) return;
+          if (!file.type.startsWith('image/')) {
+            feedback.textContent = 'Selecione um arquivo de imagem.';
+            return;
+          }
+          updateImage(file);
+        });
+        paste.addEventListener('click', async () => {
+          paste.focus();
+          feedback.textContent = 'Pressione Ctrl+V para colar uma imagem nesta tarefa.';
+          if (!navigator.clipboard?.read) return;
+          try {
+            const items = await navigator.clipboard.read();
+            for (const item of items) {
+              const type = item.types.find(type => type.startsWith('image/'));
+              if (!type) continue;
+              const image = await item.getType(type);
+              if (!paste.disabled && document.activeElement === paste) await updateImage(image);
+              return;
+            }
+            feedback.textContent = 'Copie uma imagem e pressione Ctrl+V neste botão.';
+          } catch {
+            feedback.textContent = 'Pressione Ctrl+V para colar uma imagem nesta tarefa.';
+          }
+        });
+
+        paste.addEventListener('paste', event => {
+          const image = [...(event.clipboardData?.items ?? [])]
+            .find(item => item.kind === 'file' && item.type.startsWith('image/'))?.getAsFile();
+          if (!image || paste.disabled) {
+            feedback.textContent = 'Copie uma imagem antes de colar.';
+            return;
+          }
+          event.preventDefault();
+          updateImage(image);
+        });
+        remove.addEventListener('click', () => updateImage(null));
+        taskImageRequest('readonly', store => store.get(key)).then(file => {
+          showImage(file);
+          attach.disabled = paste.disabled = false;
+        }).catch(() => {
+          feedback.textContent = 'O navegador não disponibilizou o armazenamento de imagens.';
+        });
+      }
+
+      function renderTextAttachment(task) {
+        const attachment = state.textAttachments[task.dataset.id];
+        task.querySelector('.task-text-attachment').textContent = attachment
+          ? `Editar anexo: ${attachment.filename}` : 'Anexar como texto';
+      }
+
+      function setupTextAttachment(task) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'task-copy task-text-attachment';
+        task.querySelector('.task-image-controls').append(button);
+        renderTextAttachment(task);
+        button.addEventListener('click', () => {
+          textAttachmentTask = task;
+          const attachment = state.textAttachments[task.dataset.id];
+          const fields = textAttachmentForm.elements;
+          fields.filename.value = attachment?.filename ?? `tarefa-${task.dataset.id}.txt`;
+          fields.filename.setCustomValidity('');
+          fields.body.value = attachment?.body ?? '';
+          fields.path.value = attachment?.path ?? '';
+          fields.namedItem('remove').hidden = !attachment;
+          textAttachmentDialog.showModal();
+        });
+      }
+
+      function readTextAttachment() {
+        const fields = textAttachmentForm.elements;
+        const filename = fields.filename.value.trim();
+        fields.filename.setCustomValidity(
+          !filename || /[<>:"/\\|?*\x00-\x1f]|[. ]$/u.test(filename)
+            ? 'Digite um nome de arquivo válido.' : ''
+        );
+        if (!textAttachmentForm.reportValidity()) return;
+        return {
+          filename: /\.[^.]+$/u.test(filename) ? filename : `${filename}.txt`,
+          body: fields.body.value,
+          path: fields.path.value.trim().replace(/^"(.*)"$/u, '$1')
+        };
+      }
+
+      textAttachmentForm.elements.filename.addEventListener('input', event => event.target.setCustomValidity(''));
+      document.getElementById('download-text-attachment').addEventListener('click', () => {
+        const attachment = readTextAttachment();
+        if (!attachment) return;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([attachment.body], { type: 'text/plain;charset=utf-8' }));
+        link.download = attachment.filename;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      });
+      textAttachmentForm.addEventListener('submit', event => {
+        const action = event.submitter?.value;
+        if (action !== 'save' && action !== 'remove') return;
+        event.preventDefault();
+        const id = textAttachmentTask.dataset.id;
+        if (action === 'save') {
+          const attachment = readTextAttachment();
+          if (!attachment) return;
+          state.textAttachments[id] = attachment;
+        } else {
+          delete state.textAttachments[id];
+        }
+        renderTextAttachment(textAttachmentTask);
+        saveState();
+        textAttachmentDialog.close();
+      });
+
+      function setupTaskControls(task) {
+        task.id = `task-${task.dataset.id}`;
+        const dependencies = document.createElement('div');
+        dependencies.className = 'task-dependencies';
+        task.querySelector('.task-main').append(dependencies);
+        setupTaskImage(task);
+        setupTextAttachment(task);
+        const meta = task.querySelector('.task-meta');
+        const defaultStatus = task.dataset.defaultStatus || 'pending';
+        const status = state.statuses?.[task.dataset.id] || defaultStatus;
+        task.dataset.status = status;
+
+        const controls = document.createElement('div');
+        controls.className = 'task-controls';
+
+        const statusSelect = document.createElement('select');
+        statusSelect.className = 'status-select';
+        statusSelect.setAttribute('aria-label', `Status da tarefa ${task.dataset.id}`);
+        [
+          ['backlog', 'BACKLOG'],
+          ['pending', 'PENDENTE'],
+          ['in-progress', 'EM ANDAMENTO'],
+          ['done', 'CONCLUÍDA']
+        ].forEach(([value, label]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = label;
+          statusSelect.appendChild(option);
+        });
+        statusSelect.addEventListener('change', () => {
+          const status = statusSelect.value;
+          const affectedTasks = selectedTasks.has(task.dataset.id)
+            ? tasks.filter(candidate => selectedTasks.has(candidate.dataset.id))
+            : [task];
+          affectedTasks.forEach(candidate => setTaskStatus(candidate, status));
+          updateProgress();
+        });
+
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.className = 'task-copy';
+        copy.textContent = 'Copiar tarefa';
+        copy.setAttribute('aria-label', `Copiar tarefa ${task.dataset.id}`);
+        copy.addEventListener('click', async () => {
+          try {
+            await copyTasks([task]);
+            copy.textContent = '[ COPIADO ]';
+            copy.classList.add('copied');
+            showCopyStatus(`TAREFA #${task.dataset.id} COPIADA.`);
+            window.setTimeout(() => {
+              copy.textContent = 'Copiar tarefa';
+              copy.classList.remove('copied');
+            }, 1600);
+          } catch (error) {
+            showCopyStatus(`FALHA AO COPIAR TAREFA #${task.dataset.id}.`);
+            console.error(error);
+          }
+        });
+
+        const dependencyButton = document.createElement('button');
+        dependencyButton.type = 'button';
+        dependencyButton.className = 'task-copy';
+        dependencyButton.textContent = '[ DEPENDÊNCIAS ]';
+        dependencyButton.setAttribute('aria-label', `Editar dependências da tarefa ${task.dataset.id}`);
+        dependencyButton.addEventListener('click', () => editDependencies(task));
+        const selectionLabel = document.createElement('label');
+        selectionLabel.className = 'task-selection';
+        const selection = document.createElement('input');
+        selection.type = 'checkbox';
+        const taskKey = task.dataset.id;
+        selection.checked = selectedTasks.has(taskKey);
+        selection.setAttribute('aria-label', `Selecionar tarefa ${task.dataset.id} para copiar`);
+        selection.addEventListener('change', () => {
+          if (selection.checked) selectedTasks.add(taskKey);
+          else selectedTasks.delete(taskKey);
+          updateSelectionCount();
+          saveState();
+        });
+        selectionLabel.append(selection, 'Selecionar');
+        const patchLabel = document.createElement('label');
+        patchLabel.className = 'task-selection tag patch-tag';
+        const patchCheckbox = document.createElement('input');
+        patchCheckbox.type = 'checkbox';
+        patchCheckbox.checked = patchTasks.has(taskKey);
+        patchCheckbox.setAttribute('aria-label', `PATCH já enviado para a tarefa ${taskKey}`);
+        patchCheckbox.addEventListener('change', () => {
+          if (patchCheckbox.checked) patchTasks.add(taskKey);
+          else patchTasks.delete(taskKey);
+          saveState();
+        });
+        patchLabel.append(patchCheckbox, 'PATCH já enviado');
+        controls.append(statusSelect, patchLabel, dependencyButton, copy, selectionLabel);
+        const taskId = meta.querySelector('.task-id');
+        meta.insertBefore(controls, taskId);
+        setTaskStatus(task, status);
+      }
+
+      function updateProgress() {
+        const done = tasks.filter(task => task.dataset.status === 'done').length;
+        const inProgress = tasks.filter(task => task.dataset.status === 'in-progress').length;
+        const percent = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+        fill.style.width = percent + '%';
+        progressLabel.textContent = `${percent}% concluído · ${inProgress} em andamento`;
+        doneCount.textContent = String(done).padStart(2, '0');
+        totalCount.textContent = tasks.length;
+        updateSelectionCount();
+        saveState();
+        applyFilter();
+      }
+
+      function selectFilter(filter) {
+        activeFilter = filter;
+        filters.forEach(button => button.classList.toggle('active', button.dataset.filter === filter));
+      }
+
+      function updateSelectionCount() {
+        const count = selectedTasks.size;
+        copySelectedButton.disabled = count === 0;
+        copySelectedButton.textContent = count === 1 ? 'Copiar tarefa' : 'Copiar tarefas';
+        if (count) copySelectedButton.textContent += ` (${count})`;
+      }
+
+      function applyFilter() {
+        let visible = 0;
+        tasks.forEach(task => {
+          const status = task.dataset.status || 'pending';
+          const matchesStatus = activeFilter === 'all' || status === activeFilter;
+          const show = matchesStatus;
+          task.hidden = !show;
+          if (show) visible++;
+        });
+        document.querySelectorAll('.section').forEach(section => {
+          const hasVisible = [...section.querySelectorAll('.task')].some(task => !task.hidden);
+          section.hidden = !hasVisible;
+        });
+        empty.style.display = visible ? 'none' : 'block';
+      }
+
+      function showCopyStatus(message) {
+        copyStatus.textContent = message;
+        if (showCopyStatus.timeout) clearTimeout(showCopyStatus.timeout);
+        showCopyStatus.timeout = setTimeout(() => { copyStatus.textContent = ''; }, 2200);
+      }
+
+      function taskText(task) {
+        const lines = [...task.querySelectorAll('.task-title, .task-desc')]
+          .map(element => (task.hidden ? state.content[element.dataset.editKey] ?? element.innerText : element.innerText).trim())
+          .filter(Boolean);
+        const attachment = state.textAttachments[task.dataset.id];
+        if (attachment) lines.push(`Anexo: ${attachment.path || attachment.filename}`);
+        const projectFile = task.querySelector('.task-file-attachment');
+        if (projectFile) {
+          const url = new URL(projectFile.href);
+          const pathname = decodeURIComponent(url.pathname);
+          const path = url.protocol === 'file:' && /^\/[a-z]:\//i.test(pathname)
+            ? pathname.slice(1).replaceAll('/', '\\')
+            : url.protocol === 'file:' && !url.host ? pathname : url.href;
+          lines.push(`Anexo: ${path}`);
+        }
+        return lines.join('\n');
+      }
+
+      function copyTasks(tasksToCopy) {
+        const entries = tasksToCopy.map(task => ({
+          text: taskText(task),
+          image: task.querySelector('.task-image img:not([hidden])')
+        }));
+        const text = entries.map(entry => entry.text).join('\n\n');
+        if (!entries.some(entry => entry.image)) return copyText(text);
+        if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+          throw new Error('O navegador não permite copiar texto e imagens juntos.');
+        }
+        return navigator.clipboard.write([new ClipboardItem({
+          'text/plain': new Blob([text], { type: 'text/plain' }),
+          'text/html': buildTaskClipboardHtml(entries)
+        })]);
+      }
+
+      async function buildTaskClipboardHtml(entries) {
+        const documentFragment = document.createElement('div');
+        for (const { text, image } of entries) {
+          const section = document.createElement('div');
+          const description = document.createElement('p');
+          text.split('\n').forEach((line, index) => {
+            if (index) description.append(document.createElement('br'));
+            description.append(line);
+          });
+          section.append(description);
+          if (image) {
+            const file = await (await fetch(image.src)).blob();
+            const dataUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(file);
+            });
+            const embedded = document.createElement('img');
+            embedded.src = dataUrl;
+            embedded.alt = image.alt;
+            section.append(embedded);
+          }
+          documentFragment.append(section);
+        }
+        return new Blob([documentFragment.innerHTML], { type: 'text/html' });
+      }
+
+      async function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+        const temporary = document.createElement('textarea');
+        temporary.value = text;
+        temporary.setAttribute('readonly', '');
+        temporary.style.position = 'fixed';
+        temporary.style.opacity = '0';
+        temporary.style.pointerEvents = 'none';
+        document.body.appendChild(temporary);
+        temporary.select();
+        temporary.setSelectionRange(0, temporary.value.length);
+        const copied = document.execCommand('copy');
+        temporary.remove();
+        if (!copied) throw new Error('A cópia não foi autorizada pelo navegador.');
+      }
+
+      function setupEditable(element) {
+        element.addEventListener('input', () => {
+          saveState();
+          if (element.classList.contains('task-title')) renderDependencies();
+        });
+        element.addEventListener('blur', saveState);
+        element.addEventListener('keydown', event => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            element.blur();
+          }
+        });
+      }
+
+      function updateSectionCounts() {
+        sections.forEach(section => {
+          const count = section.querySelectorAll('.task').length;
+          section.querySelector('.section-count').textContent =
+            `${String(count).padStart(2, '0')} ${count === 1 ? 'ITEM' : 'ITENS'}`;
+        });
+      }
+
+      state.customTasks.forEach(({ id, section }) => appendTask(id, section));
+      const taskIds = new Set(tasks.map(task => task.dataset.id));
+      selectedTasks.forEach(id => { if (!taskIds.has(id)) selectedTasks.delete(id); });
+      tasks.forEach(setupTaskControls);
+      restoreContent();
+      editables.forEach(setupEditable);
+      renderDependencies();
+      updateSectionCounts();
+
+      document.getElementById('new-task').addEventListener('click', () => {
+        newTaskForm.reset();
+        newTaskForm.elements.section.replaceChildren(...sections.map(section =>
+          new Option(section.querySelector('.section-title').textContent, section.dataset.section)
+        ));
+        newTaskDialog.showModal();
+      });
+      document.getElementById('cancel-new-task').addEventListener('click', () => newTaskDialog.close());
+      newTaskForm.addEventListener('submit', event => {
+        if (event.submitter?.value !== 'create') return;
+        const data = new FormData(newTaskForm);
+        const section = data.get('section');
+        const id = String(Math.max(...tasks.map(task => Number(task.dataset.id)).filter(Number.isFinite)) + 1).padStart(2, '0');
+        const task = appendTask(id, section);
+        state.customTasks.push({ id, section });
+        task.querySelector('.task-title').textContent = data.get('title').trim();
+        task.querySelector('.task-desc').textContent = data.get('description').trim();
+        task.querySelectorAll('.editable').forEach(setupEditable);
+        setupTaskControls(task);
+        renderDependencies();
+        updateSectionCounts();
+        selectFilter('all');
+        applyFilter();
+        updateProgress();
+        event.preventDefault();
+        newTaskDialog.close();
+        task.querySelector('.task-title').focus();
+        task.scrollIntoView({ block: 'nearest' });
+      });
+      document.getElementById('dependencies-form').addEventListener('submit', event => {
+        if (event.submitter?.value !== 'save') return;
+        state.dependencies[dependencyTask.dataset.id] = new FormData(event.currentTarget).getAll('dependency');
+        renderDependencies();
+        saveState();
+      });
+      filters.forEach(button => button.addEventListener('click', () => {
+        selectFilter(button.dataset.filter);
+        applyFilter();
+        saveState();
+      }));
+      selectFilter(filters.some(button => button.dataset.filter === state.statusFilter) ? state.statusFilter : 'all');
+      copySelectedButton.addEventListener('click', async () => {
+        const selected = tasks.filter(task => selectedTasks.has(task.dataset.id));
+        if (!selected.length) return;
+        try {
+          await copyTasks(selected);
+          const message = selected.length === 1 ? '1 TAREFA COPIADA.' : `${selected.length} TAREFAS COPIADAS.`;
+          showCopyStatus(message);
+        } catch (error) {
+          showCopyStatus('FALHA AO COPIAR. TENTE NOVAMENTE.');
+          console.error(error);
+        }
+      });
+      copyButton.addEventListener('click', async () => {
+        try {
+          await copyTasks(tasks);
+          showCopyStatus('CHECKLIST COPIADO.');
+        } catch (error) {
+          showCopyStatus('FALHA AO COPIAR. TENTE NOVAMENTE.');
+          console.error(error);
+        }
+      });
+      document.getElementById('reset').addEventListener('click', () => {
+        if (!tasks.some(task => task.dataset.status !== 'pending')) return;
+        if (!window.confirm('Quer voltar todas as tarefas para PENDENTE e zerar o progresso?')) return;
+        tasks.forEach(task => setTaskStatus(task, 'pending'));
+        updateProgress();
+      });
+      updateProgress();
+    })();
+  </script>
+</body>
+</html>

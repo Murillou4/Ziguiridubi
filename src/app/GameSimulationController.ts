@@ -10,7 +10,7 @@ export class GameSimulationController {
     private readonly interactions = new PlayerInteractionController(context)
   ) {}
 
-  update(dt: number): void {
+  update(dt: number, isCatchingUp: boolean = false): void {
     const c = this.context;
     const clockInfo = c.clock.update(dt);
     const state = c.getState();
@@ -20,8 +20,14 @@ export class GameSimulationController {
     c.worldSystem.updateClouds(dt);
 
     if (!c.getIsPlaying()) {
-      c.renderer.camera.setIdlePan(c.clock.worldTime);
+      c.renderer.camera.setIdlePan(c.clock.worldTime, c.renderer.width, c.renderer.height);
       return;
+    }
+
+    if (c.audio?.update) {
+      c.audio.update(dt, c.clock.realTime.weather, isCatchingUp);
+    } else {
+      c.audio?.updateWeather?.(c.clock.realTime.weather);
     }
 
     if (clockInfo.isHitStopped) return;
@@ -38,7 +44,9 @@ export class GameSimulationController {
         dt,
         inputState,
         (currentState, x, y) => c.worldSystem.isPointWalkable(currentState, x, y),
-        node => this.interactions.triggerSwing(node)
+        node => {
+          if (!isCatchingUp) this.interactions.triggerSwing(node);
+        }
       );
     }
 
@@ -52,22 +60,24 @@ export class GameSimulationController {
         this.unloadTimer = 0.06;
         const resource = c.inventorySystem.unloadOneToStorage(state, player);
         if (resource) {
-          c.audio.playPickup();
-          c.ui.hudView.update(state, player, stats);
+          if (!isCatchingUp) c.audio.playPickup();
+          if (!isCatchingUp) c.ui.hudView.update(state, player, stats);
         }
       }
     }
 
     // 3. Nós e respawn do mundo.
     c.worldSystem.update(dt, node => {
-      c.renderer.effectsRenderer.addBurst(node.x, node.y, '#a7f3d0', 10);
+      if (!isCatchingUp) {
+        c.renderer.effectsRenderer.addBurst(node.x, node.y, '#a7f3d0', 10);
+      }
     });
 
     // 4. Drops físicos e coleta magnética.
-    c.gatheringSystem.updateDrops(player, stats, dt, drop => {
+    c.gatheringSystem.updateDrops(player, stats, dt, (x, y) => c.worldSystem.isPointWalkable(state, x, y), drop => {
       c.inventorySystem.addToBackpack(player, drop.resource, stats.maxBackpack);
-      c.audio.playPickup();
-      c.ui.hudView.update(state, player, stats);
+      if (!isCatchingUp) c.audio.playPickup();
+      if (!isCatchingUp) c.ui.hudView.update(state, player, stats);
     });
 
     // 5. Expedição, produção e automação.
@@ -76,30 +86,34 @@ export class GameSimulationController {
     c.droneSystem.update(state, stats, c.worldSystem.nodes, c.worldSystem.islands, dt);
 
     // 6. Efeitos e câmera.
-    c.renderer.effectsRenderer.update(dt);
-    c.renderer.camera.update(player.x, player.y, dt);
+    if (!isCatchingUp) {
+      c.renderer.effectsRenderer.update(dt);
+      c.renderer.camera.update(player.x, player.y, dt);
+    }
 
     // 7. Cartão contextual de inspeção.
-    const nearbyBlueprint = c.buildingSystem.getNearbyBlueprint(player.x, player.y, state);
-    const selectedBlueprint = c.ui.inspectionCard.activeInspectedZone;
-    const targetBlueprint = selectedBlueprint?.id === nearbyBlueprint?.id ? selectedBlueprint : null;
+    if (!isCatchingUp) {
+      const nearbyBlueprint = c.buildingSystem.getNearbyBlueprint(player.x, player.y, state);
+      const selectedBlueprint = c.ui.inspectionCard.activeInspectedZone;
+      const targetBlueprint = selectedBlueprint?.id === nearbyBlueprint?.id ? selectedBlueprint : null;
 
-    c.ui.inspectionCard.update(
-      targetBlueprint,
-      state,
-      player,
-      c.buildingSystem,
-      c.inventorySystem,
-      c.renderer.camera,
-      c.renderer.width,
-      c.renderer.height,
-      c.isModalOpen()
-    );
+      c.ui.inspectionCard.update(
+        targetBlueprint,
+        state,
+        player,
+        c.buildingSystem,
+        c.inventorySystem,
+        c.renderer.camera,
+        c.renderer.width,
+        c.renderer.height,
+        c.isModalOpen()
+      );
+    }
 
     // 8. Atualizações periódicas da interface e autosave.
-    if (clockInfo.shouldTickUI) {
+    if (clockInfo.shouldTickUI && !isCatchingUp) {
       c.ui.hudView.update(state, player, stats);
-      c.ui.refreshActiveModalResources?.(state, player);
+      c.ui.refreshActiveModalResources?.(state, player, stats);
       if (c.ui.activeModal === 'modalAirship' && state.airship.activeRouteId) {
         c.ui.airshipModal.render(state, player, stats);
       }

@@ -28,9 +28,6 @@ export interface DrawOptions {
 
 const TAU = Math.PI * 2;
 
-/* Deslocamento do truque do halo (ver halo()), em pixels de dispositivo. */
-const DESLOC_HALO = 4000;
-
 /* Paleta. Cada forma usa 2 ou 3 tons; contornos são um tom mais escuro da própria cor. */
 const COR = {
   sombra: '#2a1a0a',
@@ -134,34 +131,6 @@ function sombraDeContato(
   ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU);
   ctx.fill();
   ctx.globalAlpha = 1;
-}
-
-/*
- * Halo quente suave (sem borda dura).
- * Truque: a elipse é desenhada deslocada para fora da tela e o shadowOffsetX
- * a traz de volta. Assim só a sombra borrada (o brilho) aparece.
- * O deslocamento local é DESLOC_HALO / escala porque shadowOffset é em
- * pixels de dispositivo, não sofre a transformação do contexto.
- */
-function halo(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  raio: number,
-  escala: number,
-  intensidade: number,
-): void {
-  ctx.save();
-  ctx.globalAlpha = 0.4 * intensidade;
-  ctx.fillStyle = COR.brilho;
-  ctx.shadowColor = COR.brilho;
-  ctx.shadowBlur = 16;
-  ctx.shadowOffsetX = DESLOC_HALO;
-  ctx.shadowOffsetY = 0;
-  ctx.beginPath();
-  ctx.ellipse(cx - DESLOC_HALO / escala, cy, raio, raio, 0, 0, TAU);
-  ctx.fill();
-  ctx.restore();
 }
 
 /* Sparkle: cruz fina de luz que aparece e some (alfa controlado pelo chamador). */
@@ -600,9 +569,6 @@ export function drawMerchantStall(
   // sombra de contato (no chão, antes do pulinho)
   if (opts?.shadow ?? true) sombraDeContato(ctx, 0, 40, 9, -1, 0.3);
 
-  // brilho quente quando perto (por trás do prop)
-  if (near > 0.01) halo(ctx, 0, -44, 40, s, near);
-
   // "pulinho" de 1px quando perto
   ctx.translate(0, -Math.round(near * Math.max(0, Math.sin(t * 4))));
 
@@ -911,9 +877,6 @@ export function drawWarehouse(
     sombraDeContato(ctx, 0, 30, 6.5, -1, 0.3);
     sombraDeContato(ctx, -32, 9, 3, -1.5, 0.3);
   }
-
-  // brilho quente quando perto
-  if (near > 0.01) halo(ctx, 0, -33, 36, s, near);
 
   // "pulinho" de 1px quando perto
   ctx.translate(0, -Math.round(near * Math.max(0, Math.sin(t * 4))));

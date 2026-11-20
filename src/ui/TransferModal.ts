@@ -72,7 +72,7 @@ export class TransferModal {
           onPayloadLoaded(payload);
           if (fb) {
             fb.textContent = ' Progresso carregado com sucesso!';
-            fb.className = 'text-xs font-semibold text-emerald-300';
+            fb.className = 'text-xs font-semibold ui-ink-moss';
             fb.classList.remove('hidden');
           }
           this.eventBus.emit('sound:upgrade');
@@ -81,7 +81,7 @@ export class TransferModal {
         } catch (err: any) {
           if (fb) {
             fb.textContent = ' Código inválido: ' + (err?.message || 'Formato desconhecido');
-            fb.className = 'text-xs font-semibold text-rose-300';
+            fb.className = 'text-xs font-semibold ui-ink-clay';
             fb.classList.remove('hidden');
           }
         }
@@ -105,7 +105,7 @@ export class TransferModal {
             onPayloadLoaded(payload);
             if (fb) {
               fb.textContent = ' Arquivo JSON importado com sucesso!';
-              fb.className = 'text-xs font-semibold text-emerald-300';
+              fb.className = 'text-xs font-semibold ui-ink-moss';
               fb.classList.remove('hidden');
             }
             this.eventBus.emit('sound:upgrade');
@@ -114,7 +114,7 @@ export class TransferModal {
           } catch {
             if (fb) {
               fb.textContent = ' Arquivo JSON inválido.';
-              fb.className = 'text-xs font-semibold text-rose-300';
+              fb.className = 'text-xs font-semibold ui-ink-clay';
               fb.classList.remove('hidden');
             }
           }

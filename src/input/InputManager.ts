@@ -16,9 +16,16 @@ export class InputManager {
 
   constructor(private eventBus: EventBus) {}
 
-  init(canvas: HTMLCanvasElement): void {
+  resetInputs(): void {
+    this.keys = {};
+    this.virtualJoystick.reset();
+  }
+
+  init(canvas: HTMLCanvasElement, isPlaying: () => boolean, isModalOpen: () => boolean): void {
     // 1. Teclado
     window.addEventListener('keydown', (e) => {
+      if (!isPlaying()) return;
+
       const code = e.code;
       this.keys[code] = true;
 
@@ -45,6 +52,7 @@ export class InputManager {
       }
 
       if (code === 'Tab') {
+        if (isModalOpen()) return;
         e.preventDefault();
         this.eventBus.emit('input:openWorkshop');
         return;
@@ -81,6 +89,7 @@ export class InputManager {
       }
 
       if (code === 'Space') {
+        if (isModalOpen() && e.target instanceof HTMLButtonElement) return;
         e.preventDefault();
         this.eventBus.emit('input:swing');
       } else if (code === 'ShiftLeft' || code === 'ShiftRight') {
@@ -95,6 +104,20 @@ export class InputManager {
     window.addEventListener('keyup', (e) => {
       this.keys[e.code] = false;
     });
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('blur', () => {
+        this.resetInputs();
+      });
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          this.resetInputs();
+        }
+      });
+    }
 
     // 2. Mouse no Canvas
     canvas.addEventListener('mousemove', (e) => {

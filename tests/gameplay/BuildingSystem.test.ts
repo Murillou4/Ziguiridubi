@@ -61,4 +61,20 @@ describe('BuildingSystem', () => {
     expect(system.interactWithBlueprint('sawmill', state, player).success).toBe(false);
     expect(player.backpack).toEqual(['wood']);
   });
+
+  it('só aceita materiais no cais depois de construir a Ponte Norte', () => {
+    const state = createDefaultState();
+    const player = createDefaultPlayer();
+    const system = new BuildingSystem(new InventorySystem(), new EventBus());
+    Object.assign(state.storage, { planks: 20, ironIngot: 12, gears: 4, coins: 200 });
+
+    expect(system.interactWithBlueprint('airshipDock', state, player).success).toBe(false);
+    expect(state.builds.airshipDock.paid).toEqual({});
+    expect(state.storage.planks).toBe(20);
+
+    state.builds.northBridge.built = true;
+    expect(system.interactWithBlueprint('airshipDock', state, player).completed).toBe(true);
+    expect(state.builds.airshipDock.built).toBe(true);
+    expect(state.storage.planks).toBe(0);
+  });
 });

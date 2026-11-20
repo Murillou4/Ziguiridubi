@@ -1,0 +1,55 @@
+OFICINA DO VALE — COMO ADICIONAR TAREFAS AO CHECKLIST
+
+Use este guia junto do meu pedido. Quando eu enviar uma ideia ou relatar um
+problema, transforme o texto em uma tarefa e adicione ao checklist. Edite
+o checklist de verdade, em vez de só responder com uma sugestão de texto.
+
+1. Escreva a tarefa
+
+- Escreva em português do Brasil, com um título curto que comece com um verbo.
+- Faça uma descrição de uma a três frases. Diga o que acontece hoje, se o
+  pedido trouxer esse contexto, e o que deve acontecer depois da mudança.
+- Preserve minhas referências, condições e restrições. Não invente causas,
+  requisitos, prazos ou detalhes técnicos. Melhore a clareza, sem exagerar.
+- Use uma tarefa por mudança independente. Se já houver uma tarefa sobre o
+  mesmo ponto, complemente o texto existente quando isso preservar seu sentido.
+
+Exemplo de pedido: “quando afasto a câmera eu clico na pedra e ele erra”
+Título: Corrigir clique em pedras com zoom afastado
+Descrição: Ao afastar a câmera, o clique na pedra pode errar o alvo. Ajustar a
+seleção para que a pedra sob o cursor continue sendo reconhecida em qualquer zoom.
+
+2. Adicione ao arquivo
+
+- Edite oficina_do_vale_checklist.html, na raiz do projeto Ziguiridubi.
+- Escolha a seção pelo atributo data-section:
+  coleta — Coleta e controles
+  mundo — Ilhas e direção de arte
+  progressao — Progressão e polimento
+- No fim da div class="task-list" dessa seção, duplique um article class="task"
+  existente. Use o próximo ID numérico livre considerando todas as seções.
+  Troque o ID no data-id, nas duas chaves data-edit-key e no número exibido.
+- Use data-default-status="pending", salvo se eu pedir outro status.
+  Para tarefas de backlog, use data-default-status="backlog".
+- Edite só a tarefa. Contadores se atualizam automaticamente. Não mexa no
+  script, no CSS ou no armazenamento do navegador para cadastrar um item.
+- Trate o texto como texto: use &amp;, &lt; e &gt; quando precisar exibir
+  literalmente os caracteres &, < e > dentro do HTML.
+
+Exemplo de bloco (12 é só um exemplo; confira o próximo ID disponível):
+
+<article class="task" data-id="12" data-default-status="pending">
+  <span class="status-mark" aria-hidden="true"></span>
+  <div class="task-main">
+    <h3 class="task-title editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-12-title">Corrigir clique em pedras com zoom afastado</h3>
+    <p class="task-desc editable" contenteditable="plaintext-only" spellcheck="true" data-edit-key="task-12-desc">Ao afastar a câmera, o clique na pedra pode errar o alvo. Ajustar a seleção para que a pedra sob o cursor continue sendo reconhecida em qualquer zoom.</p>
+  </div>
+  <div class="task-meta"><span class="task-id">#12</span></div>
+</article>
+
+3. Confira antes de responder
+
+- Confira se o ID é único e se título, descrição e número usam o mesmo ID.
+- Se puder abrir o HTML, confira se o item aparece na seção e no filtro certo.
+- Informe o número e o título da tarefa adicionada. Este pedido é para
+  registrar a tarefa no checklist. Implemente a mudança só se eu pedir.

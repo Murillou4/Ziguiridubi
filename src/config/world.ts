@@ -68,99 +68,243 @@ export const ISLANDS_DEF: IslandDef[] = [
   }
 ];
 
-export interface NodeSpawnPoint {
-  type: NodeType;
-  x: number;
-  y: number;
-  islandId: string;
+export const ISLAND_RESOURCE_COUNTS: Record<string, Readonly<Partial<Record<NodeType, number>>>> = {
+  hub: { tree: 17, rock: 9 },
+  east_hill: { iron: 11, rock: 5, tree: 2 },
+  north_dock: { tree: 6, rock: 4 },
+  west_crystal: { ether: 11, rock: 1 }
+};
+
+export const HUB_PLAZA = { x: 0, y: 8, radiusX: 190, radiusY: 130 };
+
+export type FaunaLocomotion = 'flutter' | 'songbird' | 'soar' | 'ground_hop' | 'ground_walk' | 'nocturnal_glow';
+
+export type FaunaSpeciesId =
+  | 'meadow_butterfly'
+  | 'valley_songbird'
+  | 'wind_gull'
+  | 'breeze_swift'
+  | 'hill_hare'
+  | 'copper_hedgehog'
+  | 'crystal_moth'
+  | 'ether_owl';
+
+/** Faixa horária local em horas decimais [0, 24). Suporta virada da meia-noite (ex.: 18.5 -> 5.5). */
+export interface TimeWindow {
+  startHour: number;
+  endHour: number;
 }
 
-const ORIGINAL_NODE_SPAWNS: NodeSpawnPoint[] = [
-  // Clareira do Vale (Hub)
-  { type: 'tree', x: -265, y: -175, islandId: 'hub' },
-  { type: 'tree', x: -285, y: -35,  islandId: 'hub' },
-  { type: 'tree', x: -265, y: 185,  islandId: 'hub' },
-  { type: 'tree', x: -125, y: 215,  islandId: 'hub' },
-  { type: 'tree', x: 135,  y: 215,  islandId: 'hub' },
-  { type: 'tree', x: 270,  y: 185,  islandId: 'hub' },
-  { type: 'tree', x: 280,  y: -175, islandId: 'hub' },
-  { type: 'tree', x: -115, y: -205, islandId: 'hub' },
-  { type: 'tree', x: 95,   y: -205, islandId: 'hub' },
-  { type: 'rock', x: -285, y: 80,   islandId: 'hub' },
-  { type: 'rock', x: 275,  y: 80,   islandId: 'hub' },
-  { type: 'rock', x: 225,  y: -205, islandId: 'hub' },
-  { type: 'rock', x: -220, y: -205, islandId: 'hub' },
-  { type: 'tree', x: -320, y: 275, islandId: 'hub' },
-  { type: 'tree', x: 300, y: 290, islandId: 'hub' },
-  { type: 'tree', x: 0, y: 320, islandId: 'hub' },
-  { type: 'rock', x: -180, y: 315, islandId: 'hub' },
-  { type: 'rock', x: 170, y: 315, islandId: 'hub' },
-  { type: 'tree', x: -220, y: -125, islandId: 'hub' },
-  { type: 'tree', x: -320, y: 25, islandId: 'hub' },
-  { type: 'tree', x: 225, y: -125, islandId: 'hub' },
-  { type: 'tree', x: 330, y: 130, islandId: 'hub' },
-  { type: 'tree', x: -245, y: 320, islandId: 'hub' },
-  { type: 'rock', x: -115, y: 275, islandId: 'hub' },
-  { type: 'rock', x: 245, y: 250, islandId: 'hub' },
-  { type: 'rock', x: 150, y: -155, islandId: 'hub' },
+export interface FaunaSpeciesDef {
+  id: FaunaSpeciesId;
+  name: string;
+  locomotion: FaunaLocomotion;
+  airborne: boolean;
+  speed: number;
+  cruiseAltitude: number;
+  restDuration: [number, number];
+  moveDuration: [number, number];
+  scale: number;
+  primaryColors: readonly string[];
+  accentColor: string;
+  glowColor?: string;
+}
 
-  // Colina de Ferro (East Hill)
-  { type: 'iron', x: 610, y: -135, islandId: 'east_hill' },
-  { type: 'iron', x: 740, y: -165, islandId: 'east_hill' },
-  { type: 'iron', x: 900, y: -125, islandId: 'east_hill' },
-  { type: 'iron', x: 955, y: 25,   islandId: 'east_hill' },
-  { type: 'iron', x: 860, y: 145,  islandId: 'east_hill' },
-  { type: 'iron', x: 685, y: 145,  islandId: 'east_hill' },
-  { type: 'iron', x: 770, y: 5,    islandId: 'east_hill' },
-  { type: 'rock', x: 575, y: 115,  islandId: 'east_hill' },
-  { type: 'rock', x: 965, y: -85,  islandId: 'east_hill' },
-  { type: 'rock', x: 630, y: -25,  islandId: 'east_hill' },
-  { type: 'tree', x: 825, y: -175, islandId: 'east_hill' },
-  { type: 'tree', x: 925, y: 115,  islandId: 'east_hill' },
-  { type: 'iron', x: 650, y: 35, islandId: 'east_hill' },
-  { type: 'iron', x: 820, y: -65, islandId: 'east_hill' },
-  { type: 'rock', x: 780, y: 110, islandId: 'east_hill' },
-  { type: 'iron', x: 690, y: -95, islandId: 'east_hill' },
-  { type: 'iron', x: 905, y: -30, islandId: 'east_hill' },
-  { type: 'rock', x: 850, y: 30, islandId: 'east_hill' },
+export interface IslandFaunaEntry {
+  speciesId: FaunaSpeciesId;
+  count: number;
+  windows: readonly TimeWindow[];
+  /** Duração da entrada/saída gradual (em minutos reais) nas bordas de cada janela. */
+  fadeMinutes: number;
+  /** Escalonamento entre indivíduos da mesma espécie para não surgirem todos ao mesmo tempo. */
+  staggerMinutes: number;
+}
 
-  // Doca dos Ventos (North Dock)
-  { type: 'tree', x: -175, y: -475, islandId: 'north_dock' },
-  { type: 'tree', x: 175,  y: -475, islandId: 'north_dock' },
-  { type: 'tree', x: 165,  y: -665, islandId: 'north_dock' },
-  { type: 'rock', x: -165, y: -665, islandId: 'north_dock' },
-  { type: 'rock', x: 185,  y: -565, islandId: 'north_dock' },
-  { type: 'tree', x: -245, y: -565, islandId: 'north_dock' },
-  { type: 'tree', x: 235, y: -635, islandId: 'north_dock' },
-  { type: 'rock', x: -70, y: -715, islandId: 'north_dock' },
-  { type: 'tree', x: -235, y: -710, islandId: 'north_dock' },
-  { type: 'rock', x: 240, y: -515, islandId: 'north_dock' },
+export const FAUNA_SPECIES_DEF: Record<FaunaSpeciesId, FaunaSpeciesDef> = {
+  meadow_butterfly: {
+    id: 'meadow_butterfly',
+    name: 'Borboleta do Prado',
+    locomotion: 'flutter',
+    airborne: true,
+    speed: 34,
+    cruiseAltitude: 18,
+    restDuration: [1.8, 4.2],
+    moveDuration: [3.2, 6.5],
+    scale: 1,
+    primaryColors: ['#ffd35c', '#ff9fb8', '#8fd3ff', '#ffa86b', '#c8a6ff'],
+    accentColor: '#5a3f2a'
+  },
+  valley_songbird: {
+    id: 'valley_songbird',
+    name: 'Pássaro Canoro do Vale',
+    locomotion: 'songbird',
+    airborne: false,
+    speed: 68,
+    cruiseAltitude: 28,
+    restDuration: [2.4, 5.4],
+    moveDuration: [1.4, 2.8],
+    scale: 1,
+    primaryColors: ['#60a5fa', '#f59e0b', '#fb7185', '#34d399'],
+    accentColor: '#fef3c7'
+  },
+  wind_gull: {
+    id: 'wind_gull',
+    name: 'Gaivota dos Ventos',
+    locomotion: 'soar',
+    airborne: true,
+    speed: 78,
+    cruiseAltitude: 46,
+    restDuration: [2.0, 4.0],
+    moveDuration: [6.0, 12.0],
+    scale: 1.15,
+    primaryColors: ['#f8fafc', '#e2e8f0'],
+    accentColor: '#64748b'
+  },
+  breeze_swift: {
+    id: 'breeze_swift',
+    name: 'Andorinha da Brisa',
+    locomotion: 'soar',
+    airborne: true,
+    speed: 96,
+    cruiseAltitude: 36,
+    restDuration: [1.5, 3.0],
+    moveDuration: [5.0, 9.0],
+    scale: 0.9,
+    primaryColors: ['#38bdf8', '#1e3a8a'],
+    accentColor: '#bae6fd'
+  },
+  hill_hare: {
+    id: 'hill_hare',
+    name: 'Lebre da Colina',
+    locomotion: 'ground_hop',
+    airborne: false,
+    speed: 56,
+    cruiseAltitude: 0,
+    restDuration: [2.8, 6.2],
+    moveDuration: [1.2, 2.5],
+    scale: 1,
+    primaryColors: ['#d6b892', '#c49a6c', '#e7d3b5'],
+    accentColor: '#fbcfe8'
+  },
+  copper_hedgehog: {
+    id: 'copper_hedgehog',
+    name: 'Ouriço Ferrugem',
+    locomotion: 'ground_walk',
+    airborne: false,
+    speed: 32,
+    cruiseAltitude: 0,
+    restDuration: [2.2, 4.8],
+    moveDuration: [2.0, 4.2],
+    scale: 0.95,
+    primaryColors: ['#9a5b34', '#7c4726'],
+    accentColor: '#f5d0a9'
+  },
+  crystal_moth: {
+    id: 'crystal_moth',
+    name: 'Mariposa de Cristal',
+    locomotion: 'nocturnal_glow',
+    airborne: true,
+    speed: 30,
+    cruiseAltitude: 22,
+    restDuration: [2.0, 4.5],
+    moveDuration: [4.0, 7.5],
+    scale: 1.05,
+    primaryColors: ['#67e8f9', '#c084fc', '#a5f3fc'],
+    accentColor: '#e0f2fe',
+    glowColor: '#67e8f9'
+  },
+  ether_owl: {
+    id: 'ether_owl',
+    name: 'Coruja Etérea',
+    locomotion: 'soar',
+    airborne: true,
+    speed: 58,
+    cruiseAltitude: 38,
+    restDuration: [4.0, 8.0],
+    moveDuration: [3.2, 5.8],
+    scale: 1.1,
+    primaryColors: ['#cbd5e1', '#94a3b8'],
+    accentColor: '#fde047',
+    glowColor: '#bae6fd'
+  }
+};
 
-  // Ilha de Cristal (West Crystal)
-  { type: 'ether', x: -620, y: -135, islandId: 'west_crystal' },
-  { type: 'ether', x: -765, y: -165, islandId: 'west_crystal' },
-  { type: 'ether', x: -920, y: -120, islandId: 'west_crystal' },
-  { type: 'ether', x: -950, y: 35,   islandId: 'west_crystal' },
-  { type: 'ether', x: -850, y: 150,  islandId: 'west_crystal' },
-  { type: 'ether', x: -660, y: 145,  islandId: 'west_crystal' },
-  { type: 'ether', x: -775, y: 10,   islandId: 'west_crystal' },
-  { type: 'ether', x: -680, y: -40, islandId: 'west_crystal' },
-  { type: 'ether', x: -870, y: -30, islandId: 'west_crystal' },
-  { type: 'rock', x: -760, y: 130, islandId: 'west_crystal' },
-  { type: 'ether', x: -715, y: -115, islandId: 'west_crystal' },
-  { type: 'ether', x: -920, y: 110, islandId: 'west_crystal' }
-];
-
-// Spread resources across the enlarged islands while keeping the bridges in place.
-export const INITIAL_NODE_SPAWNS: NodeSpawnPoint[] = ORIGINAL_NODE_SPAWNS.map(spawn => {
-  const oldCenter = spawn.islandId === 'east_hill' ? { x: 760, y: 0 }
-    : spawn.islandId === 'west_crystal' ? { x: -760, y: 0 }
-    : spawn.islandId === 'north_dock' ? { x: 0, y: -560 }
-    : { x: 0, y: 0 };
-  const island = ISLANDS_DEF.find(item => item.id === spawn.islandId)!;
-  return {
-    ...spawn,
-    x: island.x + (spawn.x - oldCenter.x) * (spawn.islandId === 'hub' ? 1.4 : 1.25),
-    y: spawn.islandId === 'hub' ? spawn.y * 1.4 : island.y + (spawn.y - oldCenter.y) * 1.25
-  };
-});
+/**
+ * Configuração editável por ilha:
+ * - Clareira do Vale (hub): borboletas e pássaros durante o dia
+ * - Doca dos Ventos (north_dock): aves planando durante o dia
+ * - Colina de Ferro (east_hill): pequenos animais no começo da manhã e fim da tarde
+ * - Ilha de Cristal (west_crystal): fauna noturna (cruzando a meia-noite)
+ */
+export const ISLAND_FAUNA_CONFIG: Record<string, readonly IslandFaunaEntry[]> = {
+  hub: [
+    {
+      speciesId: 'meadow_butterfly',
+      count: 6,
+      windows: [{ startHour: 6.5, endHour: 17.5 }],
+      fadeMinutes: 30,
+      staggerMinutes: 14
+    },
+    {
+      speciesId: 'valley_songbird',
+      count: 4,
+      windows: [{ startHour: 5.5, endHour: 18.0 }],
+      fadeMinutes: 30,
+      staggerMinutes: 12
+    }
+  ],
+  north_dock: [
+    {
+      speciesId: 'wind_gull',
+      count: 4,
+      windows: [{ startHour: 6.0, endHour: 18.5 }],
+      fadeMinutes: 35,
+      staggerMinutes: 15
+    },
+    {
+      speciesId: 'breeze_swift',
+      count: 2,
+      windows: [{ startHour: 8.0, endHour: 16.5 }],
+      fadeMinutes: 25,
+      staggerMinutes: 10
+    }
+  ],
+  east_hill: [
+    {
+      speciesId: 'hill_hare',
+      count: 3,
+      windows: [
+        { startHour: 5.0, endHour: 9.0 },
+        { startHour: 16.5, endHour: 19.5 }
+      ],
+      fadeMinutes: 25,
+      staggerMinutes: 10
+    },
+    {
+      speciesId: 'copper_hedgehog',
+      count: 2,
+      windows: [
+        { startHour: 5.5, endHour: 8.5 },
+        { startHour: 17.0, endHour: 19.5 }
+      ],
+      fadeMinutes: 25,
+      staggerMinutes: 8
+    }
+  ],
+  west_crystal: [
+    {
+      speciesId: 'crystal_moth',
+      count: 5,
+      windows: [{ startHour: 18.5, endHour: 5.5 }],
+      fadeMinutes: 35,
+      staggerMinutes: 15
+    },
+    {
+      speciesId: 'ether_owl',
+      count: 2,
+      windows: [{ startHour: 19.5, endHour: 5.0 }],
+      fadeMinutes: 35,
+      staggerMinutes: 12
+    }
+  ]
+};

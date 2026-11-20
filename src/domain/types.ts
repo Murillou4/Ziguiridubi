@@ -120,6 +120,7 @@ export interface ResourceNode {
 }
 
 export interface DropItem {
+  seed?: number;
   resource: ResourceId;
   x: number;
   y: number;

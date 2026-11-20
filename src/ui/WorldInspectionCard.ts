@@ -1,8 +1,9 @@
 import { GameState, PlayerState, ResourceId } from '../domain/types.ts';
-import { BlueprintConfig } from '../config/buildings.ts';
+import { BLUEPRINTS_DEF, BlueprintConfig } from '../config/buildings.ts';
 import { RESOURCES } from '../config/resources.ts';
 import { BuildingSystem } from '../gameplay/BuildingSystem.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
+import { resourceIcon } from './resource-icon.ts';
 
 export class WorldInspectionCard {
   public activeInspectedZone: BlueprintConfig | null = null;
@@ -77,12 +78,12 @@ export class WorldInspectionCard {
       return `
         <div class="flex items-center justify-between ${
           satisfied
-            ? 'text-emerald-300'
+            ? 'ui-ink-moss'
             : haveInBag >= missing
-            ? 'text-emerald-200'
-            : 'text-rose-200'
+            ? 'ui-ink-moss'
+            : 'ui-ink-clay'
         }">
-          <span>${def ? def.icon : ''} ${def ? def.name : res}</span>
+          <span>${resourceIcon(res, true)} ${def.name}</span>
           <span class="font-bold">${paid + Math.min(missing, haveInBag)}/${needed} ${
         satisfied ? '✓' : ''
       }</span>
@@ -93,16 +94,21 @@ export class WorldInspectionCard {
     if (costsEl) costsEl.innerHTML = costsHtml;
 
     if (btnEl && btnTextEl) {
-      if (canDepositAny) {
+      const requiredBuild = targetBp.requiresBuild;
+      const blockedByBuild = requiredBuild && !state.builds[requiredBuild]?.built;
+      if (canDepositAny && !blockedByBuild) {
         btnEl.disabled = false;
         btnEl.className =
-          'mt-3 w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5';
+          'mt-3 w-full py-2 px-3 rounded-xl ui-fill-honey ui-hover-honey ui-ink font-bold text-xs shadow transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5';
         btnTextEl.textContent = '[E] Construir / Depositar Recursos';
       } else {
         btnEl.disabled = true;
         btnEl.className =
-          'mt-3 w-full py-2 px-3 rounded-xl bg-stone-800 text-stone-400 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed';
-        btnTextEl.textContent = 'Colete ou Venda Recursos para Construir';
+          'mt-3 w-full py-2 px-3 rounded-xl ui-fill-inset ui-ink-muted font-semibold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed';
+        const prerequisite = BLUEPRINTS_DEF.find(bp => bp.id === requiredBuild);
+        btnTextEl.textContent = blockedByBuild && prerequisite
+          ? `Requer ${prerequisite.name.split(':')[0]}`
+          : 'Colete ou Venda Recursos para Construir';
       }
     }
 

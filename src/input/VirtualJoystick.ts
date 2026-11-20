@@ -74,4 +74,14 @@ export class VirtualJoystick {
     this.zoneEl.addEventListener('touchend', endJoy);
     this.zoneEl.addEventListener('touchcancel', endJoy);
   }
+
+  reset(): void {
+    this.state.active = false;
+    this.state.id = null;
+    this.state.dx = 0;
+    this.state.dy = 0;
+    if (this.knobEl) {
+      this.knobEl.style.transform = 'translate(0px, 0px)';
+    }
+  }
 }

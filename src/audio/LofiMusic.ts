@@ -1,9 +1,14 @@
 import { AudioSettings } from '../domain/types.ts';
 
 export class LofiMusic {
-  private timer: number | null = null;
+  private isLoopRunning: boolean = false;
   private chordIndex: number = 0;
   private stepIndex: number = 0;
+  private stepAccumulatorSec: number = 0;
+  private readonly stepDurationSec: number = 0.415;
+  private ctx: AudioContext | null = null;
+  private musicGain: GainNode | null = null;
+  private settings: AudioSettings | null = null;
 
   // Acordes Lo-Fi suaves (Fmaj9 -> Em7 -> Dm9 -> Cmaj9)
   public readonly chords = [
@@ -37,38 +42,56 @@ export class LofiMusic {
   }
 
   startLoop(ctx: AudioContext, musicGain: GainNode, settings: AudioSettings): void {
-    if (this.timer) clearInterval(this.timer);
-    const stepMs = 415;
-
-    const tick = () => {
-      if (!ctx || ctx.state !== 'running' || settings.musicMuted) return;
-      const stepInBar = this.stepIndex % 8;
-
-      if (stepInBar === 0) {
-        const chord = this.chords[this.chordIndex % this.chords.length];
-        this.playChord(ctx, musicGain, chord, 3.2);
-        this.chordIndex++;
-      }
-      if (stepInBar === 3 || (stepInBar === 6 && Math.random() > 0.35)) {
-        const chord = this.chords[(this.chordIndex - 1 + this.chords.length) % this.chords.length];
-        const note = chord[Math.floor(Math.random() * chord.length)] * 2;
-        this.playPluck(ctx, musicGain, note, 0.65);
-      }
-      if (stepInBar === 0 || stepInBar === 5) this.playKick(ctx, musicGain);
-      else if (stepInBar === 2 || stepInBar === 6) this.playRim(ctx, musicGain);
-
-      this.stepIndex++;
-    };
-
-    tick();
-    this.timer = window.setInterval(tick, stepMs);
+    this.ctx = ctx;
+    this.musicGain = musicGain;
+    this.settings = settings;
+    this.isLoopRunning = true;
+    this.stepAccumulatorSec = 0;
+    this.stepIndex = 0;
+    this.chordIndex = 0;
+    this.playStep(ctx, musicGain, settings);
   }
 
   stopLoop(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    this.isLoopRunning = false;
+    this.stepAccumulatorSec = 0;
+  }
+
+  update(dt: number, settings?: AudioSettings, isCatchingUp: boolean = false): void {
+    if (!this.isLoopRunning || !this.ctx || !this.musicGain) return;
+    const currentSettings = settings ?? this.settings;
+    if (!currentSettings || this.ctx.state !== 'running' || currentSettings.musicMuted) return;
+
+    if (isCatchingUp) {
+      this.stepAccumulatorSec = 0;
+      return;
     }
+
+    this.stepAccumulatorSec += dt;
+    while (this.stepAccumulatorSec >= this.stepDurationSec) {
+      this.stepAccumulatorSec -= this.stepDurationSec;
+      this.playStep(this.ctx, this.musicGain, currentSettings);
+    }
+  }
+
+  private playStep(ctx: AudioContext, musicGain: GainNode, settings: AudioSettings): void {
+    if (!ctx || ctx.state !== 'running' || settings.musicMuted) return;
+    const stepInBar = this.stepIndex % 8;
+
+    if (stepInBar === 0) {
+      const chord = this.chords[this.chordIndex % this.chords.length];
+      this.playChord(ctx, musicGain, chord, 3.2);
+      this.chordIndex++;
+    }
+    if (stepInBar === 3 || (stepInBar === 6 && Math.random() > 0.35)) {
+      const chord = this.chords[(this.chordIndex - 1 + this.chords.length) % this.chords.length];
+      const note = chord[Math.floor(Math.random() * chord.length)] * 2;
+      this.playPluck(ctx, musicGain, note, 0.65);
+    }
+    if (stepInBar === 0 || stepInBar === 5) this.playKick(ctx, musicGain);
+    else if (stepInBar === 2 || stepInBar === 6) this.playRim(ctx, musicGain);
+
+    this.stepIndex++;
   }
 
   private playChord(ctx: AudioContext, dest: AudioNode, freqs: number[], duration: number): void {

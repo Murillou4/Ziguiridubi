@@ -50,7 +50,7 @@ export class GameApp {
     this.simulation = new GameSimulationController(context, this.interactions);
 
     this.loop = new GameLoop(
-      dt => this.simulation.update(dt),
+      (dt, isCatchingUp) => this.simulation.update(dt, isCatchingUp),
       () => this.render()
     );
 
@@ -121,7 +121,33 @@ export class GameApp {
       saveService.save(this.state, this.player, audio.settings, data?.silent ?? true);
     });
 
-    window.addEventListener('resize', () => renderer.resize());
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => renderer.resize());
+      window.addEventListener('focus', () => {
+        this.clock.syncRealTime(new Date(), false);
+        audio.resumeIfNeeded?.();
+        this.services.ui?.refreshAll?.(
+          () => this.state,
+          () => this.player,
+          () => this.getStats()
+        );
+      });
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          this.clock.syncRealTime(new Date(), true);
+          audio.resumeIfNeeded?.();
+          this.services.ui?.refreshAll?.(
+            () => this.state,
+            () => this.player,
+            () => this.getStats()
+          );
+          this.render();
+        }
+      });
+    }
   }
 
   init(): void {
@@ -143,10 +169,10 @@ export class GameApp {
     if (saved) {
       this.applySavePayload(saved);
       const startLabel = document.getElementById('btnStartLabel');
-      if (startLabel) startLabel.textContent = 'Continuar Jornada';
+      if (startLabel) startLabel.textContent = 'Continuar jornada';
     }
 
-    input.init(renderer.canvas);
+    input.init(renderer.canvas, () => this.isPlaying, () => Boolean(ui.activeModal));
     droneSystem.syncDrones(this.state);
 
     ui.init(
@@ -156,6 +182,8 @@ export class GameApp {
       () => {
         audio.init();
         audio.playUpgrade();
+        renderer.camera.zoom = 1;
+        renderer.camera.recenter(this.player.x, this.player.y);
         this.isPlaying = true;
         ui.refreshAll(() => this.state, () => this.player, () => this.getStats());
       },
@@ -231,7 +259,10 @@ export class GameApp {
       droneSystem.drones,
       gatheringSystem.drops,
       this.clock.worldTime,
-      this.services.ui.activeModal
+      this.services.ui.activeModal,
+      this.isPlaying,
+      this.clock.realTime,
+      Boolean(this.services.ui.inspectionCard.activeInspectedZone)
     );
   }
 }

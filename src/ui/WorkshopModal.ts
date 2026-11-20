@@ -1,7 +1,7 @@
 import { GameState, PlayerState, ResourceId, SpecializationId } from '../domain/types.ts';
 import { UPGRADE_CATEGORIES, UPGRADES_DEF } from '../config/upgrades.ts';
 import { SPECIALIZATIONS } from '../config/specializations.ts';
-import { RESOURCES } from '../config/resources.ts';
+import { resourceIcon } from './resource-icon.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
 import { UpgradeSystem } from '../gameplay/UpgradeSystem.ts';
 import { ProgressionSystem } from '../gameplay/ProgressionSystem.ts';
@@ -29,10 +29,10 @@ export class WorkshopModal {
       return `
         <button data-upg-tab="${t.id}" class="px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
           active
-            ? 'bg-amber-400 text-stone-950 shadow'
-            : 'bg-white/5 hover:bg-white/10 text-stone-300'
+            ? 'ui-fill-honey ui-ink shadow'
+            : 'ui-fill-light ui-hover-light ui-ink-muted'
         }">
-          <span>${t.icon}</span><span>${t.label}</span>
+          ${t.label}
         </button>
       `;
     }).join('');
@@ -52,26 +52,26 @@ export class WorkshopModal {
         const active = state.specialization === sp.id;
         return `
           <div class="rounded-2xl p-4 border flex flex-col justify-between ${
-            active ? 'bg-amber-500/15 border-amber-400' : 'bg-black/30 border-stone-800'
+            active ? 'ui-fill-sand ui-edge-honey' : 'ui-fill-light ui-edge'
           }">
             <div>
               <div class="flex items-center justify-between mb-1">
-                <span class="text-base font-bold text-stone-100">${sp.icon} ${sp.name}</span>
+                <span class="text-base font-bold ui-ink">${sp.name}</span>
                 ${
                   active
-                    ? '<span class="px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 text-[10px] font-bold">ATIVA</span>'
+                    ? '<span class="px-2 py-0.5 rounded-full ui-fill-honey ui-ink text-[10px] font-bold">ATIVA</span>'
                     : ''
                 }
               </div>
-              <p class="text-xs text-stone-300 mb-3">${sp.tagline}</p>
-              <ul class="space-y-1 text-xs text-emerald-200 mb-4">
+              <p class="text-xs ui-ink-muted mb-3">${sp.tagline}</p>
+              <ul class="space-y-1 text-xs ui-ink-moss mb-4">
                 ${sp.bonuses.map(b => `<li>✦ ${b}</li>`).join('')}
               </ul>
             </div>
             <button data-spec-id="${sp.id}" class="w-full py-2 rounded-xl text-xs font-bold cursor-pointer ${
           active
-            ? 'bg-stone-700 text-stone-300'
-            : 'bg-amber-400 hover:bg-amber-300 text-stone-950'
+            ? 'ui-fill-inset ui-ink-muted'
+            : 'ui-fill-honey ui-hover-honey ui-ink'
         }">
               ${active ? 'Especialização Ativa' : 'Escolher Build'}
             </button>
@@ -98,42 +98,41 @@ export class WorkshopModal {
       const affordable = !reqLocked && cost && this.inventorySystem.canAfford(state, player, cost);
 
       const costHtml = isMax
-        ? '<span class="text-emerald-300 font-semibold text-xs">Nível Máximo ✓</span>'
+        ? '<span class="ui-ink-moss font-semibold text-xs">Nível Máximo ✓</span>'
         : reqLocked
-        ? '<span class="text-amber-300 text-xs">Construa a Estação de Drones primeiro</span>'
+        ? '<span class="ui-ink-honey text-xs">Construa a Estação de Drones primeiro</span>'
         : cost
         ? Object.entries(cost).map(([resKey, amt]) => {
             const res = resKey as ResourceId;
-            const def = RESOURCES[res];
             const have = this.inventorySystem.getTotalResource(state, player, res);
             const ok = have >= (amt || 0);
             return `<span data-upgrade-resource data-resource="${res}" data-required="${amt || 0}" class="px-2 py-0.5 rounded-lg text-[11px] font-medium ${
               ok
-                ? 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/30'
-                : 'bg-rose-950/60 text-rose-200 border border-rose-500/30'
-            }">${def ? def.icon : ''} <span data-resource-have>${have}</span>/${amt}</span>`;
+                ? 'ui-fill-moss ui-ink-moss border ui-edge-moss'
+                : 'ui-fill-clay ui-ink-clay border ui-edge-clay'
+            }">${resourceIcon(res)} <span data-resource-have>${have}</span>/${amt}</span>`;
           }).join(' ')
         : '';
 
       return `
-        <div class="rounded-2xl p-4 bg-black/30 border border-stone-800 flex flex-col justify-between gap-3">
+        <div class="rounded-2xl p-4 ui-fill-light border ui-edge flex flex-col justify-between gap-3">
           <div>
             <div class="flex items-start justify-between gap-2">
-              <h3 class="text-sm font-bold text-amber-100">${u.name}</h3>
-              <span class="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-semibold text-stone-200">Nv. ${cur}/${u.maxLevel}</span>
+              <h3 class="text-sm font-bold ui-ink-honey">${u.name}</h3>
+              <span class="px-2 py-0.5 rounded-md ui-fill-light text-[11px] font-semibold ui-ink">Nv. ${cur}/${u.maxLevel}</span>
             </div>
-            <p class="text-xs text-stone-300 mt-1 leading-relaxed">${u.desc}</p>
-            ${!isMax ? `<div class="mt-2 text-[11px] font-semibold text-sky-300">${u.effectText(cur)}</div>` : ''}
+            <p class="text-xs ui-ink-muted mt-1 leading-relaxed">${u.desc}</p>
+            ${!isMax ? `<div class="mt-2 text-[11px] font-semibold ui-ink-sky">${u.effectText(cur)}</div>` : ''}
           </div>
-          <div class="pt-2 border-t border-stone-800 flex flex-wrap items-center justify-between gap-2">
+          <div class="pt-2 border-t ui-edge flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap gap-1.5">${costHtml}</div>
             ${
               !isMax && !reqLocked
                 ? `
               <button data-buy-upg="${u.id}" ${!affordable ? 'disabled' : ''} class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
                     affordable
-                      ? 'bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer active:scale-95'
-                      : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+                      ? 'ui-fill-honey ui-hover-honey ui-ink cursor-pointer active:scale-95'
+                      : 'ui-fill-inset ui-ink-muted cursor-not-allowed'
                   }">Melhorar</button>
             `
                 : ''
@@ -170,12 +169,12 @@ export class WorkshopModal {
       if (amountEl) amountEl.textContent = String(have);
 
       const affordable = have >= required;
-      chip.classList.toggle('bg-emerald-950/80', affordable);
-      chip.classList.toggle('text-emerald-200', affordable);
-      chip.classList.toggle('border-emerald-500/30', affordable);
-      chip.classList.toggle('bg-rose-950/60', !affordable);
-      chip.classList.toggle('text-rose-200', !affordable);
-      chip.classList.toggle('border-rose-500/30', !affordable);
+      chip.classList.toggle('ui-fill-moss', affordable);
+      chip.classList.toggle('ui-ink-moss', affordable);
+      chip.classList.toggle('ui-edge-moss', affordable);
+      chip.classList.toggle('ui-fill-clay', !affordable);
+      chip.classList.toggle('ui-ink-clay', !affordable);
+      chip.classList.toggle('ui-edge-clay', !affordable);
     });
 
     listEl.querySelectorAll<HTMLButtonElement>('[data-buy-upg]').forEach(button => {
@@ -184,12 +183,12 @@ export class WorkshopModal {
 
       const affordable = this.upgradeSystem.canBuy(state, player, upgradeId);
       button.disabled = !affordable;
-      button.classList.toggle('bg-amber-400', affordable);
-      button.classList.toggle('hover:bg-amber-300', affordable);
-      button.classList.toggle('text-stone-950', affordable);
+      button.classList.toggle('ui-fill-honey', affordable);
+      button.classList.toggle('ui-hover-honey', affordable);
+      button.classList.toggle('ui-ink', affordable);
       button.classList.toggle('cursor-pointer', affordable);
-      button.classList.toggle('bg-stone-800', !affordable);
-      button.classList.toggle('text-stone-500', !affordable);
+      button.classList.toggle('ui-fill-inset', !affordable);
+      button.classList.toggle('ui-ink-muted', !affordable);
       button.classList.toggle('cursor-not-allowed', !affordable);
     });
   }

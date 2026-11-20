@@ -3,6 +3,12 @@ import { RESOURCES } from '../config/resources.ts';
 import { InventorySystem } from './InventorySystem.ts';
 import { EventBus } from '../core/EventBus.ts';
 
+export const SURPLUS_RESERVE = 5;
+
+export function getSaleValue(quantity: number, unitPrice: number, multiplier: number): number {
+  return Math.round(quantity * unitPrice * multiplier);
+}
+
 export class EconomySystem {
   constructor(
     private inventorySystem: InventorySystem,
@@ -26,7 +32,7 @@ export class EconomySystem {
 
     if (qty <= 0) return { qty: 0, coinsGained: 0 };
 
-    const coinsGained = Math.max(1, Math.round(qty * def.sellPrice * stats.merchantMult));
+    const coinsGained = Math.max(1, getSaleValue(qty, def.sellPrice, stats.merchantMult));
 
     this.inventorySystem.consumeResource(state, player, resId, qty);
     state.storage.coins = (state.storage.coins || 0) + coinsGained;
@@ -49,10 +55,10 @@ export class EconomySystem {
     (Object.values(RESOURCES) as typeof RESOURCES[ResourceId][]).forEach(r => {
       if (r.sellPrice > 0) {
         const have = this.inventorySystem.getTotalResource(state, player, r.id);
-        const surplus = Math.max(0, have - 5);
+        const surplus = Math.max(0, have - SURPLUS_RESERVE);
         if (surplus > 0) {
           this.inventorySystem.consumeResource(state, player, r.id, surplus);
-          const gained = Math.round(surplus * r.sellPrice * stats.merchantMult);
+          const gained = getSaleValue(surplus, r.sellPrice, stats.merchantMult);
           totalCoins += gained;
           totalSold += surplus;
         }

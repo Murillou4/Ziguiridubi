@@ -87,36 +87,32 @@ export class SettingsModal {
 
   syncSliders(): void {
     const st = this.audioManager.settings;
-
-    const masterSlider = document.getElementById('volMasterSlider') as HTMLInputElement | null;
-    const masterVal = document.getElementById('volMasterVal');
-    if (masterSlider) masterSlider.value = String(Math.round(st.master * 100));
-    if (masterVal) masterVal.textContent = `${Math.round(st.master * 100)}%`;
-
-    const musicSlider = document.getElementById('volMusicSlider') as HTMLInputElement | null;
-    const musicVal = document.getElementById('volMusicVal');
-    if (musicSlider) musicSlider.value = String(Math.round(st.music * 100));
-    if (musicVal) musicVal.textContent = `${Math.round(st.music * 100)}%`;
-
-    const sfxSlider = document.getElementById('volSfxSlider') as HTMLInputElement | null;
-    const sfxVal = document.getElementById('volSfxVal');
-    if (sfxSlider) sfxSlider.value = String(Math.round(st.sfx * 100));
-    if (sfxVal) sfxVal.textContent = `${Math.round(st.sfx * 100)}%`;
+    this.syncChannel('Master', st.master);
+    this.syncChannel('Music', st.music, st.musicMuted);
+    this.syncChannel('Sfx', st.sfx, st.sfxMuted);
 
     const btnM = document.getElementById('btnMuteMusic');
     if (btnM) {
-      btnM.textContent = st.musicMuted ? 'Mutada' : 'Ativa';
-      btnM.className = `px-2 py-0.5 rounded text-[10px] cursor-pointer ${
-        st.musicMuted ? 'bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 text-emerald-200'
-      }`;
+      btnM.textContent = st.musicMuted ? 'Silenciada' : 'Ligada';
+      btnM.setAttribute('aria-pressed', String(st.musicMuted));
     }
 
     const btnS = document.getElementById('btnMuteSfx');
     if (btnS) {
-      btnS.textContent = st.sfxMuted ? 'Mutados' : 'Ativos';
-      btnS.className = `px-2 py-0.5 rounded text-[10px] cursor-pointer ${
-        st.sfxMuted ? 'bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 text-emerald-200'
-      }`;
+      btnS.textContent = st.sfxMuted ? 'Silenciados' : 'Ligados';
+      btnS.setAttribute('aria-pressed', String(st.sfxMuted));
     }
+  }
+
+  private syncChannel(channel: 'Master' | 'Music' | 'Sfx', volume: number, muted = false): void {
+    const percent = String(Math.round(volume * 100));
+    const slider = document.getElementById(`vol${channel}Slider`) as HTMLInputElement | null;
+    if (slider) {
+      slider.value = percent;
+      slider.style.setProperty('--volume', `${percent}%`);
+      slider.toggleAttribute('data-muted', muted);
+    }
+    const output = document.getElementById(`vol${channel}Val`);
+    if (output) output.textContent = `${percent}%`;
   }
 }

@@ -17,6 +17,9 @@
  * - Golpe (pose.swing 0..1): preparação -> corte rápido (com rastro) -> recuperação.
  */
 
+import type { ResourceId } from '../domain/types.ts';
+import { drawResourceIcon } from './world-drops.ts';
+
 export type Facing = "down" | "up" | "left" | "right";
 
 export interface PlayerPose {
@@ -28,6 +31,9 @@ export interface PlayerPose {
   swing?: number;
   tool?: 'axe' | 'pickaxe';
   bladeColor?: string;
+  packFill?: number;
+  packOpen?: number;
+  cargo?: readonly ResourceId[];
 }
 
 export interface DrawOptions {
@@ -730,11 +736,46 @@ function legSide(c: Ctx, ph: number, far: boolean): void {
 // ============================================================================
 // VISTA DE FRENTE ("down")
 // ============================================================================
+let packFill = 0;
+let packOpen = 0;
+const visibleCargo: ResourceId[] = [];
+
+function packCompartment(c: Ctx, x: number, y: number, width: number, height: number): void {
+  paintRRect(c, PACK, x, y, width, height, 4.2);
+  const opening = 7 * packOpen;
+  if (opening > 0.25) {
+    const innerX = x + 1;
+    const innerWidth = width - 2;
+    const innerY = y + 0.6;
+    rr(c, innerX, innerY, innerWidth, opening, Math.min(2, opening / 2));
+    c.fillStyle = '#54301c';
+    c.fill();
+    c.save();
+    c.clip();
+    const iconScale = Math.min(0.48, innerWidth / Math.max(16, visibleCargo.length * 10));
+    for (let i = 0; i < visibleCargo.length; i++) {
+      c.save();
+      c.translate(innerX + innerWidth * (i + 0.5) / visibleCargo.length, innerY + opening * 0.56);
+      c.rotate(i % 2 ? 0.2 : -0.15);
+      c.scale(iconScale, iconScale);
+      drawResourceIcon(c, visibleCargo[i]);
+      c.restore();
+    }
+    c.restore();
+    c.fillStyle = PACK.light;
+    c.fillRect(innerX + 1, innerY + opening - 0.65, innerWidth - 2, 0.65);
+  }
+
+  const flapHeight = 6.4 - 3.5 * packOpen;
+  paintRRect(c, PACK2, x, y - 2.4 * packOpen, width, flapHeight, Math.min(3, flapHeight / 2));
+}
+
 function packFront(c: Ctx): void {
   const sw = A.moving ? Math.sin(A.p) * 0.4 : 0;
   c.save();
   c.translate(sw, 0);
-  paintRRect(c, PACK, -8.8, -26.4, 17.6, 14.4, 4.2);
+  // Vista de frente: a lateral da bolsa aparece atrás do ombro livre.
+  packCompartment(c, -8.8 + packFill * 5, -24.3, 17.6 + packFill * 2.6, 12.3 + packFill * 2);
   paintRRect(c, ROLL, -9.8, -12.8, 19.6, 4.8, 2.4);
   c.fillStyle = PACK.dark;
   c.fillRect(-6.8, -12.8, 1.6, 4.8);
@@ -818,14 +859,15 @@ function packBack(c: Ctx): void {
   const sw = A.moving ? Math.sin(A.p) * 0.5 : 0;
   c.save();
   c.translate(sw, 0);
-  paintRRect(c, PACK, -7.9, -26.0, 15.8, 14.2, 4.0);
-  paintRRect(c, PACK2, -7.9, -26.0, 15.8, 7.0, 3.4); // aba
+  const bulk = packFill * 4.4;
+  packCompartment(c, -7.9 - bulk / 2, -22.6 - packFill * 0.4, 15.8 + bulk, 10.8 + packFill * 2.8);
   // tiras com fivela
   c.fillStyle = PACK.line;
-  c.fillRect(-3.9, -20.6, 1.9, 7.8);
-  c.fillRect(2.0, -20.6, 1.9, 7.8);
-  paintRRect(c, GOLD, -4.1, -18.8, 2.3, 1.9, 0.5, 0.6);
-  paintRRect(c, GOLD, 1.8, -18.8, 2.3, 1.9, 0.5, 0.6);
+  const strapY = -20.6 + packOpen * 3.7;
+  c.fillRect(-3.9, strapY, 1.9, 7.8 - packOpen * 3.7);
+  c.fillRect(2.0, strapY, 1.9, 7.8 - packOpen * 3.7);
+  paintRRect(c, GOLD, -4.1, strapY + 1.8, 2.3, 1.9, 0.5, 0.6);
+  paintRRect(c, GOLD, 1.8, strapY + 1.8, 2.3, 1.9, 0.5, 0.6);
   // rolo de dormir na base da mochila
   paintRRect(c, ROLL, -9.6, -12.6, 19.2, 4.8, 2.4);
   c.fillStyle = TEAL.base;
@@ -864,8 +906,8 @@ function drawBack(c: Ctx): void {
   const fdy = A.moving ? -1.5 * Math.sin(A.p + Math.PI) : 0;
   armTubes(c, -7.6, -19.2, -9.0, -10.9 + fdy, false);
   glove(c, -9.0, -10.9 + fdy, false);
-  packBack(c);
   headBack(c);
+  packBack(c);
   drawHat(c, 1);
   toolArm(c, KF_FRONT, 7.6, -19.2, true, 1, A.moving ? -1.5 * Math.sin(A.p) : 0);
   c.restore();
@@ -881,7 +923,7 @@ function packSide(c: Ctx): void {
   c.translate(8.3, 24.5);
   // caneca pendurada atrás
   c.save();
-  c.translate(-13.2, -18.0);
+  c.translate(-13.2 - 5 * packFill, -18.0);
   c.rotate(A.mug);
   c.strokeStyle = PACK.line;
   c.lineWidth = 0.7;
@@ -894,8 +936,7 @@ function packSide(c: Ctx): void {
   c.fillRect(-3.2, 1.6, 3.0, 0.7);
   c.restore();
   // corpo da mochila
-  paintRRect(c, PACK, -13.0, -25.6, 9.6, 14.0, 3.8);
-  paintRRect(c, PACK2, -13.0, -25.6, 9.6, 6.4, 3.2); // aba
+  packCompartment(c, -13 - 5 * packFill, -25.6, 9.6 + 5 * packFill, 14 + 2.4 * packFill);
   paintRRect(c, PACK2, -11.6, -17.4, 6.4, 4.6, 1.6, 0.8); // bolso lateral
   c.fillStyle = PACK.line;
   c.fillRect(-9.2, -19.4, 1.7, 4.0);
@@ -983,6 +1024,15 @@ export function drawPlayer(ctx: Ctx, x: number, y: number, pose: PlayerPose, opt
   const shadow = opts !== undefined && opts.shadow !== undefined ? opts.shadow : true;
   activeTool = pose.tool;
   bladeColor = pose.bladeColor;
+  packFill = pose.packFill ?? 0;
+  packOpen = pose.packOpen ?? 0;
+  visibleCargo.length = 0;
+  if (packOpen > 0.03 && pose.cargo) {
+    for (const resource of pose.cargo) {
+      if (!visibleCargo.includes(resource)) visibleCargo.push(resource);
+      if (visibleCargo.length === 3) break;
+    }
+  }
   animate(pose);
 
   ctx.save();

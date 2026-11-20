@@ -3,6 +3,8 @@ import { createDefaultAudioSettings } from './AudioSettings.ts';
 import { LofiMusic } from './LofiMusic.ts';
 import { SoundEffects } from './SoundEffects.ts';
 import { EventBus } from '../core/EventBus.ts';
+import type { WeatherSnapshot } from '../core/RainCycle.ts';
+import { WeatherAudio } from './WeatherAudio.ts';
 
 export class AudioManager {
   public ctx: AudioContext | null = null;
@@ -14,6 +16,7 @@ export class AudioManager {
   public settings: AudioSettings = createDefaultAudioSettings();
   public lofiMusic = new LofiMusic();
   public sfx = new SoundEffects();
+  private readonly weatherAudio = new WeatherAudio();
 
   constructor(private eventBus: EventBus) {
     this.bindEvents();
@@ -57,6 +60,7 @@ export class AudioManager {
     this.applyVolumes();
     this.isInitialized = true;
 
+    this.weatherAudio.prepare(this.ctx);
     this.lofiMusic.startVinylTexture(this.ctx, this.musicGain);
     this.lofiMusic.startLoop(this.ctx, this.musicGain, this.settings);
   }
@@ -75,6 +79,27 @@ export class AudioManager {
       now,
       0.03
     );
+  }
+
+  update(dt: number, weather: WeatherSnapshot, isCatchingUp: boolean = false): void {
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    if (this.sfxGain) {
+      this.weatherAudio.update(this.ctx, this.sfxGain, weather);
+    }
+    if (this.musicGain) {
+      this.lofiMusic.update(dt, this.settings, isCatchingUp);
+    }
+  }
+
+  updateWeather(weather: WeatherSnapshot): void {
+    if (!this.ctx || !this.sfxGain || this.ctx.state !== 'running') return;
+    this.weatherAudio.update(this.ctx, this.sfxGain, weather);
+  }
+
+  resumeIfNeeded(): void {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      void this.ctx.resume().catch(() => {});
+    }
   }
 
   playSwing(): void {

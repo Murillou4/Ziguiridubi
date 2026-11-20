@@ -1,8 +1,11 @@
 import { drawPlayer } from './player-sprite.ts';
 import { DerivedStats, GameState, PlayerState } from '../domain/types.ts';
-import { RESOURCES } from '../config/resources.ts';
 
 export class PlayerRenderer {
+  private packFill = 0;
+  private packOpen = 0;
+  private lastRenderTime?: number;
+
   renderPlayer(
     ctx: CanvasRenderingContext2D,
     player: PlayerState,
@@ -35,25 +38,15 @@ export class PlayerRenderer {
       ctx.restore();
     }
 
-    const bobY = Math.abs(Math.sin(player.walkCycle)) * 3;
-
-
-    // Pilha física de itens nas costas da mochila!
-    if (player.backpack.length > 0) {
-      const maxShown = Math.min(player.backpack.length, 16);
-      for (let i = 0; i < maxShown; i++) {
-        const resId = player.backpack[i];
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        const bx = -13 - col * 5;
-        const by = 4 - row * 4.5 - bobY;
-        ctx.fillStyle = RESOURCES[resId]?.color || '#eab308';
-        ctx.fillRect(bx, by, 9, 4);
-        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-        ctx.lineWidth = 0.8;
-        ctx.strokeRect(bx, by, 9, 4);
-      }
-    }
+    const targetFill = Math.min(1, player.backpack.length / stats.maxBackpack);
+    const targetOpen = targetFill === 1 ? 1 : 0;
+    const dt = worldTime - (this.lastRenderTime ?? worldTime);
+    const blend = this.lastRenderTime === undefined || dt < 0
+      ? 1
+      : 1 - Math.exp(-Math.min(dt, 0.1) * 14);
+    this.packFill += (targetFill - this.packFill) * blend;
+    this.packOpen += (targetOpen - this.packOpen) * blend;
+    this.lastRenderTime = worldTime;
 
     const horizontal = Math.cos(player.facing);
     const vertical = Math.sin(player.facing);
@@ -68,6 +61,9 @@ export class PlayerRenderer {
       moving: Math.hypot(player.vx, player.vy) > 1 || player.dashTimer > 0,
       swing: player.swingTimer > 0 ? Math.max(0.001, 1 - player.swingTimer / player.swingDuration) : 0,
       tool: player.heldTool,
+      packFill: this.packFill,
+      packOpen: this.packOpen,
+      cargo: player.backpack,
       bladeColor: tierColors[Math.min(4, state.upgrades.toolPower ?? 0)]
     });
 

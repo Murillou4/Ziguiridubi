@@ -1,5 +1,6 @@
 import { DropItem, GameState, PlayerState } from '../domain/types.ts';
-import { RESOURCES } from '../config/resources.ts';
+import { drawDropItem, isDropVisible, nextDropSeed } from './world-drops.ts';
+import type { ViewRect } from './world-terrain.ts';
 import { BLUEPRINTS_DEF } from '../config/buildings.ts';
 
 export interface Particle {
@@ -69,27 +70,12 @@ export class EffectsRenderer {
     }
   }
 
-  renderDrops(ctx: CanvasRenderingContext2D, drops: DropItem[], worldTime: number): void {
-    drops.forEach(d => {
-      const res = RESOURCES[d.resource];
-      if (!res) return;
-
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.beginPath();
-      ctx.ellipse(d.x, d.y + 6, 7, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      const bob = Math.sin(worldTime * 5 + d.x) * 2;
-      ctx.fillStyle = res.color;
-      ctx.beginPath();
-      ctx.arc(d.x, d.y - d.z + bob, 7.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fffbeb';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-    });
+  renderDrops(ctx: CanvasRenderingContext2D, drops: readonly DropItem[], worldTime: number, view: ViewRect): void {
+    for (const drop of drops) {
+      if (!isDropVisible(view, drop.x, drop.y, drop.z)) continue;
+      drop.seed ??= nextDropSeed();
+      drawDropItem(ctx, drop.resource, drop.x, drop.y, drop.z, drop.age, worldTime, drop.seed, drop.vx);
+    }
   }
 
   renderMoveTarget(ctx: CanvasRenderingContext2D, player: PlayerState, worldTime: number): void {

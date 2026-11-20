@@ -79,6 +79,11 @@ export class PlayerSystem {
     }
 
     // 3. Movimentação Normal
+    const target = player.moveTarget;
+    const node = target?.autoHitNode;
+    if (node && (node.depleted || node.x !== target.x || node.y !== target.y)) {
+      player.moveTarget = null;
+    }
     let ix = input.ix;
     let iy = input.iy;
 
@@ -91,18 +96,13 @@ export class PlayerSystem {
       const dx = player.moveTarget.x - player.x;
       const dy = player.moveTarget.y - player.y;
       const dist = Math.hypot(dx, dy);
-      const stopDist = player.moveTarget.autoHitNode ? (stats.reachRadius * 0.75) : 10;
+      const stopDist = node ? stats.reachRadius * 0.75 : 10;
 
       if (dist <= stopDist) {
-        if (player.moveTarget.autoHitNode && !player.moveTarget.autoHitNode.depleted && player.cooldownTimer > 0) return;
-        if (player.moveTarget.autoHitNode && !player.moveTarget.autoHitNode.depleted) {
-          player.facing = Math.atan2(
-            player.moveTarget.autoHitNode.y - player.y,
-            player.moveTarget.autoHitNode.x - player.x
-          );
-          if (onAutoHitNode) {
-            onAutoHitNode(player.moveTarget.autoHitNode);
-          }
+        if (node) {
+          if (player.cooldownTimer > 0) return;
+          player.facing = Math.atan2(dy, dx);
+          onAutoHitNode?.(node);
         }
         player.moveTarget = null;
       } else {

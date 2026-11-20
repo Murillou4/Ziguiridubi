@@ -56,8 +56,11 @@ export class Camera {
     }
   }
 
-  setIdlePan(worldTime: number): void {
-    this.x = Math.cos(worldTime * 0.25) * 70;
-    this.y = Math.sin(worldTime * 0.2) * 45;
+  setIdlePan(worldTime: number, width: number, height: number): void {
+    this.zoom = Math.max(0.15, Math.min(width / 1040, height / 1110, 1.15));
+
+    // A praça fica entre o título e o botão da jornada.
+    this.x = Math.sin(worldTime * 0.25) * 12;
+    this.y = height * 0.035 / this.zoom + Math.sin(worldTime * 0.2) * 8;
   }
 }

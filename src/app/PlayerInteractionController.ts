@@ -1,4 +1,5 @@
 import { ResourceNode } from '../domain/types.ts';
+import { getNearbyStation } from '../config/buildings.ts';
 import { GameRuntimeContext } from './GameContext.ts';
 
 /**
@@ -115,21 +116,9 @@ export class PlayerInteractionController {
       return;
     }
 
-    if (Math.hypot(player.x + 95, player.y + 25) < 95) {
-      c.ui.openModal('modalMerchant', () => c.getState(), () => c.getPlayer(), () => c.getStats());
-      return;
-    }
-
-    if (Math.hypot(player.x - 95, player.y + 25) < 95) {
-      c.ui.openModal('modalWorkshop', () => c.getState(), () => c.getPlayer(), () => c.getStats());
-      return;
-    }
-
-    if (
-      state.builds.airshipDock?.built &&
-      Math.hypot(player.x, player.y + 616) < 135
-    ) {
-      c.ui.openModal('modalAirship', () => c.getState(), () => c.getPlayer(), () => c.getStats());
+    const station = getNearbyStation(player.x, player.y, state);
+    if (station) {
+      c.ui.openModal(station.modal, () => c.getState(), () => c.getPlayer(), () => c.getStats());
     }
   }
 

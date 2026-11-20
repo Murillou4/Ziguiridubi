@@ -13,7 +13,7 @@ export class ToastManager {
 
     const toast = document.createElement('div');
     toast.className =
-      'glass-panel rounded-2xl px-3.5 py-2.5 text-xs font-medium text-amber-100 border border-amber-300/35 shadow-lg transition-all duration-300 modal-enter';
+      'vale-panel rounded-2xl px-3.5 py-2.5 text-xs font-medium ui-ink-honey border ui-edge-honey shadow-lg transition-all duration-300 modal-enter';
     toast.textContent = message;
     this.container.appendChild(toast);
 

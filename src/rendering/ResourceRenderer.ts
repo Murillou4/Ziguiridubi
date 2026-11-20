@@ -43,6 +43,7 @@ export class ResourceRenderer {
         const distance = Math.hypot(n.x - player.x, n.y - player.y);
         drawTree(ctx, 0, 16, {
           time: worldTime + n.x * 0.013,
+          fruitSeed: Math.imul(Math.round(n.x * 100), 73856093) ^ Math.imul(Math.round(n.y * 100), 19349663),
           near: Math.max(0, 1 - distance / (stats.reachRadius + n.radius)),
           active: n.hitAnim
         });

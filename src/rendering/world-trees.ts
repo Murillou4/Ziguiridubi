@@ -15,7 +15,7 @@
  * (sem shadowBlur e sem gradientes), o mesmo princípio dos props do mundo.
  */
 
-export interface PropState { time: number; near?: number; active?: number }
+export interface PropState { time: number; near?: number; active?: number; fruitSeed?: number }
 export interface DrawOptions { scale?: number; shadow?: boolean }
 
 // ============================================================================
@@ -39,11 +39,6 @@ const BRILHO_COR = "#ffe58a";
 const BRILHO_EXP = [8, 5.5, 3.5, 2];
 const BRILHO_ALFA = [0.06, 0.08, 0.1, 0.14];
 
-/** Frutas: [vermelha, amarela]. */
-const FRUTA_COR = ["#e8372c", "#ffd23c"];
-const FRUTA_CONTORNO = ["#8c1b17", "#b07a0f"];
-const FRUTA_BRILHO = "#fff3b0";
-const BRANCO = "#ffffff";
 
 /** Posições iniciais (fração do espalhamento) das folhas que caem. */
 const FOLHA_X = [-0.7, 0.55, -0.15, 0.85, -0.45];
@@ -60,22 +55,22 @@ interface PaletaCopa {
   readonly contorno: string; // contorno fino, verde bem escuro
 }
 
-// Verdes saturados, mais claros que a grama (#4a9a45) para a copa se destacar.
+// Verdes naturais próximos dos tons da ilha.
 const PAL_GRANDE: PaletaCopa = {
-  escuro: "#2c7d2e",
-  medio: "#4fc03a",
-  claro: "#8fe04a",
-  mancha: "#cdf97e",
-  contorno: "#1c5a25",
+  escuro: "#3b633e",
+  medio: "#52794a",
+  claro: "#719151",
+  mancha: "#8ca668",
+  contorno: "#334f34",
 };
 
 // Árvore jovem: mesma família, um pouco mais clara.
 const PAL_PEQUENA: PaletaCopa = {
-  escuro: "#3a9a36",
-  medio: "#66cf45",
-  claro: "#a6ec58",
-  mancha: "#dcff98",
-  contorno: "#24692a",
+  escuro: "#456c44",
+  medio: "#618650",
+  claro: "#7e9d5d",
+  mancha: "#99b471",
+  contorno: "#38583a",
 };
 
 // Tronco da árvore grande (marrom com veio)
@@ -107,9 +102,6 @@ interface ConfigArvore {
   /** Manchas de luz: [x, y, rx, ry, rot, índiceDoVolume]. */
   readonly manchas: readonly number[];
   readonly nManchas: number;
-  /** Frutas: [x, y, raio, índiceDoVolume, índiceDaCor]. */
-  readonly frutas: readonly number[];
-  readonly nFrutas: number;
   /** Sombra de contato: 3 camadas de [dx, dy, rx, ry, alpha]. */
   readonly sombra: readonly number[];
   /** Folhas que caem. */
@@ -142,12 +134,6 @@ const CFG_GRANDE: ConfigArvore = {
     -24, -50, 3.2, 1.8, -0.6, 2,
   ],
   nManchas: 3,
-  frutas: [
-    -20, -38, 2.8, 2, 0, // vermelha
-    16, -47, 2.8, 3, 1,  // amarela
-    -1, -56, 2.6, 0, 0,  // vermelha
-  ],
-  nFrutas: 3,
   sombra: [
     3, 2, 31, 9, 0.1,
     2.5, 1.5, 24, 7.2, 0.16,
@@ -178,8 +164,6 @@ const CFG_PEQUENA: ConfigArvore = {
     -16, -38.5, 2.6, 1.5, -0.6, 1,
   ],
   nManchas: 2,
-  frutas: [],
-  nFrutas: 0,
   sombra: [
     2, 1.5, 22, 6.5, 0.1,
     1.6, 1, 17, 5.2, 0.16,
@@ -396,114 +380,114 @@ function desenharTroncoPequeno(ctx: CanvasRenderingContext2D, tx: number): void 
   ctx.restore();
 }
 
-/**
- * Halo quente suave em volta da copa (sem borda dura): 4 camadas translúcidas
- * da mais larga à mais justa. Cada camada é um único path com todos os volumes,
- * então a união é preenchida uma vez só (sem somar alpha nas sobreposições).
- */
-function desenharBrilhoCopa(ctx: CanvasRenderingContext2D, cfg: ConfigArvore, near: number, t: number): void {
-  const b = cfg.blobs;
-  const pulso = 0.88 + 0.12 * Math.sin(t * 3.1);
-  ctx.fillStyle = BRILHO_COR;
-  for (let k = 0; k < 4; k++) {
-    const e = BRILHO_EXP[k];
-    ctx.globalAlpha = near * pulso * BRILHO_ALFA[k];
+function caminhoCopa(ctx: CanvasRenderingContext2D): void {
+  ctx.beginPath();
+  ctx.moveTo(-30, -47);
+  ctx.bezierCurveTo(-33, -56, -27, -65, -20, -68);
+  ctx.bezierCurveTo(-15, -80, -1, -83, 9, -78);
+  ctx.bezierCurveTo(20, -80, 29, -71, 27, -61);
+  ctx.bezierCurveTo(34, -55, 35, -44, 28, -38);
+  ctx.bezierCurveTo(24, -33, 18, -32, 13, -33);
+  ctx.bezierCurveTo(7, -26, -4, -26, -10, -32);
+  ctx.bezierCurveTo(-21, -29, -32, -37, -30, -47);
+  ctx.closePath();
+}
+
+function desenharRamo(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, color: string): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, 3);
+  ctx.quadraticCurveTo(-6, 2, -7, -3);
+  ctx.quadraticCurveTo(-1, -4, 0, 3);
+  ctx.moveTo(0, 3);
+  ctx.quadraticCurveTo(0, -3, 6, -5);
+  ctx.quadraticCurveTo(7, 1, 0, 3);
+  ctx.fill();
+  ctx.restore();
+}
+
+function desenharFrutinhas(ctx: CanvasRenderingContext2D, seed: number): void {
+  let bits = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b);
+  bits = Math.imul(bits ^ (bits >>> 16), 0x45d9f3b) >>> 0;
+  if (bits % 10 >= 3) return;
+
+  const count = 1 + ((bits >>> 8) % 3);
+  ctx.fillStyle = bits & 16 ? '#a8664d' : '#ba9555';
+  for (let i = 0; i < count; i++) {
+    const x = -17 + i * 15 + ((bits >>> (12 + i * 3)) & 7);
+    const y = -44 - ((bits >>> (21 + i * 3)) & 7);
     ctx.beginPath();
-    for (let i = 0; i < cfg.nBlobs; i++) {
-      const cx = b[i * 3] + DESLOC[i * 2];
-      const cy = b[i * 3 + 1] + DESLOC[i * 2 + 1];
-      const r = b[i * 3 + 2] + e;
-      ctx.moveTo(cx + r, cy);
-      ctx.arc(cx, cy, r, 0, TAU);
+    ctx.ellipse(x, y, 2.1, 2.6, -0.25, 0, TAU);
+    ctx.fill();
+  }
+}
+
+function desenharCopa(ctx: CanvasRenderingContext2D, cfg: ConfigArvore, near: number, fruitSeed?: number): void {
+  const scale = cfg.altRef / CFG_GRANDE.altRef;
+  ctx.save();
+  ctx.translate(DESLOC[0], DESLOC[1]);
+  ctx.scale(scale, scale);
+  caminhoCopa(ctx);
+
+  if (near > 0.01) {
+    ctx.strokeStyle = BRILHO_COR;
+    for (let i = 0; i < BRILHO_EXP.length; i++) {
+      ctx.globalAlpha = near * BRILHO_ALFA[i] * 0.6;
+      ctx.lineWidth = BRILHO_EXP[i] * 2;
+      ctx.stroke();
     }
-    ctx.fill();
+    ctx.globalAlpha = 1;
   }
-  ctx.globalAlpha = 1;
-}
 
-/** Volumes da copa: base escura + contorno, corpo médio e luz no topo à esquerda. */
-function desenharVolumes(ctx: CanvasRenderingContext2D, cfg: ConfigArvore): void {
-  const b = cfg.blobs;
-  const pal = cfg.pal;
-  ctx.lineWidth = cfg.contornoLw;
-  ctx.strokeStyle = pal.contorno;
-  for (let i = 0; i < cfg.nBlobs; i++) {
-    const cx = b[i * 3] + DESLOC[i * 2];
-    const cy = b[i * 3 + 1] + DESLOC[i * 2 + 1];
-    const r = b[i * 3 + 2];
+  ctx.fillStyle = cfg.pal.escuro;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = cfg.pal.medio;
+  ctx.beginPath();
+  ctx.moveTo(-34, -86);
+  ctx.lineTo(32, -86);
+  ctx.bezierCurveTo(33, -64, 27, -53, 17, -51);
+  ctx.bezierCurveTo(10, -44, 3, -42, -5, -45);
+  ctx.bezierCurveTo(-15, -38, -27, -40, -34, -47);
+  ctx.closePath();
+  ctx.fill();
 
-    ctx.fillStyle = pal.escuro;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
+  ctx.fillStyle = cfg.pal.claro;
+  ctx.beginPath();
+  ctx.moveTo(-34, -74);
+  ctx.bezierCurveTo(-16, -88, 8, -88, 22, -76);
+  ctx.bezierCurveTo(16, -68, 7, -65, -2, -65);
+  ctx.bezierCurveTo(-10, -58, -23, -54, -34, -58);
+  ctx.closePath();
+  ctx.fill();
 
-    ctx.fillStyle = pal.medio;
-    ctx.beginPath();
-    ctx.arc(cx - r * 0.1, cy - r * 0.12, r * 0.82, 0, TAU);
-    ctx.fill();
-
-    ctx.fillStyle = pal.claro;
-    ctx.beginPath();
-    ctx.arc(cx - r * 0.26, cy - r * 0.3, r * 0.52, 0, TAU);
-    ctx.fill();
-  }
-}
-
-/** Pequenas manchas de luz sobre a copa. */
-function desenharManchas(ctx: CanvasRenderingContext2D, cfg: ConfigArvore, near: number): void {
-  const m = cfg.manchas;
   ctx.fillStyle = cfg.pal.mancha;
-  ctx.globalAlpha = 0.85 + 0.15 * near;
   for (let i = 0; i < cfg.nManchas; i++) {
     const base = i * 6;
-    const bi = m[base + 5];
+    const x = cfg.manchas[base] / scale;
+    const y = cfg.manchas[base + 1] / scale;
     ctx.beginPath();
-    ctx.ellipse(
-      m[base] + DESLOC[bi * 2],
-      m[base + 1] + DESLOC[bi * 2 + 1],
-      m[base + 2], m[base + 3], m[base + 4], 0, TAU,
-    );
+    ctx.moveTo(x - 4, y);
+    ctx.quadraticCurveTo(x, y - 5, x + 4, y - 2);
+    ctx.quadraticCurveTo(x + 1, y + 1, x - 4, y);
     ctx.fill();
   }
-  ctx.globalAlpha = 1;
-}
 
-/** Frutas: brilham mais quando perto e balançam quando ativa. */
-function desenharFrutas(ctx: CanvasRenderingContext2D, cfg: ConfigArvore, t: number, near: number, active: number): void {
-  const f = cfg.frutas;
-  ctx.lineWidth = 0.8;
-  for (let k = 0; k < cfg.nFrutas; k++) {
-    const base = k * 5;
-    const r = f[base + 2];
-    const bi = f[base + 3];
-    const ci = f[base + 4];
-    const px = f[base] + DESLOC[bi * 2] + active * Math.sin(t * 17 + k * 2.1) * 1.2;
-    const py = f[base + 1] + DESLOC[bi * 2 + 1] + active * (0.5 + 0.5 * Math.sin(t * 13 + k * 1.3)) * 0.9;
+  desenharRamo(ctx, -18, -46, -0.45, cfg.pal.medio);
+  desenharRamo(ctx, 15, -54, 0.28, cfg.pal.claro);
+  desenharRamo(ctx, 1, -36, -0.12, cfg.pal.medio);
+  if (fruitSeed !== undefined) desenharFrutinhas(ctx, fruitSeed);
+  ctx.restore();
 
-    if (near > 0.01) {
-      ctx.globalAlpha = near * 0.35;
-      ctx.fillStyle = FRUTA_BRILHO;
-      ctx.beginPath();
-      ctx.arc(px, py, r + 1.9, 0, TAU);
-      ctx.fill();
-    }
-
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = FRUTA_COR[ci];
-    ctx.strokeStyle = FRUTA_CONTORNO[ci];
-    ctx.beginPath();
-    ctx.arc(px, py, r, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.globalAlpha = 0.75 + 0.25 * near;
-    ctx.fillStyle = BRANCO;
-    ctx.beginPath();
-    ctx.ellipse(px - r * 0.35, py - r * 0.38, r * 0.3, r * 0.22, -0.6, 0, TAU);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
+  caminhoCopa(ctx);
+  ctx.strokeStyle = cfg.pal.contorno;
+  ctx.lineWidth = cfg.contornoLw;
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** Uma folha caindo em zigue-zague; p = progresso da queda (0..1). */
@@ -588,10 +572,7 @@ function desenharArvore(
   const tx = 0.45 * balancoX(t, active, 0.6, 0.2) + active * Math.sin(t * W_TREMOR) * 1.2;
   cfg.tronco(ctx, tx);
 
-  if (near > 0.01) desenharBrilhoCopa(ctx, cfg, near, t);
-  desenharVolumes(ctx, cfg);
-  desenharManchas(ctx, cfg, near);
-  if (cfg.nFrutas > 0) desenharFrutas(ctx, cfg, t, near, active);
+  desenharCopa(ctx, cfg, near, state.fruitSeed);
   desenharFolhas(ctx, cfg, t, active);
 
   ctx.restore();
