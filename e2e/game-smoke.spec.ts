@@ -8,7 +8,7 @@ test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#titleScreen')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Oficina do Vale' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ziguiridubi' })).toBeVisible();
   await expect(page.locator('#gameCanvas')).toBeVisible();
   expect(await page.locator('#gameCanvas').evaluate(canvas => {
     const element = canvas as HTMLCanvasElement;

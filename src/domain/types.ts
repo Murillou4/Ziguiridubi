@@ -1,5 +1,5 @@
 /**
- * TIPOS E INTERFACES DE DOMÍNIO — OFICINA DO VALE
+ * TIPOS E INTERFACES DE DOMÍNIO — ZIGUIRIDUBI
  */
 
 import type { PlayerAppearance } from './PlayerAppearance.ts';

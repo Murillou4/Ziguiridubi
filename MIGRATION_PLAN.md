@@ -1,4 +1,4 @@
-# Plano de migração arquitetural — Oficina do Vale
+# Plano de migração arquitetural — Ziguiridubi
 
 ## Estado desta branch
 

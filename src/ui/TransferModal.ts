@@ -59,7 +59,7 @@ export class TransferModal {
     if (btnDownload) {
       btnDownload.addEventListener('click', () => {
         this.saveService.downloadBackupJson(getState(), getPlayer(), getAudio());
-        this.eventBus.emit('ui:toast', { message: ' Backup oficina-do-vale-save.json baixado!' });
+        this.eventBus.emit('ui:toast', { message: ' Backup ziguiridubi-save.json baixado!' });
       });
     }
 

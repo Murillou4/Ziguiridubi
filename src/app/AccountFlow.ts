@@ -188,7 +188,7 @@ export class AccountFlow {
         this.begin(payload);
         break;
       case 'backup':
-        if (this.session?.conflict) this.saves.downloadPayload(this.session.conflict.local, 'oficina-do-vale-copia-local.json');
+        if (this.session?.conflict) this.saves.downloadPayload(this.session.conflict.local, 'ziguiridubi-copia-local.json');
         break;
       case 'local':
       case 'cloud':

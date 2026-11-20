@@ -106,7 +106,7 @@ export class SaveService {
     this.downloadPayload(this.buildSavePayload(state, player, audioSettings));
   }
 
-  downloadPayload(payload: SavePayload, filename = 'oficina-do-vale-save.json'): void {
+  downloadPayload(payload: SavePayload, filename = 'ziguiridubi-save.json'): void {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

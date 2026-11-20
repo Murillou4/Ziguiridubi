@@ -1,4 +1,4 @@
-# Oficina do Vale
+# Ziguiridubi
 
 Jogo de progressão ativa em Canvas 2D, com interface DOM, TypeScript e Vite.
 
@@ -18,7 +18,7 @@ O Vite inicia o jogo em `http://localhost:5173`.
 
 ## Beta e contas
 
-O beta é servido pelo Firebase Hosting em [Oficina do Vale](https://oficina-do-vale-beta.web.app/). Visitantes salvam no navegador. Contas Google têm uma partida privada por conta, com cópia local para continuar quando a nuvem estiver indisponível.
+O beta é servido pelo Firebase Hosting em [Ziguiridubi](https://oficina-do-vale-beta.web.app/). Visitantes salvam no navegador. Contas Google têm uma partida privada por conta, com cópia local para continuar quando a nuvem estiver indisponível.
 
 Um save que está no `localhost` pode ser exportado em **Salvar** e importado usando o mesmo menu no beta. Depois, entre com Google e escolha **Levar minha partida local** se a conta estiver vazia. Saves de visitante e de conta são separados.
 

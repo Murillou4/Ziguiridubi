@@ -1,8 +1,8 @@
-# ARQUITETURA DE SOFTWARE — OFICINA DO VALE
+# ARQUITETURA DE SOFTWARE — ZIGUIRIDUBI
 
 ## 1. Visão Geral do Projeto
 
-**Oficina do Vale** é um jogo incremental de progressão ativa em 2.5D com temática artesanal e estética aconchegante (Cozy Steampunk). O jogador controla um artesão que explora um arquipélago de ilhas flutuantes celestes, colhendo madeira, pedra, ferro e cristais etéreos com um sistema rítmico de golpe crítico (*Sweet Spot*), processando matérias-primas em máquinas manuais e a vapor, vendendo produtos na Banca do Mercador, cumprindo contratos de entrega, investindo em árvores de melhorias e especializações, construindo pontes e estações através de zonas de projeto (*Blueprints*), e comissionando dirigíveis para expedições lucrativas.
+**Ziguiridubi** é um jogo incremental de progressão ativa em 2.5D com temática artesanal e estética aconchegante (Cozy Steampunk). O jogador controla um artesão que explora um arquipélago de ilhas flutuantes celestes, colhendo madeira, pedra, ferro e cristais etéreos com um sistema rítmico de golpe crítico (*Sweet Spot*), processando matérias-primas em máquinas manuais e a vapor, vendendo produtos na Banca do Mercador, cumprindo contratos de entrega, investindo em árvores de melhorias e especializações, construindo pontes e estações através de zonas de projeto (*Blueprints*), e comissionando dirigíveis para expedições lucrativas.
 
 O jogo é implementado utilizando **HTML5 Canvas 2D** para a renderização do mundo e entidades, combinado com **DOM / Tailwind CSS** para interface rica e responsiva, além da **Web Audio API** para síntese procedural de música Lo-Fi e sonoplastia (*Foley*).
 
