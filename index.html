@@ -167,6 +167,15 @@
         <button id="btnCollectAirshipHud" type="button" class="hidden rounded-lg px-3 py-2 ui-fill-moss font-bold text-xs">Coletar</button>
       </div>
 
+      <button id="btnDroneFarms" type="button" role="switch" aria-labelledby="droneFarmsLabel"
+        aria-checked="true" class="machine-switch hud-drone-switch pointer-events-auto" hidden>
+        <span class="machine-switch-info">
+          <span id="droneFarmsLabel">Farms com drones</span>
+          <small id="droneFarmsStatus">Ligadas</small>
+        </span>
+        <span class="machine-switch-track" aria-hidden="true"></span>
+      </button>
+
       <nav id="hudDock" class="hud-dock pointer-events-auto" aria-label="Atalhos da oficina">
         <button id="btnOpenMerchant" type="button" class="hud-dock-button" aria-controls="modalMerchant" aria-expanded="false" title="Banca do Mercador e contratos [1]">
           <img data-hud-resource-icon="coins" alt="" width="20" height="20"><span>Mercador</span>
@@ -251,12 +260,16 @@
             <button id="btnMerchantStockFilter" type="button" aria-pressed="false" class="merchant-quiet">Mostrar sem estoque</button>
           </div>
           <div id="merchantSellList" class="merchant-sell-list"></div>
+          <details class="merchant-reserves">
+            <summary>Reservas por material</summary>
+            <p>Unidades a manter ao vender excedentes.</p>
+            <div id="merchantReserveFields" class="merchant-reserve-fields"></div>
+          </details>
           <div class="merchant-surplus">
             <button id="btnSellSurplus" type="button" class="merchant-action ui-fill-moss ui-hover-moss" disabled>
               <span>Vender excedentes</span>
               <span id="merchantSurplusCoins"></span>
             </button>
-            <span id="merchantReserveNote"></span>
           </div>
         </section>
         <section id="merchantContractsView" role="tabpanel" aria-labelledby="merchantContractsTab" hidden>

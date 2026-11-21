@@ -111,4 +111,29 @@ describe('MachineSystem', () => {
     expect(state.machines.gearWorkshop.progress).toBe(0);
     expect(save).toHaveBeenCalledTimes(2);
   });
+
+  it('conclui a quantidade pedida sem exceder o limite com rendimento duplo', () => {
+    const state = createDefaultState();
+    const player = createDefaultPlayer();
+    const system = new MachineSystem(new InventorySystem(), new EventBus());
+    state.builds.sawmill.built = true;
+    state.upgrades.autoMachines = 1;
+    state.storage.wood = 2;
+    state.storage.planks = 10;
+    const stats = { ...getDerivedStats(state), doubleYieldChance: 1 };
+
+    expect(system.setPaused(state, 'sawmill', true)).toBe(true);
+    expect(system.setBatch(state, 'sawmill', 3)).toBe(true);
+    system.update(state, player, stats, 2);
+    system.update(state, player, stats, 2);
+    expect(state.storage.planks).toBe(12);
+    expect(state.machines.sawmill.batchRemaining).toBe(1);
+
+    state.storage.wood = 10;
+    system.update(state, player, stats, 2);
+    system.update(state, player, stats, 2);
+    expect(state.storage.planks).toBe(13);
+    expect(state.storage.wood).toBe(8);
+    expect(state.machines.sawmill).toEqual({ progress: 0, paused: true });
+  });
 });

@@ -53,6 +53,8 @@ export function createDefaultState(): GameState {
       furnace:      { progress: 0 },
       gearWorkshop: { progress: 0 }
     },
+    droneFarmsPaused: false,
+    surplusReserves: {},
     airship: {
       activeRouteId: null,
       elapsed: 0,

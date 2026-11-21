@@ -1,9 +1,13 @@
 import { DerivedStats, GameState, PlayerState, ResourceId } from '../domain/types.ts';
-import { RESOURCES } from '../config/resources.ts';
+import { RESOURCES, SELLABLE_RESOURCES } from '../config/resources.ts';
 import { InventorySystem } from './InventorySystem.ts';
 import { EventBus } from '../core/EventBus.ts';
 
-export const SURPLUS_RESERVE = 5;
+const DEFAULT_SURPLUS_RESERVE = 5;
+
+export function getSurplusReserve(state: GameState, id: ResourceId): number {
+  return state.surplusReserves[id] ?? DEFAULT_SURPLUS_RESERVE;
+}
 
 export function getSaleValue(quantity: number, unitPrice: number, multiplier: number): number {
   return Math.round(quantity * unitPrice * multiplier);
@@ -14,6 +18,15 @@ export class EconomySystem {
     private inventorySystem: InventorySystem,
     private eventBus: EventBus
   ) {}
+
+  setSurplusReserve(state: GameState, id: ResourceId, reserve: number): boolean {
+    if (!(RESOURCES[id]?.sellPrice > 0) || !Number.isSafeInteger(reserve) || reserve < 0) return false;
+    if (getSurplusReserve(state, id) === reserve) return false;
+
+    state.surplusReserves[id] = reserve;
+    this.eventBus.emit('save:request', { silent: true });
+    return true;
+  }
 
   sellDirectResource(
     state: GameState,
@@ -52,18 +65,14 @@ export class EconomySystem {
     let totalCoins = 0;
     let totalSold = 0;
 
-    (Object.values(RESOURCES) as typeof RESOURCES[ResourceId][]).forEach(r => {
-      if (r.sellPrice > 0) {
-        const have = this.inventorySystem.getTotalResource(state, player, r.id);
-        const surplus = Math.max(0, have - SURPLUS_RESERVE);
-        if (surplus > 0) {
-          this.inventorySystem.consumeResource(state, player, r.id, surplus);
-          const gained = getSaleValue(surplus, r.sellPrice, stats.merchantMult);
-          totalCoins += gained;
-          totalSold += surplus;
-        }
-      }
-    });
+    for (const resource of SELLABLE_RESOURCES) {
+      const have = this.inventorySystem.getTotalResource(state, player, resource.id);
+      const surplus = have - getSurplusReserve(state, resource.id);
+      if (surplus <= 0) continue;
+      this.inventorySystem.consumeResource(state, player, resource.id, surplus);
+      totalCoins += getSaleValue(surplus, resource.sellPrice, stats.merchantMult);
+      totalSold += surplus;
+    }
 
     if (totalCoins > 0) {
       state.storage.coins = (state.storage.coins || 0) + totalCoins;
@@ -75,7 +84,7 @@ export class EconomySystem {
       this.eventBus.emit('ui:hud');
     } else {
       this.eventBus.emit('ui:toast', {
-        message: 'ℹ️ Você não possui mais de 5 unidades excedentes no momento.'
+        message: 'ℹ️ Nenhum material está acima da reserva configurada.'
       });
     }
 

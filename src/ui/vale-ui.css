@@ -200,6 +200,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .vale-input:f
 }
 .machine-switch[aria-checked="true"] .machine-switch-track { background: var(--vale-moss); border-color: #8b9e76; }
 .machine-switch[aria-checked="true"] .machine-switch-track::after { transform: translateX(13px); background: #d1d9b7; }
+.machine-batch { display: grid; gap: 5px; padding: 0 6px 6px; font-size: .7rem; }
+.machine-batch[hidden], .machine-batch [hidden] { display: none; }
+.machine-batch-actions { display: flex; align-items: stretch; flex-wrap: wrap; gap: 5px; }
+.machine-batch input { width: 6.25rem; padding: 5px 6px; border-radius: 6px; }
+.machine-batch button { padding: 5px 8px; border-radius: 6px; font-weight: 700; }
+.machine-batch [data-batch-status]:empty { display: none; }
 
 .vale-resource-icon {
   display: inline-block;
@@ -426,7 +432,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .vale-input:f
 .hud-tool { width: 34px; height: 34px; background: var(--vale-paper); font-family: Fraunces, Georgia, serif; font-size: 1rem; font-weight: 700; }
 .hud-tool:hover { background: var(--vale-sand); }
 
-.hud-bottom { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.hud-bottom { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.hud-drone-switch { align-self: flex-end; cursor: pointer; }
+.hud-drone-switch[hidden] { display: none; }
+@media (min-width: 768px) and (pointer: fine) {
+  .hud-drone-switch { position: absolute; right: 0; bottom: 0; }
+}
 .hud-dock {
   position: relative;
   z-index: 31;

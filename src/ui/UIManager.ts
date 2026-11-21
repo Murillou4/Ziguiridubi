@@ -117,6 +117,13 @@ export class UIManager {
     document.getElementById('btnCollectAirshipHud')?.addEventListener('click', () => {
       this.airshipSystem.collectRewards(getState(), getStats());
     });
+    const droneSwitch = document.getElementById('btnDroneFarms');
+    droneSwitch?.addEventListener('click', () => {
+      const state = getState();
+      state.droneFarmsPaused = !state.droneFarmsPaused;
+      this.eventBus.emit('ui:hud');
+      this.eventBus.emit('save:request', { silent: false });
+    });
 
     // 3. Ação do Cartão de Inspeção do Mundo
     document.getElementById('wicActionBtn')?.addEventListener('click', () => {
@@ -263,7 +270,7 @@ export class UIManager {
   private syncMenuState(): void {
     const open = this.activeModal !== null;
     document.getElementById('hudLayer')?.toggleAttribute('data-menu-open', open);
-    document.querySelectorAll<HTMLElement>('.hud-top, #airshipFlightBanner, #touchControls, #worldInspectionCard')
+    document.querySelectorAll<HTMLElement>('.hud-top, #airshipFlightBanner, #touchControls, #worldInspectionCard, #btnDroneFarms')
       .forEach(element => { element.inert = open; });
     document.querySelectorAll('#hudDock button[aria-controls]').forEach(button => {
       button.setAttribute('aria-expanded', String(button.getAttribute('aria-controls') === this.activeModal));
@@ -274,7 +281,7 @@ export class UIManager {
     if (event.key !== 'Tab' || !this.activeModal) return;
     const panel = document.getElementById(this.activeModal);
     if (!panel) return;
-    const selector = 'button, input, textarea, select, a[href], [tabindex]';
+    const selector = 'button, input, textarea, select, summary, a[href], [tabindex]';
     const controls = [...dock.querySelectorAll<HTMLElement>(selector), ...panel.querySelectorAll<HTMLElement>(selector)]
       .filter(control => control.tabIndex >= 0 && !control.matches(':disabled') && control.getClientRects().length > 0);
     const first = controls[0];

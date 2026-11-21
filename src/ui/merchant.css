@@ -111,13 +111,19 @@
 }
 .merchant-action > span:empty { display: none; }
 
-.merchant-no-stock, .merchant-surplus > span, .merchant-empty {
+.merchant-no-stock, .merchant-empty {
   color: var(--vale-muted);
   font-size: .77rem;
 }
 
 .merchant-empty { padding: 16px 9px; text-align: center; background: var(--vale-inset); border-radius: 8px; }
 .merchant-surplus { justify-content: flex-start; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--vale-line); }
+.merchant-reserves { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--vale-line); font-size: .75rem; }
+.merchant-reserves summary { width: fit-content; cursor: pointer; font-weight: 700; }
+.merchant-reserves p { margin: 6px 0 8px; color: var(--vale-muted); }
+.merchant-reserve-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 225px), 1fr)); gap: 6px 12px; }
+.merchant-reserve-fields label { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.merchant-reserve-fields input { width: 5.5rem; padding: 5px 6px; border-radius: 6px; }
 
 .merchant-contract { padding: 11px 12px; }
 .merchant-reward { display: flex; gap: 7px; color: #efc78d; font-size: .75rem; font-weight: 700; }

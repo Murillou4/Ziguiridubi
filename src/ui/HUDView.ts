@@ -3,6 +3,7 @@ import { RESOURCES } from '../config/resources.ts';
 import { PHASES_INFO } from '../config/phases.ts';
 import { AIRSHIP_ROUTES } from '../config/airshipRoutes.ts';
 import { BLUEPRINTS_DEF } from '../config/buildings.ts';
+import { DRONE_KINDS, DRONE_MODELS } from '../config/drones.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
 import { getResourceIconUrl } from './resource-icon.ts';
 import type { TutorialAction, TutorialCue } from '../domain/Tutorial.ts';
@@ -66,6 +67,15 @@ export class HUDView {
     this.updateBackpackAndDash(player, stats);
     this.updateAirshipFlightBanner(state);
     this.updateObjectiveCard(state);
+
+    const droneSwitch = document.getElementById('btnDroneFarms');
+    if (!droneSwitch) return;
+    const enabled = !state.droneFarmsPaused;
+    droneSwitch.hidden = !DRONE_KINDS.some(kind => state.upgrades[DRONE_MODELS[kind].upgrade] > 0);
+    if (droneSwitch.getAttribute('aria-checked') === String(enabled)) return;
+    droneSwitch.setAttribute('aria-checked', String(enabled));
+    const status = document.getElementById('droneFarmsStatus');
+    if (status) status.textContent = enabled ? 'Ligadas' : 'Pausadas';
   }
 
   updateTutorial(cue: TutorialCue | null, mode: InputMode): void {

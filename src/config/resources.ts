@@ -13,3 +13,5 @@ export const RESOURCES: Record<ResourceId, ResourceDef> = {
   blueprints: { id: 'blueprints', name: 'Planta Técnica',    icon: 'PT', color: '#60a5fa', sellPrice: 0,   tier: 2 },
   coins:      { id: 'coins',      name: 'Moedas',            icon: 'MO', color: '#fde047', sellPrice: 0,   tier: 1 }
 };
+
+export const SELLABLE_RESOURCES = Object.values(RESOURCES).filter(resource => resource.sellPrice > 0);

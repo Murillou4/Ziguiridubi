@@ -61,6 +61,12 @@ export class DroneSystem {
       drone.bobPhase += dt * 4.5;
       const spd = 165 * stats.droneSpeedMult;
 
+      if (state.droneFarmsPaused && drone.state !== 'return') {
+        drone.targetNode = null;
+        drone.state = drone.cargo.length > 0 ? 'return' : 'seek';
+        if (drone.state === 'seek') return;
+      }
+
       if (drone.state === 'seek') {
         let nearest: ResourceNode | null = null;
         let bestDistance = Infinity;

@@ -159,6 +159,7 @@ export interface Contract {
 export interface MachineState {
   progress: number;
   paused?: boolean;
+  batchRemaining?: number;
 }
 
 export interface BuildProgress {
@@ -188,6 +189,8 @@ export interface GameState {
   builds: Record<string, BuildProgress>;
   trackedBuildId: string | null;
   machines: Record<string, MachineState>;
+  droneFarmsPaused: boolean;
+  surplusReserves: CostMap;
   airship: AirshipState;
   contracts: Contract[];
   stats: GameStats;

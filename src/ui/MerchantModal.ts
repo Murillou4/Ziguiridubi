@@ -1,13 +1,12 @@
 import { DerivedStats, GameState, PlayerState, ResourceId } from '../domain/types.ts';
-import { RESOURCES } from '../config/resources.ts';
+import { RESOURCES, SELLABLE_RESOURCES } from '../config/resources.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
-import { EconomySystem, getSaleValue, SURPLUS_RESERVE } from '../gameplay/EconomySystem.ts';
+import { EconomySystem, getSaleValue, getSurplusReserve } from '../gameplay/EconomySystem.ts';
 import { ContractSystem } from '../gameplay/ContractSystem.ts';
 import { resourceIcon } from './resource-icon.ts';
 
 type MerchantTab = 'sell' | 'contracts';
 
-const SELLABLE = Object.values(RESOURCES).filter(resource => resource.sellPrice > 0);
 const numberFormat = new Intl.NumberFormat('pt-BR');
 
 function escapeHtml(value: string): string {
@@ -78,13 +77,29 @@ export class MerchantModal {
     });
 
     document.getElementById('merchantWallet')?.insertAdjacentHTML('afterbegin', resourceIcon('coins', true));
-    const reserveNote = document.getElementById('merchantReserveNote');
-    if (reserveNote) reserveNote.textContent = `Guarda ${SURPLUS_RESERVE} de cada material.`;
+    const reserveFields = document.getElementById('merchantReserveFields');
+    if (reserveFields) {
+      reserveFields.innerHTML = SELLABLE_RESOURCES.map(resource => `
+        <label>
+          <span><span aria-hidden="true">${resourceIcon(resource.id, true)}</span> ${resource.name}</span>
+          <input type="number" min="0" max="${Number.MAX_SAFE_INTEGER}" step="1" required inputmode="numeric" class="vale-input" data-reserve="${resource.id}">
+        </label>
+      `).join('');
+      reserveFields.querySelectorAll<HTMLInputElement>('[data-reserve]').forEach(input => {
+        const resource = input.dataset.reserve as ResourceId;
+        input.addEventListener('change', () => {
+          const state = getState();
+          if (input.validity.valid) this.economySystem.setSurplusReserve(state, resource, input.valueAsNumber);
+          input.value = String(getSurplusReserve(state, resource));
+          render();
+        });
+      });
+    }
   }
 
   render(state: GameState, player: PlayerState, stats: DerivedStats): void {
     const signature = JSON.stringify([
-      this.activeTab, this.showEmptyStock, state.storage, player.backpack, state.contracts, stats.merchantMult
+      this.activeTab, this.showEmptyStock, state.storage, player.backpack, state.contracts, stats.merchantMult, state.surplusReserves
     ]);
     if (signature === this.renderedState) return;
     this.renderedState = signature;
@@ -119,7 +134,10 @@ export class MerchantModal {
   }
 
   private renderSales(state: GameState, player: PlayerState, stats: DerivedStats): string {
-    const stock = SELLABLE.map(resource => ({
+    document.querySelectorAll<HTMLInputElement>('#merchantReserveFields [data-reserve]').forEach(input => {
+      if (input !== document.activeElement) input.value = String(getSurplusReserve(state, input.dataset.reserve as ResourceId));
+    });
+    const stock = SELLABLE_RESOURCES.map(resource => ({
       resource,
       have: this.inventorySystem.getTotalResource(state, player, resource.id)
     }));
@@ -129,7 +147,7 @@ export class MerchantModal {
     if (filter) filter.textContent = this.showEmptyStock ? 'Só em estoque' : 'Mostrar sem estoque';
 
     const surplus = stock.reduce((total, { resource, have }) =>
-      total + getSaleValue(Math.max(0, have - SURPLUS_RESERVE), resource.sellPrice, stats.merchantMult), 0);
+      total + getSaleValue(Math.max(0, have - getSurplusReserve(state, resource.id)), resource.sellPrice, stats.merchantMult), 0);
     const sellSurplus = document.getElementById('btnSellSurplus') as HTMLButtonElement | null;
     if (sellSurplus) sellSurplus.disabled = surplus <= 0;
     const surplusCoins = document.getElementById('merchantSurplusCoins');

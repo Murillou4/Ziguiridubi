@@ -2,6 +2,7 @@ import { AudioSettings, GameState, SavePayload } from '../domain/types.ts';
 import { createDefaultState } from '../domain/GameState.ts';
 import { createDefaultAudioSettings } from '../audio/AudioSettings.ts';
 import { TUTORIAL_STEPS } from '../domain/Tutorial.ts';
+import { SELLABLE_RESOURCES } from '../config/resources.ts';
 
 export class SaveMigrator {
   /**
@@ -20,6 +21,11 @@ export class SaveMigrator {
 
     const defaultState = createDefaultState();
     const defaultAudio = createDefaultAudioSettings();
+    const surplusReserves: GameState['surplusReserves'] = {};
+    for (const { id } of SELLABLE_RESOURCES) {
+      const reserve = stateObj.surplusReserves?.[id];
+      if (Number.isSafeInteger(reserve) && reserve >= 0) surplusReserves[id] = reserve;
+    }
 
     const normalizedState: GameState = {
       ...defaultState,
@@ -41,6 +47,8 @@ export class SaveMigrator {
         ...defaultState.machines,
         ...(stateObj.machines || {})
       },
+      droneFarmsPaused: stateObj.droneFarmsPaused === true,
+      surplusReserves,
       airship: {
         ...defaultState.airship,
         ...(stateObj.airship || {})
@@ -53,6 +61,14 @@ export class SaveMigrator {
       specialization: stateObj.specialization || null,
       trackedBuildId: stateObj.trackedBuildId ?? defaultState.trackedBuildId
     };
+
+    for (const id of Object.keys(defaultState.machines)) {
+      const machine = normalizedState.machines[id];
+      const remaining = machine?.batchRemaining;
+      if (remaining !== undefined && (!Number.isSafeInteger(remaining) || remaining <= 0 || machine.paused !== true)) {
+        delete machine.batchRemaining;
+      }
+    }
 
     const playerPos = {
       x: typeof rawParsed.playerPos?.x === 'number' ? rawParsed.playerPos.x : 0,

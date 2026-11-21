@@ -95,6 +95,30 @@ describe('DroneSystem', () => {
     expect(drone.state).toBe('seek');
   });
 
+  it('pausa coletas, entrega a carga em curso e volta a buscar quando ligado', () => {
+    const state = createDefaultState();
+    const system = new DroneSystem(new EventBus());
+    const world = new WorldSystem();
+    state.upgrades.lumberDrone = 1;
+    system.syncDrones(state);
+    const stats = getDerivedStats(state);
+    const drone = system.drones[0];
+    const node = world.nodes.find(item => item.type === 'tree')!;
+    const initialHp = node.hp;
+    Object.assign(drone, { x: 95, y: -37, state: 'harvest', targetNode: node, cargo: ['wood'], workTimer: 0 });
+
+    state.droneFarmsPaused = true;
+    system.update(state, stats, world.nodes, world.islands, .05);
+    system.update(state, stats, world.nodes, world.islands, .05);
+    expect(state.storage.wood).toBe(1);
+    expect(node.hp).toBe(initialHp);
+    expect(drone.targetNode).toBeNull();
+
+    state.droneFarmsPaused = false;
+    system.update(state, stats, world.nodes, world.islands, .05);
+    expect(drone.targetNode?.type).toBe('tree');
+  });
+
   it('remove drones excedentes quando os níveis importados são menores', () => {
     const state = createDefaultState();
     const system = new DroneSystem(new EventBus());

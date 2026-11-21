@@ -151,7 +151,7 @@ export const UPGRADES_DEF: UpgradeDef[] = [
     id: 'autoMachines',
     category: 'automation',
     name: 'Alimentador Automático de Máquinas',
-    desc: 'Produz usando seu estoque mesmo à distância. Você pode pausar cada máquina para guardar os materiais.',
+    desc: 'Produz usando seu estoque mesmo à distância. Desligue o automático de uma máquina para pedir uma quantidade específica.',
     maxLevel: 1,
     costs: [
       { ironIngot: 10, planks: 14, coins: 140 }
@@ -168,7 +168,7 @@ export const UPGRADES_DEF: UpgradeDef[] = [
     costs: [
       { gears: 3, ironIngot: 8, coins: 180 },
       { gears: 6, steamCore: 1, coins: 360 },
-      { gears: 10, etherCryst: 2, coins: 680 }
+      { gears: 10, steamCore: 2, coins: 680 }
     ],
     effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drone(s) Lenhador`
   },
@@ -182,7 +182,7 @@ export const UPGRADES_DEF: UpgradeDef[] = [
     costs: [
       { gears: 4, ironIngot: 10, coins: 220 },
       { gears: 8, steamCore: 2, coins: 440 },
-      { gears: 12, etherCryst: 3, coins: 780 }
+      { gears: 12, steamCore: 3, coins: 780 }
     ],
     effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drones de Pedra`
   },
@@ -195,8 +195,8 @@ export const UPGRADES_DEF: UpgradeDef[] = [
     requiresBuild: ['droneStation', 'eastBridge'],
     costs: [
       { gears: 6, planks: 12, coins: 300 },
-      { gears: 10, ironIngot: 12, coins: 550 },
-      { gears: 14, steamCore: 2, coins: 900 }
+      { gears: 10, steamCore: 3, coins: 550 },
+      { gears: 14, steamCore: 4, coins: 900 }
     ],
     effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drones de Ferro`
   },
@@ -209,8 +209,8 @@ export const UPGRADES_DEF: UpgradeDef[] = [
     requiresBuild: ['droneStation', 'westBridge'],
     costs: [
       { gears: 12, ironIngot: 16, coins: 650 },
-      { gears: 16, steamCore: 2, coins: 950 },
-      { gears: 22, etherCryst: 6, coins: 1400 }
+      { gears: 16, steamCore: 4, etherCryst: 3, coins: 950 },
+      { gears: 22, steamCore: 6, etherCryst: 6, coins: 1400 }
     ],
     effectText: (lvl: number) => `${lvl} → ${lvl + 1} Drones de Cristal`
   },

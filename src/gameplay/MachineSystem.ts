@@ -22,6 +22,18 @@ export class MachineSystem {
     if ((machine.paused === true) === paused) return false;
 
     machine.paused = paused;
+    if (!paused) delete machine.batchRemaining;
+    this.eventBus.emit('save:request', { silent: false });
+    return true;
+  }
+
+  setBatch(state: GameState, id: MachineId, quantity: number): boolean {
+    const machine = state.machines[id];
+    if (!this.hasProductionControls(state) || !state.builds[id]?.built || machine?.paused !== true) return false;
+    if (!Number.isSafeInteger(quantity) || quantity < 0 || (machine.batchRemaining ?? 0) === quantity) return false;
+
+    if (quantity > 0) machine.batchRemaining = quantity;
+    else delete machine.batchRemaining;
     this.eventBus.emit('save:request', { silent: false });
     return true;
   }
@@ -31,7 +43,9 @@ export class MachineSystem {
 
     for (const recipe of machineRecipes) {
       const machine = state.machines[recipe.id];
-      if (!state.builds[recipe.id]?.built || !machine || machine.paused === true) continue;
+      if (!state.builds[recipe.id]?.built || !machine) continue;
+      const batchRemaining = machine.paused === true ? machine.batchRemaining ?? 0 : null;
+      if (batchRemaining === 0) continue;
 
       const blueprint = BLUEPRINTS_DEF.find(bp => bp.id === recipe.id)!;
       const cx = blueprint.x + blueprint.w / 2;
@@ -43,10 +57,15 @@ export class MachineSystem {
       if (machine.progress < 1 || !this.inventorySystem.spendCost(state, player, recipe.inputs)) continue;
 
       machine.progress = 0;
-      const bonus = Math.random() < stats.doubleYieldChance;
+      const bonus = batchRemaining !== 1 && Math.random() < stats.doubleYieldChance;
       const output = bonus ? 2 : 1;
       const resource = recipe.outputResource;
       state.storage[resource] = (state.storage[resource] || 0) + output;
+      if (batchRemaining !== null) {
+        const remaining = batchRemaining - output;
+        if (remaining > 0) machine.batchRemaining = remaining;
+        else delete machine.batchRemaining;
+      }
 
       this.eventBus.emit('fx:floatingText', {
         x: cx,

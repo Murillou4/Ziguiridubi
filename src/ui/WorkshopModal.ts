@@ -1,7 +1,7 @@
 import { GameState, PlayerState, ResourceId, SpecializationId } from '../domain/types.ts';
 import { UPGRADE_CATEGORIES, UPGRADES_DEF } from '../config/upgrades.ts';
 import { SPECIALIZATIONS } from '../config/specializations.ts';
-import { MACHINE_RECIPES } from '../config/machines.ts';
+import { MACHINE_RECIPES, type MachineId } from '../config/machines.ts';
 import { BLUEPRINTS_DEF } from '../config/buildings.ts';
 import { resourceIcon } from './resource-icon.ts';
 import { InventorySystem } from '../gameplay/InventorySystem.ts';
@@ -161,13 +161,28 @@ export class WorkshopModal {
 
     for (const { id } of machineRecipes) {
       const button = listEl.querySelector<HTMLButtonElement>(`[data-machine-switch="${id}"]`);
+      const form = listEl.querySelector<HTMLFormElement>(`[data-machine-batch="${id}"]`);
+      const quantity = form?.querySelector<HTMLInputElement>('input');
       button?.addEventListener('click', () => {
         const paused = state.machines[id]?.paused !== true;
         if (!this.machineSystem.setPaused(state, id, paused)) return;
 
         button.setAttribute('aria-checked', String(!paused));
         const status = button.querySelector('[data-machine-status]');
-        if (status) status.textContent = paused ? 'Pausada' : 'Ligada';
+        if (status) status.textContent = paused ? 'Automático desligado' : 'Automático ligado';
+        if (form) form.hidden = !paused;
+        this.refreshBatchStatus(listEl, state, id);
+      });
+      form?.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!quantity || !this.machineSystem.setBatch(state, id, quantity.valueAsNumber)) return;
+        quantity.value = '';
+        this.refreshBatchStatus(listEl, state, id);
+      });
+      form?.querySelector('[data-cancel-batch]')?.addEventListener('click', () => {
+        if (!this.machineSystem.setBatch(state, id, 0)) return;
+        quantity?.focus();
+        this.refreshBatchStatus(listEl, state, id);
       });
     }
   }
@@ -176,11 +191,12 @@ export class WorkshopModal {
     return `
       <div class="machine-controls" role="group" aria-labelledby="machineControlsTitle">
         <h4 id="machineControlsTitle">Produção por máquina</h4>
-        <p>Pausar conserva os materiais e guarda o progresso da receita.</p>
-        ${machineRecipes.map(({ id, name }) => {
+        <p>Desligue o automático para produzir somente a quantidade pedida.</p>
+        ${machineRecipes.map(({ id, name, outputResource }) => {
           const built = state.builds[id]?.built && state.machines[id];
           const enabled = Boolean(built && state.machines[id].paused !== true);
-          const status = !built ? 'Por construir' : enabled ? 'Ligada' : 'Pausada';
+          const status = !built ? 'Por construir' : enabled ? 'Automático ligado' : 'Automático desligado';
+          const remaining = built ? state.machines[id].batchRemaining ?? 0 : 0;
           return `
             <button type="button" role="switch" aria-labelledby="machine-name-${id}" aria-checked="${enabled}"
               data-machine-switch="${id}" class="machine-switch" ${built ? '' : 'disabled'}>
@@ -190,10 +206,31 @@ export class WorkshopModal {
               </span>
               <span class="machine-switch-track" aria-hidden="true"></span>
             </button>
+            ${built ? `
+              <form data-machine-batch="${id}" class="machine-batch" ${enabled ? 'hidden' : ''}>
+                <label for="batch-quantity-${id}">Quantidade · <span aria-hidden="true">${resourceIcon(outputResource, true)}</span> ${MACHINE_RECIPES[id].floatText}</label>
+                <div class="machine-batch-actions">
+                  <input id="batch-quantity-${id}" type="number" min="1" max="${Number.MAX_SAFE_INTEGER}" step="1" required inputmode="numeric" class="vale-input">
+                  <button class="ui-fill-moss ui-hover-moss" type="submit">Produzir</button>
+                  <button class="ui-fill-inset" type="button" data-cancel-batch ${remaining ? '' : 'hidden'}>Cancelar</button>
+                </div>
+                <p role="status" data-batch-status>${remaining ? `Restam ${remaining} un. no pedido` : ''}</p>
+              </form>
+            ` : ''}
           `;
         }).join('')}
       </div>
     `;
+  }
+
+  private refreshBatchStatus(list: HTMLElement, state: GameState, id: MachineId): void {
+    const form = list.querySelector<HTMLFormElement>(`[data-machine-batch="${id}"]`);
+    if (!form) return;
+    const remaining = state.machines[id]?.batchRemaining ?? 0;
+    const status = form.querySelector('[data-batch-status]');
+    const message = remaining ? `Restam ${remaining} un. no pedido` : '';
+    if (status && status.textContent !== message) status.textContent = message;
+    form.querySelector('[data-cancel-batch]')?.toggleAttribute('hidden', remaining === 0);
   }
 
   /**
@@ -203,6 +240,10 @@ export class WorkshopModal {
   refreshResources(state: GameState, player: PlayerState): void {
     const listEl = document.getElementById('upgradeList');
     if (!listEl || this.activeUpgradeTab === 'specialization') return;
+
+    if (this.activeUpgradeTab === 'automation') {
+      for (const { id } of machineRecipes) this.refreshBatchStatus(listEl, state, id);
+    }
 
     listEl.querySelectorAll<HTMLElement>('[data-upgrade-resource]').forEach(chip => {
       const resource = chip.dataset.resource as ResourceId | undefined;

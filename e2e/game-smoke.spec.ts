@@ -1,5 +1,56 @@
 import { expect, test } from '@playwright/test';
 
+test('controla farms, pedidos de refino e reservas pelo HUD', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.locator('#btnStartGame').click();
+  await expect(page.locator('#titleScreen')).toBeHidden();
+  const droneSwitch = page.getByRole('switch', { name: 'Farms com drones' });
+  await expect(droneSwitch).toBeHidden();
+  await page.evaluate(() => {
+    const app = window.gameApp;
+    app.state.builds.sawmill.built = true;
+    Object.assign(app.state.upgrades, { autoMachines: 1, lumberDrone: 1 });
+    app.services.droneSystem.syncDrones(app.state);
+  });
+
+  await expect(droneSwitch).toBeVisible();
+  const bounds = (await droneSwitch.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(viewport.width - bounds.x - bounds.width).toBeLessThan(24);
+  expect(bounds.y).toBeGreaterThan(viewport.height * .7);
+  await droneSwitch.click();
+  await expect(droneSwitch).toHaveAttribute('aria-checked', 'false');
+
+  await page.locator('#btnOpenWorkshop').click();
+  await page.getByRole('button', { name: 'Automação' }).click();
+  await page.getByRole('switch', { name: 'Serraria Manual' }).click();
+  await page.evaluate(() => {
+    Object.assign(window.gameApp.state.storage, { wood: 22, stone: 8, planks: 0 });
+  });
+  const order = page.locator('[data-machine-batch="sawmill"]');
+  await order.getByRole('spinbutton').fill('2');
+  await order.getByRole('button', { name: 'Produzir' }).click();
+  await expect.poll(() => page.evaluate(() => window.gameApp.state.storage.planks), { timeout: 15_000 }).toBe(2);
+  await expect(order.getByRole('button', { name: 'Cancelar' })).toBeHidden();
+
+  await page.locator('#btnOpenMerchant').click();
+  await page.getByText('Reservas por material', { exact: true }).click();
+  const reserve = page.getByRole('spinbutton', { name: 'Madeira', exact: true });
+  await expect(reserve).toHaveValue('5');
+  await reserve.fill('12');
+  await reserve.blur();
+  await page.getByRole('button', { name: /Vender excedentes/ }).click();
+  expect(await page.evaluate(() => window.gameApp.state.storage)).toMatchObject({ wood: 12, stone: 5, planks: 2 });
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('#btnStartGame').click();
+  await expect(droneSwitch).toHaveAttribute('aria-checked', 'false');
+  await page.locator('#btnOpenMerchant').click();
+  await page.getByText('Reservas por material', { exact: true }).click();
+  await expect(reserve).toHaveValue('12');
+});
+
 test('inicializa o mundo, inicia a jornada e aceita controles de teclado e mouse', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Fluxo de mouse/desktop.');
 
